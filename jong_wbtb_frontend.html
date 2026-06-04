@@ -1401,11 +1401,14 @@ function renderWsDetail(p) {
     putaranBadge.classList.remove('hidden');
   }
 
-  // Catatan Penilai Eksternal
-  if (p.catatanPenilai && p.catatanPenilai.length > 0) {
+  // Catatan Penilai Eksternal — Sembunyikan jika tidak dalam status Diperbaiki (Revisi Aktif)
+  const catatanCard = document.getElementById('ws-catatan-penilai-card');
+  catatanCard.classList.add('hidden');
+
+  if (p.status === 'Diperbaiki' && p.catatanPenilai && p.catatanPenilai.length > 0) {
     const aktif = p.catatanPenilai.find(c => c.putaran === p.revisiRound);
     if (aktif) {
-      document.getElementById('ws-catatan-penilai-card').classList.remove('hidden');
+      catatanCard.classList.remove('hidden');
       document.getElementById('ws-catatan-putaran').textContent =
         'P' + String(aktif.putaran).padStart(2,'0');
       document.getElementById('ws-catatan-isi').textContent = aktif.catatan;
@@ -1449,6 +1452,47 @@ function renderWsAksiButtons(p) {
         Kirim ke Atasan →
       </button>
     `;
+  }
+
+  // Anggota Tim tandai revisi selesai
+  if (status === 'Diperbaiki' && !locked && App.user.role === 'Anggota Tim') {
+    if (p.isRevisiSelesai) {
+      html += `
+        <span style="color:var(--emerald);font-weight:500;font-size:0.8rem;background:var(--success-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(27,107,69,0.2);display:inline-flex;align-items:center;gap:4px;">
+          ✓ Perbaikan telah dikirim ke Operator
+        </span>
+      `;
+    } else {
+      html += `
+        <button class="btn btn-primary btn-sm"
+          onclick="kirimHasilPerbaikan('${p.id}')">
+          Kirim Hasil Perbaikan →
+        </button>
+      `;
+    }
+  }
+
+  // Tandai Selesai Revisi — jika status Diperbaiki, tidak locked, user adalah Operator, DAN Anggota Tim sudah mengirim perbaikan
+  if (status === 'Diperbaiki' && !locked && App.user.role === 'Operator') {
+    if (p.isRevisiSelesai) {
+      html += `
+        <div style="display:inline-flex;align-items:center;gap:12px;">
+          <span style="color:var(--emerald);font-weight:500;font-size:0.8rem;background:var(--success-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(27,107,69,0.2);display:inline-flex;align-items:center;gap:4px;">
+            ✓ Perbaikan dilaporkan selesai
+          </span>
+          <button class="btn btn-primary btn-sm"
+            onclick="konfirmasiUbahStatusOperator('${p.id}', 'Sedang Dikerjakan')">
+            Tandai Selesai Revisi
+          </button>
+        </div>
+      `;
+    } else {
+      html += `
+        <span style="color:var(--gold-dark);font-weight:500;font-size:0.8rem;background:var(--gold-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(200,132,26,0.2);display:inline-flex;align-items:center;gap:4px;">
+          ⏳ Menunggu Anggota Tim menyelesaikan perbaikan
+        </span>
+      `;
+    }
   }
 
   // Hapus Usulan — jika status Sedang Dikerjakan atau Diperbaiki, tidak locked, DAN user adalah Operator
@@ -2277,8 +2321,8 @@ function tampilModalDetailOperator(p) {
     `;
   }
 
-  // Tandai Selesai Revisi — jika status Diperbaiki (Revisi Nasional selesai)
-  if (p.status === 'Diperbaiki') {
+  // Tandai Selesai Revisi — jika status Diperbaiki (Revisi Nasional selesai) dan sudah dilaporkan selesai oleh anggota
+  if (p.status === 'Diperbaiki' && p.isRevisiSelesai === true) {
     aksiHtml += `
       <button class="btn btn-ghost btn-sm"
         onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Sedang Dikerjakan')">
@@ -2309,9 +2353,34 @@ async function konfirmasiUbahStatusOperator(proposalId, statusBaru) {
       try {
         await gasCall('updateProposalStatus', App.user.email, proposalId, statusBaru);
         showToast('Status berhasil diubah ke ' + statusBaru, 'success');
-        renderSemuaUsulan();
+        if (App.currentPage === 'workspace') {
+          bukaWsProposal(proposalId);
+        } else if (App.currentPage === 'semua-usulan') {
+          renderSemuaUsulan();
+        } else {
+          navigateTo(App.currentPage);
+        }
       } catch (err) {
         showToast('Gagal ubah status: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+async function kirimHasilPerbaikan(proposalId) {
+  showKonfirmasi(
+    'Kirim Perbaikan',
+    'Apakah Anda yakin telah menyelesaikan seluruh perbaikan sesuai Catatan Penilai Eksternal dan ingin mengirimkannya ke Operator?',
+    async () => {
+      try {
+        showLoading('Mengirim laporan perbaikan...');
+        await gasCall('setRevisiSelesai', App.user.email, proposalId, true);
+        showToast('Laporan perbaikan berhasil dikirim ke Operator.', 'success');
+        bukaWsProposal(proposalId);
+      } catch (err) {
+        showToast('Gagal mengirim perbaikan: ' + err.message, 'error');
+      } finally {
+        hideLoading();
       }
     }
   );

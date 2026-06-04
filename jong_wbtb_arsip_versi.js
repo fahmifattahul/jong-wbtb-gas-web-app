@@ -80,9 +80,7 @@ function arsipFormulirVersi(proposalId, folderJenisId, docActiveId, versiLama, a
   var namaFileAktif   = fileAktif.getName();
 
   // 1. Pindahkan file lama ke ARSIP-VERSI (move, bukan copy)
-  // DriveApp tidak punya native move — addFile ke target, removeFile dari source
-  folderArsip.addFile(fileAktif);
-  folderJenis.removeFile(fileAktif);
+  fileAktif.moveTo(folderArsip);
 
   var arsipFileId = fileAktif.getId(); // ID tetap sama setelah dipindah
 
@@ -143,8 +141,7 @@ function arsipKajianFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
   var namaFile      = fileLama.getName();
 
   // Pindahkan file lama ke ARSIP-VERSI
-  folderArsip.addFile(fileLama);
-  folderJenis.removeFile(fileLama);
+  fileLama.moveTo(folderArsip);
 
   writeAuditLog(
     ACTION_TYPES.ARSIP_VERSI_PINDAH,
@@ -186,8 +183,7 @@ function arsipFotoFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
   var namaFile      = fileLama.getName();
 
   // Pindahkan file lama ke ARSIP-VERSI
-  folderArsip.addFile(fileLama);
-  folderJenis.removeFile(fileLama);
+  fileLama.moveTo(folderArsip);
 
   writeAuditLog(
     ACTION_TYPES.ARSIP_VERSI_PINDAH,
@@ -241,8 +237,7 @@ function arsipVideoUrl(proposalId, judulSingkat, folderJenisId, fileIdLama,
   if (fileIdLama) {
     var folderArsip = getArsipVersiFolder(folderJenisId);
     var fileLama    = DriveApp.getFileById(fileIdLama);
-    folderArsip.addFile(fileLama);
-    folderJenis.removeFile(fileLama);
+    fileLama.moveTo(folderArsip);
     arsipFileId = fileIdLama;
 
     writeAuditLog(

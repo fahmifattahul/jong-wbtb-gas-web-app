@@ -124,11 +124,14 @@ var COL = {
   DITANGGUHKAN_AT: 23, // Date
 
   // ── Verifikasi Atasan ───────────────────────────────
-  IS_APPROVED_BY_ATASAN: 24 // Boolean (TRUE jika sudah di-ACC Atasan)
+  IS_APPROVED_BY_ATASAN: 24, // Boolean (TRUE jika sudah di-ACC Atasan)
+
+  // ── Status Revisi Anggota ───────────────────────────
+  IS_REVISI_SELESAI: 25 // Boolean (TRUE jika Anggota menyatakan selesai revisi)
 };
 
-// Total kolom: 25
-var TOTAL_COLS_WBTB = 25;
+// Total kolom: 26
+var TOTAL_COLS_WBTB = 26;
 
 
 // ─────────────────────────────────────────────
@@ -218,7 +221,8 @@ var HEADERS_WBTB = [
   "updated_at",
   "judul_singkat",
   "ditangguhkan_at",
-  "is_approved_by_atasan"
+  "is_approved_by_atasan",
+  "is_revisi_selesai"
 ];
 
 var HEADERS_LOG = [
@@ -377,14 +381,16 @@ function initializeDatabase() {
     Logger.log("Sheet '" + DB_NAMES.WBTB_LINGGA + "' berhasil dibuat.");
   } else {
     Logger.log("Sheet '" + DB_NAMES.WBTB_LINGGA + "' sudah ada — dilewati.");
-    // Auto-migrasi: Tambah kolom is_approved_by_atasan ke sheet jika belum ada
-    var cellHeader = sheetWbtb.getRange(1, TOTAL_COLS_WBTB);
-    if (cellHeader.getValue() !== HEADERS_WBTB[TOTAL_COLS_WBTB - 1]) {
-      cellHeader.setValue(HEADERS_WBTB[TOTAL_COLS_WBTB - 1]);
+    // Auto-migrasi multi-kolom yang dinamis
+    var lastCol = sheetWbtb.getLastColumn();
+    if (lastCol < TOTAL_COLS_WBTB) {
+      for (var c = lastCol + 1; c <= TOTAL_COLS_WBTB; c++) {
+        sheetWbtb.getRange(1, c).setValue(HEADERS_WBTB[c - 1]);
+      }
       sheetWbtb.getRange(1, 1, 1, TOTAL_COLS_WBTB)
         .setFontWeight("bold")
         .setBackground("#E8F0FE");
-      Logger.log("Kolom 'is_approved_by_atasan' berhasil ditambahkan ke sheet lama.");
+      Logger.log("Auto-migrasi kolom baru berhasil dilakukan.");
     }
   }
 

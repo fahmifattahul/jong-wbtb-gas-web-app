@@ -347,6 +347,10 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
       sheet.getRange(targetRowIndex, COL.DITANGGUHKAN_AT + 1).setValue(new Date());
     }
 
+    if (dariStatus === STATUS.DIPERBAIKI && keStatus === STATUS.SEDANG_DIKERJAKAN) {
+      sheet.getRange(targetRowIndex, COL.IS_REVISI_SELESAI + 1).setValue(false);
+    }
+
     // Kelola flag is_approved_by_atasan
     var nextApprovedByAtasan = false;
     if (keStatus === STATUS.PERSETUJUAN_INTERNAL) {

@@ -135,6 +135,7 @@ function buatProposalSummary(row) {
     folderKaryaId        : row[COL.FOLDER_KARYA_ID],
     driveLocked          : row[COL.DRIVE_LOCKED],
     isApprovedByAtasan   : row[COL.IS_APPROVED_BY_ATASAN] === true || row[COL.IS_APPROVED_BY_ATASAN] === 'TRUE',
+    isRevisiSelesai      : row[COL.IS_REVISI_SELESAI] === true || row[COL.IS_REVISI_SELESAI] === 'TRUE',
     createdAt            : row[COL.CREATED_AT]
                            ? new Date(row[COL.CREATED_AT]).toISOString() : null,
     updatedAt            : row[COL.UPDATED_AT]
@@ -230,6 +231,7 @@ function createProposal(operatorEmail, data) {
       rowData[COL.JUDUL_SINGKAT]          = data.judulSingkat;
       rowData[COL.DITANGGUHKAN_AT]        = '';
       rowData[COL.IS_APPROVED_BY_ATASAN]  = false;
+      rowData[COL.IS_REVISI_SELESAI]      = false;
       sheet.appendRow(rowData);
     });
 
@@ -298,6 +300,7 @@ function getProposalDetail(requesterEmail, proposalId) {
       catatanPenilai       : catatanPenilai,
       driveLocked          : row[COL.DRIVE_LOCKED],
       isApprovedByAtasan   : row[COL.IS_APPROVED_BY_ATASAN] === true || row[COL.IS_APPROVED_BY_ATASAN] === 'TRUE',
+      isRevisiSelesai      : row[COL.IS_REVISI_SELESAI] === true || row[COL.IS_REVISI_SELESAI] === 'TRUE',
       ditangguhkanAt       : row[COL.DITANGGUHKAN_AT]
                              ? new Date(row[COL.DITANGGUHKAN_AT]).toISOString() : null,
       createdAt            : row[COL.CREATED_AT]
@@ -860,6 +863,7 @@ function createArsipHistoris(operatorEmail, data) {
       rowData[COL.JUDUL_SINGKAT]         = data.judulSingkat;
       rowData[COL.DITANGGUHKAN_AT]       = '';
       rowData[COL.IS_APPROVED_BY_ATASAN] = true;
+      rowData[COL.IS_REVISI_SELESAI]     = false;
       sheet.appendRow(rowData);
     });
 
@@ -1399,6 +1403,40 @@ function deleteVideoUrl(operatorEmail, proposalId) {
     return { success: true };
   } catch (err) {
     throw new Error('deleteVideoUrl gagal: ' + err.message);
+  }
+}
+
+
+
+/**
+ * Menandai apakah revisi usulan telah selesai dikerjakan oleh Anggota Tim.
+ */
+function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
+  try {
+    var role = requireRole(requesterEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error('Proposal \'' + proposalId + '\' tidak ditemukan.');
+    
+    if (role === ROLES.ANGGOTA_TIM && hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL] !== requesterEmail) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    
+    DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(s) {
+      var h = DatabaseEngine.findRow(s, COL.ID, proposalId);
+      s.getRange(h.rowIndex, COL.IS_REVISI_SELESAI + 1).setValue(isSelesai);
+      s.getRange(h.rowIndex, COL.UPDATED_AT + 1).setValue(new Date());
+    });
+    
+    writeAuditLog(
+      ACTION_TYPES.STATUS_CHANGE,
+      "Status revisi selesai diset ke " + isSelesai + " oleh " + requesterEmail,
+      proposalId
+    );
+    
+    return { success: true };
+  } catch (err) {
+    throw new Error('setRevisiSelesai gagal: ' + err.message);
   }
 }
 
