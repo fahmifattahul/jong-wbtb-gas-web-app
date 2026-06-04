@@ -1,0 +1,727 @@
+﻿
+JONG WBTb
+Jaringan Online Pengelolaan Warisan Budaya Takbenda
+DOKUMEN TEKNIS SISTEM
+System Design &amp; Technical Specification
+Atribut
+Keterangan
+Versi Sistem
+v1.0 (2026)
+Penyusun
+Fattahul Fahmi
+NIP
+199807042025061002
+Jabatan
+Pranata Komputer Ahli Pertama
+Instansi
+Dinas Kebudayaan Kabupaten Lingga
+Tanggal Dokumen
+23 Mei 2026
+Status
+Final — Produksi
+BAB 1 — PENDAHULUAN
+1.1 Latar Belakang
+Kabupaten Lingga memiliki kekayaan Warisan Budaya Takbenda (WBTb) yang signifikan, mulai dari tradisi lisan, seni pertunjukan, adat istiadat, hingga kemahiran kerajinan tradisional. Namun, proses pengusulan WBTb ke tingkat nasional selama ini menghadapi beberapa kendala mendasar:
+Dokumen formulir usulan, kajian akademik, dan file multimedia tersebar di berbagai perangkat lokal tanpa struktur direktori yang baku.
+Terjadi tumpang-tindih penyuntingan dokumen antara Tim Pengusul dengan verifikator internal dinas, serta ketidakjelasan versi dokumen terbaru.
+Tidak ada mekanisme tracking status pengusulan yang transparan dan terpusat.
+Pembangunan sistem berbasis server mandiri membutuhkan anggaran besar yang tidak tersedia di APBD daerah.
+1.2 Tujuan Sistem
+JONG WBTb dibangun untuk mencapai tujuan berikut:
+Mengdigitalisasi alur kerja pengusulan WBTb dari draf mentah hingga penetapan sertifikat nasional.
+Menyediakan ruang kerja digital terpusat berbasis Google Workspace tanpa biaya infrastruktur tambahan.
+Menerapkan kontrol versi dokumen yang ketat sesuai standar Juknis Tata Kelola Dokumen Digital WBTb 2026 Revisi 2.
+Memastikan kepatuhan terhadap Juknis dalam setiap alur kerja sistem.
+1.3 Ruang Lingkup
+Sistem JONG WBTb mencakup:
+Manajemen Folder Usulan — dari inisiasi hingga penetapan final atau penangguhan.
+Workspace kolaboratif — pengelolaan formulir (Google Docs), kajian ilmiah (PDF), foto, dan video.
+State machine pengusulan — 6 status resmi sesuai Juknis Bab VIII huruf D.
+Manajemen hak akses berbasis peran (RBAC) — Atasan, Operator, Anggota Tim.
+Audit trail — seluruh aktivitas tercatat di log terpusat.
+Arsip historis — import WBTb yang telah ditetapkan sebelum Juknis berlaku.
+Sistem ini TIDAK mencakup: hosting video mandiri, sistem keuangan/pendanaan, dan portal informasi publik terbuka.
+1.4 Referensi
+Juknis Tata Kelola Dokumen Digital WBTb Dinas Kebudayaan Kabupaten Lingga 2026 Revisi 2
+Peraturan Pemerintah Nomor 30 Tahun 2019 tentang Penilaian Kinerja PNS
+SE PANRB Nomor 20 Tahun 2021 tentang Implementasi Core Values BerAKHLAK
+Permendikbud Nomor 106 Tahun 2013 tentang 10 Domain WBTb Nasional
+BAB 2 — ARSITEKTUR SISTEM
+2.1 Stack Teknologi
+JONG WBTb menggunakan arsitektur zero-cost hybrid berbasis ekosistem Google, memanfaatkan layanan yang sudah tersedia tanpa biaya server tambahan.
+Komponen
+Platform / Teknologi
+Fungsi
+Penyedia Cloud
+Google Apps Script (GAS) v8
+Server-side controller, business logic, API endpoints
+Database
+Google Sheets
+Penyimpanan metadata usulan (ACID-compliant sederhana)
+Object Storage
+Google Drive
+Penyimpanan file dokumen, kajian, foto, video URL
+Document Engine
+Google Docs API
+Live editing formulir usulan dengan kontrol akses dinamis
+Frontend
+HTML + Tailwind CSS v3
+Antarmuka pengguna berbasis web app GAS
+Auth &amp; Session
+Google OAuth (GAS built-in)
+Identifikasi pengguna via Session.getActiveUser()
+Cache
+CacheService GAS
+Cache role pengguna 5 menit untuk efisiensi Sheet read
+Email
+GmailApp GAS
+Notifikasi retensi dan laporan penghapusan arsip
+Scheduler
+Time-driven Trigger GAS
+Cek retensi arsip ditangguhkan bulanan
+2.2 Diagram Arsitektur
+[ USER BROWSER (HTML/Tailwind/JS) ]
+          |
+  google.script.run (async)
+          ↓
+[ GAS ENGINE — jong_wbtb_endpoints.js ]
+          |
+     ┌────┴─────┐
+     ↓           ↓
+[ GOOGLE SHEETS ]   [ GOOGLE DRIVE ]
+  db_wbtb_lingga      /WBTB_LINGGA_2026/
+  db_activity_log     /JONG_WBTB_ADMINISTRASI/
+  db_users            /ARSIP-HISTORIS/
+2.3 Prinsip Desain
+Zero-cost infrastructure — seluruh komponen memanfaatkan layanan Google gratis atau yang sudah tersedia di instansi.
+Concurrency control — semua operasi tulis ke Google Sheets dilindungi LockService.getScriptLock() dengan timeout 30 detik untuk mencegah race condition.
+Separation of concerns — setiap modul GAS memiliki tanggung jawab tunggal yang terdefinisi dengan jelas.
+Juknis-first design — setiap keputusan arsitektur mengacu pada ketentuan Juknis sebagai governing constraint.
+BAB 3 — SCHEMA DATABASE
+3.1 Spreadsheet: db_jong_wbtb
+Sistem menggunakan satu Google Sheets sebagai DBMS layer dengan tiga sheet (tabel):
+3.2 Tabel: db_wbtb_lingga
+Tabel utama. Satu baris = satu Folder Usulan karya budaya. Total 24 kolom.
+#
+Nama Kolom
+Tipe
+Keterangan
+0
+id
+String (PK)
+ID unik. Format: WBTB-001. Sequential, tidak dibedakan normal/historis.
+1
+nama_karya
+String
+Nama karya budaya takbenda.
+2
+domain
+String
+Salah satu dari 10 domain WBTb nasional (Permendikbud 106/2013).
+3
+tahun_usulan
+Integer
+Tahun pembuatan draf / tahun penetapan (untuk historis).
+4
+entry_type
+String
+&quot;normal&quot; atau &quot;historis&quot;.
+5
+status
+String
+Status aktif folder. Nilai dari konstanta STATUS (6 nilai).
+6
+revisi_round
+Integer
+Nomor putaran revisi aktif. 0 = belum pernah revisi.
+7
+penanggung_jawab_email
+String
+Email Anggota Tim penanggung jawab folder.
+8
+penanggung_jawab_nama
+String
+Nama Anggota Tim penanggung jawab (untuk display).
+9
+catatan_atasan
+String
+Catatan perbaikan internal dari Atasan (Kabid NATBK).
+10
+folder_karya_id
+String
+Google Drive Folder ID folder karya budaya utama.
+11
+folder_ids_json
+JSON String
+Map ID semua subfolder tahap. Format: {&quot;PENGUMPULAN_DATA&quot;:&quot;id&quot;,...}
+12
+doc_active_id
+String
+Google Docs ID formulir versi aktif.
+13
+doc_history_json
+JSON String
+Riwayat versi formulir. Format: {&quot;v1&quot;:&quot;docId&quot;,&quot;v2&quot;:&quot;docId&quot;,...}
+14
+kajian_files_json
+JSON String
+Array metadata file kajian ilmiah aktif.
+15
+foto_files_json
+JSON String
+Array metadata file foto dokumentasi aktif.
+16
+video_url
+String
+URL video eksternal (YouTube/Drive Publik). Juknis Bab IV C.
+17
+sertifikat_files_json
+JSON String
+Array metadata file sertifikat/SK penetapan.
+18
+catatan_penilai_json
+JSON String
+Array metadata Catatan Penilai Eksternal per putaran.
+19
+drive_locked
+Boolean
+TRUE jika folder dikunci (status Final/Ditangguhkan).
+20
+created_at
+Date
+Tanggal folder dibuat/diimport.
+21
+updated_at
+Date
+Tanggal terakhir ada perubahan data.
+22
+judul_singkat
+String
+Singkatan untuk penamaan file. UPPERCASE, hanya A-Z dan tanda hubung.
+23
+ditangguhkan_at
+Date
+Tanggal penetapan status DITANGGUHKAN. Untuk hitung retensi.
+3.3 Format Metadata File (JSON)
+Setiap item di kajian_files_json dan foto_files_json memiliki struktur:
+{ &quot;fileId&quot;: &quot;googleDriveId&quot;, &quot;name&quot;: &quot;KAJIAN_TEPUNG-TAWAR_001.pdf&quot;,
+  &quot;versi&quot;: 1, &quot;status&quot;: &quot;aktif&quot;,
+  &quot;uploadedAt&quot;: &quot;2026-05-23T10:00:00Z&quot;, &quot;uploadedBy&quot;: &quot;email@gmail.com&quot;,
+  &quot;arsipFileId&quot;: null }
+Nilai status: &quot;aktif&quot; atau &quot;diarsip&quot;. File yang diarsipkan tidak dihapus dari database — hanya ditandai status.
+3.4 Tabel: db_users
+Tabel manajemen akses pengguna. Total 9 kolom.
+#
+Nama Kolom
+Keterangan
+0
+email
+Email Google pengguna (PK).
+1
+role
+&quot;Atasan&quot;, &quot;Operator&quot;, atau &quot;Anggota Tim&quot;.
+2
+nama
+Nama lengkap pengguna.
+3
+aktif
+Boolean TRUE/FALSE. FALSE = akses dicabut (soft delete).
+4
+ditambah_at
+Tanggal akses ditambahkan.
+5
+ditambah_oleh
+Email Operator yang menambahkan.
+6
+dicabut_at
+Tanggal akses dicabut (null jika masih aktif).
+7
+dicabut_oleh
+Email Operator yang mencabut (null jika masih aktif).
+8
+catatan
+Catatan opsional (contoh: nomor perintah akses).
+Catatan: Sheet db_users diproteksi di Google Sheets — hanya Operator yang dapat mengedit secara langsung. Perubahan akses melalui UI sistem dicatat otomatis di audit log.
+3.5 Tabel: db_activity_log
+Tabel audit trail. Append-only — tidak boleh diedit atau dihapus. Total 6 kolom.
+#
+Nama Kolom
+Keterangan
+0
+timestamp
+Waktu aksi terjadi (Date).
+1
+user_email
+Email pengguna yang mengeksekusi aksi.
+2
+user_role
+Peran pengguna saat aksi dieksekusi.
+3
+proposal_id
+ID usulan terdampak (kosong jika aksi sistem).
+4
+action_type
+Kode aksi standar (STATUS_CHANGE, KAJIAN_UPLOAD, dll).
+5
+detail
+Narasi lengkap aksi untuk keperluan audit.
+BAB 4 — STATE MACHINE PENGUSULAN
+4.1 Dasar Hukum
+State machine dirancang sesuai Juknis Tata Kelola Dokumen Digital WBTb 2026 Revisi 2, Bab VIII huruf D &amp; E. Terdapat 6 status resmi dan 2 entry point.
+4.2 Status Resmi
+Status
+Ditetapkan Oleh
+Deskripsi
+Sedang Dikerjakan
+Operator
+Folder baru dibuat. Anggota Tim menyusun dokumen.
+Persetujuan Internal
+Atasan
+Atasan review seluruh dokumen dan menyatakan layak diajukan ke sistem nasional.
+Diperbaiki
+Operator
+Catatan Penilai Eksternal (Provinsi/Kementerian) diterima dan terdokumentasi. Putaran Revisi dibuka.
+Dilanjutkan
+Operator
+Keputusan lulus penilaian eksternal diterima. Menunggu SK Penetapan Kementerian.
+Ditangguhkan
+Operator
+Keputusan penangguhan penilai eksternal disetujui Atasan. Permanen — tidak bisa dilanjutkan.
+Final
+Operator
+SK Penetapan Kementerian tersedia dan terdokumentasi. Folder dikunci permanen.
+4.3 Entry Point
+Entry Point
+Status Awal
+Syarat
+Entry Type
+Usulan Baru
+Sedang Dikerjakan
+Operator membuat folder baru.
+normal
+Import Historis
+Final
+WBTb sudah ditetapkan sebelum Juknis. Sertifikat wajib ada.
+historis
+4.4 Tabel Transisi
+Dari Status
+Ke Status
+Aktor
+Syarat Utama
+(entry baru)
+Sedang Dikerjakan
+Operator
+Folder baru diinisialisasi.
+(import historis)
+Final
+Operator
+Sertifikat penetapan tersedia.
+Sedang Dikerjakan
+Persetujuan Internal
+Atasan
+Seluruh item verifikasi mandiri Bab V terpenuhi.
+Persetujuan Internal
+Dilanjutkan
+Operator
+Keputusan lulus penilaian eksternal diterima Atasan.
+Persetujuan Internal
+Diperbaiki
+Operator
+Catatan Penilai Eksternal terdokumentasi. Hanya ini yang membuka Putaran Revisi.
+Persetujuan Internal
+Ditangguhkan
+Operator
+Keputusan penangguhan penilai disetujui Atasan.
+Diperbaiki
+Sedang Dikerjakan
+Operator
+Anggota Tim selesai revisi. Siap diverifikasi ulang Atasan.
+Diperbaiki
+Ditangguhkan
+Operator
+Penilai tangguhkan setelah putaran revisi.
+Dilanjutkan
+Final
+Operator
+SK Penetapan Kementerian tersedia dan terdokumentasi.
+Dilanjutkan
+Ditangguhkan
+Operator
+Penilai tangguhkan pada tahap penetapan.
+4.5 Aturan Putaran Revisi
+Putaran Revisi (P01, P02, ...) hanya dapat dibuka dengan syarat:
+Catatan Penilai Eksternal dari Provinsi atau Kementerian telah diterima secara resmi oleh Atasan.
+Operator mendokumentasikan catatan tersebut di sistem via fungsi entryCatatanPenilai().
+Sistem otomatis membuat subfolder P01/, P02/, dst. di 03_REVISI/.
+Putaran Revisi TIDAK dapat dibuka oleh keputusan Atasan internal — ini sepenuhnya domain penilai eksternal. (Juknis Bab VI huruf D)
+BAB 5 — STRUKTUR FOLDER GOOGLE DRIVE
+5.1 Hierarki Folder Root
+Folder
+Deskripsi
+WBTB_LINGGA_2026/
+Folder master terpusat semua usulan aktif tahun 2026.
+JONG_WBTB_ADMINISTRASI/
+Dokumen administrasi sistem (surat penetapan, perintah akses).
+ARSIP-HISTORIS/
+WBTb yang ditetapkan sebelum berlakunya Juknis ini.
+5.2 Struktur Folder Usulan
+Setiap Folder Usulan mengikuti struktur berikut (dibuat otomatis oleh sistem):
+WBTB_LINGGA_2026/
+└── WBTB-001_TEPUNG-TAWAR-LINGGA/          (Folder Karya)
+    ├── 01_PENGUMPULAN-DATA/                (Subfolder Tahap)
+    │   ├── FORMULIR-USULAN/
+    │   │   └── ARSIP-VERSI/               (Versi formulir lama)
+    │   ├── KAJIAN-ILMIAH/
+    │   │   └── ARSIP-VERSI/
+    │   ├── FOTO-DOKUMENTASI/
+    │   │   └── ARSIP-VERSI/
+    │   ├── VIDEO-DOKUMENTASI/             (File .txt berisi URL)
+    │   └── CATATAN/
+    ├── 02_PENGUSULAN/                      (Struktur jenis sama)
+    ├── 03_REVISI/                          (Subfolder per Putaran)
+    │   ├── P01/
+    │   │   ├── FORMULIR-USULAN/
+    │   │   ├── KAJIAN-ILMIAH/
+    │   │   ├── FOTO-DOKUMENTASI/
+    │   │   ├── VIDEO-DOKUMENTASI/
+    │   │   └── CATATAN/                   (Catatan Penilai Eksternal)
+    │   └── P02/  ...
+    ├── 04_PENETAPAN/
+    ├── 05_ARSIP-DITANGGUHKAN/
+    └── 06_FINAL/
+Catatan: Subfolder tahap bersifat PERMANEN — tidak dipindahkan secara fisik. Perpindahan tahap hanya dicatat secara administratif di database. (Juknis Bab III huruf A)
+5.3 Konvensi Penamaan File
+Sesuai Juknis Bab III huruf C: HURUF KAPITAL, spasi dilarang, (-) pemisah kata, (_) pemisah segmen.
+Jenis Dokumen
+Format Nama
+Contoh
+Formulir (di luar Revisi)
+FORM_[JUDUL-SINGKAT]_v[N]
+FORM_TEPUNG-TAWAR_v1
+Formulir (dalam Revisi)
+FORM_[JUDUL-SINGKAT]_P[XX]_v[N]
+FORM_TEPUNG-TAWAR_P01_v2
+Kajian Ilmiah
+KAJIAN_[JUDUL-SINGKAT]_[NNN]
+KAJIAN_TEPUNG-TAWAR_001
+Kajian (dalam Revisi)
+KAJIAN_[JUDUL-SINGKAT]_P[XX]_[NNN]
+KAJIAN_TEPUNG-TAWAR_P01_001
+Foto Dokumentasi
+FOTO_[JUDUL-SINGKAT]_[NNN]
+FOTO_TEPUNG-TAWAR_001
+Video (file .txt URL)
+VID_[JUDUL-SINGKAT]_[NNN].txt
+VID_TEPUNG-TAWAR_001.txt
+Catatan Penilai Eksternal
+CATATAN-PENILAI_P[XX]
+CATATAN-PENILAI_P01
+Sertifikat/SK Penetapan
+SERTIFIKAT_[JUDUL-SINGKAT]_[TAHUN]
+SERTIFIKAT_TEPUNG-TAWAR_2026
+Surat Penetapan Operator
+PENETAPAN-OPERATOR_[NAMA]_[YYYYMMDD]
+PENETAPAN-OPERATOR_FATTAHUL-FAHMI_20260523
+Perintah Akses Tertulis
+PERINTAH-AKSES_[TINDAKAN]_[NAMA]_[YYYYMMDD]
+PERINTAH-AKSES_TAMBAH_AMINULLAH_20260601
+[N] = nomor versi tanpa padding | [XX] = 2 digit putaran (01, 02) | [NNN] = 3 digit urut (001, 002)
+5.4 Manajemen Versi File
+Juknis Bab VI huruf C: dilarang menimpa atau menghapus versi lama. Sebelum file baru disimpan, file lama dipindahkan ke ARSIP-VERSI/. Berlaku untuk formulir, kajian, foto, dan video (file .txt URL).
+Formulir — satu file aktif. Arsip seluruhnya saat naik versi.
+Kajian &amp; Foto — multi-file. Arsip per-file yang diganti. File yang tidak berubah tetap di tempat.
+Video — arsip file .txt URL lama saat URL diganti dengan URL baru.
+BAB 6 — MODUL GAS (GOOGLE APPS SCRIPT)
+6.1 Daftar Modul
+Urutan
+Nama File
+Tanggung Jawab
+1
+jong_wbtb_database.js
+Schema konstanta (COL, STATUS, ROLES), DatabaseEngine, writeAuditLog, generateProposalId, initializeDatabase.
+2
+jong_wbtb_rbac.js
+getUserRole, requireRole, tambahAksesUser, cabutAksesUser, getAllActiveUsers, CacheService wrapper.
+3
+jong_wbtb_naming.js
+namaFile() router terpusat, validateJudulSingkat, generator nama per jenis dokumen (JENIS_DOK.*).
+4
+jong_wbtb_folder_structure.js
+initProposalWorkspace, initHistorisWorkspace, createPutaranRevisiFolder, getOrCreateFolder.
+5
+jong_wbtb_state_machine.js
+STATUS konstanta, TRANSITIONS matrix, validateTransisi, getTransisiTersedia, changeStatus.
+6
+jong_wbtb_arsip_versi.js
+arsipFormulirVersi, arsipKajianFile, arsipFotoFile, arsipVideoUrl, updateFileMetadata, buildFileMetadata.
+7
+jong_wbtb_validation.js
+validateFilePDF, validateFileFoto, validateVideoUrl, validateTotalPayload, verifikasiMandiri (10 item).
+8
+jong_wbtb_catatan_penilai.js
+entryCatatanPenilai, getCatatanPenilai, getCatatanPenilaiAktif, validateCatatanPenilai.
+9
+jong_wbtb_administrasi.js
+tetapkanOperator, terbitkanPerintahAkses, generatePDF, getFolderAdminSub.
+10
+jong_wbtb_retensi.js
+cekRetensiArsipDitangguhkan (trigger bulanan), kirimNotifikasiRetensi, deleteArsipDitangguhkan, catatTanggalDitangguhkan.
+11
+jong_wbtb_endpoints.js
+doGet(), semua endpoint public yang dipanggil frontend via google.script.run.
+6.2 Aturan Pengembangan
+Selalu gunakan konstanta COL.* untuk akses kolom sheet — jangan hardcode index angka.
+Semua operasi tulis ke sheet harus lewat DatabaseEngine.executeTransaction() — tidak boleh bypass untuk mencegah race condition.
+changeStatus() adalah satu-satunya pintu perubahan status — tidak ada kode lain yang boleh langsung set nilai kolom status.
+namaFile() adalah satu-satunya fungsi penamaan file — tidak ada hardcode nama file di tempat lain.
+Setiap operasi arsip harus diikuti updateFileMetadata() untuk menjaga sinkronisasi Drive dan database.
+Status DIPERBAIKI hanya boleh dibuka via entryCatatanPenilai() — tidak via changeStatus() langsung.
+6.3 Batas Teknis GAS
+Batasan
+Nilai
+Mitigasi
+Waktu eksekusi maksimal
+6 menit per panggilan
+Promise.all di frontend untuk bundle file sebelum kirim ke GAS.
+Payload google.script.run
+50MB
+Batas upload 15MB/PDF, 5MB/foto, 30MB total per request.
+Base64 inflate
++33% dari ukuran asli
+Batas payload dihitung dari ukuran file asli, bukan Base64.
+LockService timeout
+30 detik
+Transaksi concurrent dibatasi antrean. User mendapat pesan jelas jika timeout.
+CacheService TTL
+5 menit
+Role dicache 5 menit. Invalidasi segera saat akses dicabut.
+BAB 7 — RBAC &amp; MANAJEMEN AKSES
+7.1 Tiga Peran Sistem
+Peran
+Deskripsi
+Kewenangan Utama
+Atasan (Kabid NATBK)
+Pengambil keputusan substantif. Satu per sistem.
+Verifikasi &amp; ACC usulan, tetapkan Operator, terbitkan perintah akses tertulis, evaluasi kepatuhan bulanan.
+Operator
+Pelaksana teknis. Satu per sistem.
+Kelola akses user, buat Folder Usulan baru, entry Catatan Penilai Eksternal, ubah status atas instruksi Atasan.
+Anggota Tim
+Pengusul karya budaya. Bisa banyak.
+Kelola dokumen Folder Usulan yang menjadi tanggung jawabnya — formulir, kajian, foto, video. Kirim ke Atasan.
+7.2 Matrix Hak Akses per Status
+Status Folder
+Anggota Tim
+Operator
+Atasan
+Sedang Dikerjakan
+Edit dokumen, upload file, kirim ke Atasan
+Lihat semua, ubah status
+Lihat semua
+Persetujuan Internal
+Lihat saja (Drive terkunci)
+Entry Catatan Penilai, tandai Dilanjutkan
+ACC, kembalikan, tangguhkan
+Diperbaiki
+Edit dokumen revisi
+Tandai selesai revisi
+Lihat semua
+Dilanjutkan
+Lihat saja
+Tandai Final (setelah SK terbit)
+Lihat semua
+Ditangguhkan
+Lihat saja (Drive dikunci)
+Hapus arsip setelah 1 tahun (opsional)
+Lihat semua
+Final
+Lihat saja (Drive dikunci)
+Lihat saja
+Lihat semua
+7.3 Alur Penetapan Operator
+Sesuai Juknis Bab II huruf B — Operator ditetapkan secara tertulis oleh Atasan:
+Atasan login ke sistem → menu Administrasi → Tetapkan Operator Baru.
+Pilih Anggota Tim yang akan dijadikan Operator → isi catatan (opsional).
+Sistem generate Surat Penetapan Operator dalam format PDF otomatis.
+PDF tersimpan di JONG_WBTB_ADMINISTRASI/PENETAPAN_OPERATOR/ di Google Drive.
+Role Anggota Tim yang dipilih otomatis berubah menjadi Operator di db_users.
+Operator lama (jika ada) dicabut aksesnya secara otomatis.
+7.4 Alur Perintah Akses Tertulis
+Sesuai Juknis Bab II huruf C — setiap perubahan akses harus atas perintah tertulis Atasan:
+Atasan menu Administrasi → Terbitkan Perintah Akses Tertulis.
+Isi tindakan (TAMBAH/CABUT), email, nama, role, dan alasan.
+Sistem generate dokumen Perintah Akses PDF → tersimpan di Drive administrasi.
+Operator menerima instruksi → eksekusi via menu Kelola Akses.
+Batas waktu eksekusi: paling lambat 1 (satu) hari kerja sejak perintah diterima. (Juknis Bab II huruf C)
+7.5 Retensi Arsip Ditangguhkan
+Sesuai Juknis Bab IV huruf E:
+Dokumen di subfolder 05_ARSIP-DITANGGUHKAN boleh dihapus Operator setelah retensi 1 (satu) tahun sejak tanggal penetapan status Ditangguhkan.
+&apos;Boleh&apos; — bukan kewajiban. Keputusan sepenuhnya di tangan Operator.
+Sistem mengirim notifikasi email ke Operator setiap tanggal 1 tiap bulan via time-driven trigger GAS.
+Notifikasi mencakup folder yang sudah melampaui 1 tahun dan folder yang dalam 30 hari akan melampaui retensi.
+Setiap penghapusan wajib dilaporkan ke Atasan via email otomatis.
+Penghapusan memindahkan file ke Google Drive Trash (bukan permanent delete) — safety net 30 hari.
+BAB 8 — FRONTEND &amp; ROUTING
+8.1 Teknologi Frontend
+Komponen
+Teknologi
+Keterangan
+HTML Structure
+HTML5
+Single file — jong_wbtb_frontend.html. Seluruh JS dan CSS dalam satu file.
+Styling
+Tailwind CSS v3 (CDN)
+Utility-first CSS. Design system custom via CSS variables.
+GAS Communication
+google.script.run
+Semua server call async via Promise wrapper gasCall().
+Design System
+CSS Custom Properties
+Warna: Emerald (#1B6B45), Gold (#F5A623). Font: Noto Serif + Noto Sans.
+Icons
+Unicode symbols
+Tidak bergantung library ikon eksternal.
+8.2 Modul UI per Role
+Modul / Halaman
+Role yang Dapat Akses
+Fungsi Utama
+Dashboard
+Semua
+Metrics ringkasan (total, dikerjakan, revisi, final) dan tabel usulan aktif.
+Workspace Saya
+Anggota Tim
+Kelola formulir (iframe Google Docs), upload kajian/foto/video, kirim ke Atasan.
+Semua Usulan
+Operator
+Tabel seluruh usulan dengan filter status, aksi ubah status dan entry catatan penilai.
+Catatan Penilai Eksternal
+Operator
+Form entry catatan per proposal, riwayat putaran revisi sebelumnya.
+Verifikasi Usulan
+Atasan
+Review dokumen, panel keputusan (ACC/Kembalikan/Tangguhkan).
+Arsip Historis
+Semua (tambah: Operator)
+Tabel arsip WBTb historis, import WBTb lama (khusus Operator).
+Kelola Akses
+Operator
+Tambah/cabut akses pengguna, riwayat pencabutan.
+Administrasi
+Atasan
+Tetapkan Operator, terbitkan perintah akses, evaluasi kepatuhan bulanan.
+Log Aktivitas
+Operator, Atasan
+Audit trail dengan pagination 15 baris/halaman, filter aksi.
+8.3 Sistem Routing
+Routing berbasis fungsi JavaScript — tidak ada page reload. Navigasi memanggil fungsi render yang sesuai:
+navigateTo(&apos;dashboard&apos;)   → renderDashboard()
+navigateTo(&apos;workspace&apos;)   → renderWorkspace()
+navigateTo(&apos;verifikasi&apos;)  → renderVerifikasi()
+// dst...
+8.4 GAS Communication Pattern
+Semua panggilan ke server GAS menggunakan wrapper Promise untuk menghindari callback hell:
+async function renderDashboard() {
+  const data = await gasCall(&apos;getDashboardData&apos;, App.user.email);
+  renderMetrics(data.metrics);
+}
+8.5 App State
+State aplikasi disimpan di objek global App:
+const App = {
+  user: { email, nama, role },    // data pengguna aktif
+  currentPage: &apos;dashboard&apos;,       // halaman aktif
+  data: { proposals, arsip, ... } // cache data per sesi
+};
+BAB 9 — DEPLOYMENT GUIDE
+9.1 Prasyarat
+Akun Gmail aktif untuk deploy sistem (akan menjadi akun eksekusi GAS).
+Akses internet stabil (sistem berbasis cloud).
+Browser Chrome/Firefox terbaru.
+9.2 Checklist Setup
+#
+Langkah
+Keterangan
+1
+Buat Google Sheets baru
+Beri nama: db_jong_wbtb
+2
+Buka Apps Script
+Extensions → Apps Script dari spreadsheet tadi
+3
+Rename project
+Ganti nama project menjadi: JONG_WBTb
+4
+Buat 11 file .gs
+Paste masing-masing kode sesuai urutan di Bab 6.1
+5
+Buat 1 file .html
+Nama: jong_wbtb_frontend — paste seluruh kode frontend
+6
+Jalankan initializeDatabase()
+Di file jong_wbtb_database, run fungsi ini. Izinkan akses.
+7
+Jalankan initializeUsersSheet()
+Di file jong_wbtb_rbac, run fungsi ini.
+8
+Seed data Atasan
+Tambah baris manual di sheet db_users untuk email Atasan.
+9
+Proteksi sheet db_users
+Data → Protect sheet → hanya email Operator yang bisa edit.
+10
+Setup time-driven trigger
+Triggers → Add → cekRetensiArsipDitangguhkan → Month timer → tgl 1
+11
+Deploy sebagai Web App
+Deploy → New deployment → Web app → Execute as: User accessing the web app → Anyone with Google account
+12
+Copy URL web app
+Simpan URL — ini alamat sistem JONG WBTb untuk semua pengguna
+13
+Test login
+Buka URL dengan akun Atasan — harus masuk Dashboard Atasan
+14
+Tetapkan Operator
+Atasan login → Administrasi → Tetapkan Operator Baru
+15
+Tambah Anggota Tim
+Operator login → Kelola Akses → Tambah Pengguna
+9.3 Pengaturan Deploy Kritis
+Setting yang WAJIB benar saat deploy Web App:
+Setting
+Nilai yang Benar
+Konsekuensi Jika Salah
+Execute as
+User accessing the web app
+Jika &quot;Me&quot;, semua user terdeteksi sebagai email deployer — RBAC tidak bekerja.
+Who has access
+Anyone with Google account
+Jika &quot;Anyone&quot;, user tidak perlu login — RBAC bypass. Jika &quot;Only myself&quot;, hanya deployer yang bisa akses.
+9.4 Update Kode Setelah Produksi
+Setiap perubahan kode GAS TIDAK otomatis aktif di deployment. Langkah update:
+Edit kode di GAS editor.
+Deploy → Manage deployments → klik ikon pensil (edit) di deployment aktif.
+Di dropdown Version → pilih New version.
+Klik Deploy.
+JANGAN klik &apos;New deployment&apos; — akan generate URL baru yang berbeda dari yang sudah dibagikan ke pengguna.
+9.5 Troubleshooting Umum
+Masalah
+Kemungkinan Penyebab
+Solusi
+Akses Ditolak saat login
+Email tidak ada di db_users atau kolom aktif bukan TRUE
+Cek sheet db_users. Pastikan email persis sama dan aktif = TRUE (boolean).
+Loading screen tidak selesai
+Error JavaScript di frontend
+Buka DevTools → Console → cek error. Sering karena template literal backtick dalam string URL.
+Error &quot;Database sedang sibuk&quot;
+LockService timeout 30 detik
+Tunggu beberapa detik dan coba lagi. Terjadi jika banyak user submit bersamaan.
+Perubahan kode tidak efektif
+Deployment belum diupdate
+Deploy → Manage deployments → edit → New version → Deploy.
+Cache role tidak update
+CacheService TTL 5 menit belum habis
+Jalankan clearCache() di GAS editor atau tunggu 5 menit.
+— Akhir Dokumen —
+JONG WBTb v1.0 | Dinas Kebudayaan Kabupaten Lingga | 2026
+

@@ -1,0 +1,4474 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JONG WBTb — Sistem Pengelolaan Warisan Budaya Takbenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* ── CSS Variables ─────────────────────────────── */
+  :root {
+    --gold:        #F5A623;
+    --gold-dark:   #C8841A;
+    --gold-light:  #FDF0D5;
+    --emerald:     #1B6B45;
+    --emerald-dark:#124A30;
+    --emerald-light:#E8F5EE;
+    --ink:         #1A1A2E;
+    --ink-muted:   #4A4A6A;
+    --ink-faint:   #8888AA;
+    --surface:     #FAFAF8;
+    --surface-2:   #F2F1ED;
+    --border:      #E2E0D8;
+    --danger:      #C0392B;
+    --danger-light:#FDECEA;
+    --info:        #2471A3;
+    --info-light:  #EAF3FB;
+    --success:     #1B6B45;
+    --success-light:#E8F5EE;
+  }
+
+  /* ── Base ──────────────────────────────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--surface);
+    min-height: 100vh;
+  }
+
+  /* ── Melayu Geometric Background Pattern ──────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(245,166,35,0.03) 20px,
+        rgba(245,166,35,0.03) 21px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 20px,
+        rgba(27,107,69,0.03) 20px,
+        rgba(27,107,69,0.03) 21px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Typography ────────────────────────────────── */
+  h1, h2, h3 { font-family: 'Noto Serif', serif; }
+  h1 { font-size: 1.5rem; font-weight: 600; }
+  h2 { font-size: 1.2rem; font-weight: 600; }
+  h3 { font-size: 1rem;   font-weight: 600; }
+  code, .mono { font-family: 'Noto Sans Mono', monospace; font-size: 0.85em; }
+
+  /* ── Layout ─────────────────────────────────────── */
+  #app { position: relative; z-index: 1; min-height: 100vh; }
+
+  /* Sidebar */
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 240px;
+    background: var(--emerald-dark);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  #sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #sidebar-logo .logo-title {
+    font-family: 'Noto Serif', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+  }
+
+  #sidebar-logo .logo-sub {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  #sidebar-nav {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+  }
+
+  .nav-section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    padding: 12px 20px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.75);
+    font-size: 0.875rem;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: rgba(255,255,255,0.07);
+    color: white;
+  }
+
+  .nav-item.active {
+    background: rgba(245,166,35,0.15);
+    color: var(--gold);
+    border-left-color: var(--gold);
+    font-weight: 500;
+  }
+
+  .nav-item .nav-icon {
+    width: 16px;
+    text-align: center;
+    opacity: 0.8;
+  }
+
+  #sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--emerald-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  #user-detail { min-width: 0; }
+  #user-name { font-size: 0.8rem; font-weight: 500; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #user-role-badge { font-size: 0.65rem; color: var(--gold); margin-top: 1px; }
+
+  /* Main content */
+  #main {
+    margin-left: 240px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #topbar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  #page-title { font-family: 'Noto Serif', serif; font-size: 1rem; font-weight: 600; color: var(--ink); }
+  #page-subtitle { font-size: 0.75rem; color: var(--ink-muted); margin-top: 1px; }
+
+  #content {
+    flex: 1;
+    padding: 24px;
+  }
+
+  /* ── Components ─────────────────────────────────── */
+
+  /* Card */
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+
+  .badge-gold      { background: var(--gold-light);    color: var(--gold-dark); }
+  .badge-emerald   { background: var(--emerald-light); color: var(--emerald-dark); }
+  .badge-danger    { background: var(--danger-light);  color: var(--danger); }
+  .badge-info      { background: var(--info-light);    color: var(--info); }
+  .badge-neutral   { background: var(--surface-2);     color: var(--ink-muted); }
+
+  /* Status badge mapping */
+  .status-sedang-dikerjakan   { background: var(--info-light);    color: var(--info); }
+  .status-persetujuan-internal{ background: var(--gold-light);    color: var(--gold-dark); }
+  .status-diperbaiki          { background: #FDF3E7;               color: #D35400; }
+  .status-dilanjutkan         { background: var(--emerald-light); color: var(--emerald-dark); }
+  .status-ditangguhkan        { background: var(--danger-light);  color: var(--danger); }
+  .status-final               { background: #EAF5EA;               color: #1E8449; }
+
+  /* Button */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--emerald);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--emerald-dark); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: var(--emerald-dark);
+    font-weight: 600;
+  }
+  .btn-gold:hover:not(:disabled) { background: var(--gold-dark); color: white; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+
+  .btn-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid #F1948A;
+  }
+  .btn-danger:hover:not(:disabled) { background: var(--danger); color: white; }
+
+  .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    margin-bottom: 5px;
+  }
+  .form-label .required { color: var(--danger); margin-left: 2px; }
+
+  .form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 0.875rem;
+    color: var(--ink);
+    background: white;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .form-control:focus { border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(27,107,69,0.1); }
+  .form-control.error { border-color: var(--danger); }
+
+  .form-hint { font-size: 0.72rem; color: var(--ink-faint); margin-top: 4px; }
+  .form-error { font-size: 0.72rem; color: var(--danger); margin-top: 4px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody td { padding: 10px 12px; font-size: 0.85rem; vertical-align: middle; }
+  tbody tr:last-child { border-bottom: none; }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .alert-danger  { background: var(--danger-light);  color: var(--danger);  border: 1px solid #F1948A; }
+  .alert-success { background: var(--success-light); color: var(--success); border: 1px solid #A9DFBF; }
+  .alert-info    { background: var(--info-light);    color: var(--info);    border: 1px solid #AED6F1; }
+  .alert-gold    { background: var(--gold-light);    color: var(--gold-dark); border: 1px solid #F8C471; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,46,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.hidden { display: none; }
+
+  .modal {
+    background: white;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  .spinner.dark {
+    border-color: rgba(27,107,69,0.2);
+    border-top-color: var(--emerald);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Loading screen */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--emerald-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    gap: 16px;
+  }
+
+  #loading-screen .load-title {
+    font-family: 'Noto Serif', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  #loading-screen .load-sub {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Access denied screen */
+  #access-denied {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    padding: 40px;
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 16px;
+  }
+
+  .page-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    color: var(--ink-muted);
+  }
+  .page-btn:hover { background: var(--surface-2); }
+  .page-btn.active { background: var(--emerald); color: white; border-color: var(--emerald); }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Metric card */
+  .metric-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .metric-label { font-size: 0.72rem; color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-family: 'Noto Serif', serif; font-size: 2rem; font-weight: 600; color: var(--ink); line-height: 1; }
+  .metric-sub   { font-size: 0.75rem; color: var(--ink-faint); }
+
+  /* Gold accent bar */
+  .accent-bar {
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--emerald));
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  /* Search input */
+  .search-wrap { position: relative; }
+  .search-wrap input { padding-left: 32px; }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+
+  /* Toast notification */
+  #toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 360px;
+  }
+
+  .toast {
+    background: var(--ink);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    animation: toast-in 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .toast.success { background: var(--emerald-dark); border-left: 3px solid var(--gold); }
+  .toast.error   { background: var(--danger); }
+  .toast.info    { background: var(--info); }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Utility */
+  .hidden { display: none !important; }
+  .text-muted { color: var(--ink-muted); }
+  .text-faint { color: var(--ink-faint); }
+  .text-gold  { color: var(--gold-dark); }
+  .text-emerald { color: var(--emerald); }
+  .text-danger { color: var(--danger); }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #sidebar { transform: translateX(-240px); }
+    #sidebar.open { transform: translateX(0); }
+    #main { margin-left: 0; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Loading Screen ────────────────────────────── -->
+<div id="loading-screen">
+  <div class="load-title">JONG WBTb</div>
+  <div class="spinner" style="border-color:rgba(245,166,35,0.3);border-top-color:var(--gold);width:28px;height:28px;border-width:3px;"></div>
+  <div class="load-sub">Memuat sistem...</div>
+</div>
+
+<!-- ── App Shell ─────────────────────────────────── -->
+<div id="app" class="hidden">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div id="sidebar-logo">
+      <div class="logo-title">JONG WBTb</div>
+      <div class="logo-sub">Jaringan Online Pengelolaan<br>Warisan Budaya Takbenda</div>
+    </div>
+
+    <div id="sidebar-nav">
+      <!-- Nav dirender dinamis berdasarkan role -->
+    </div>
+
+    <div id="sidebar-footer">
+      <div id="user-info">
+        <div id="user-avatar">—</div>
+        <div id="user-detail">
+          <div id="user-name">Memuat...</div>
+          <div id="user-role-badge">—</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <div id="page-title">Dashboard</div>
+        <div id="page-subtitle"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="topbar-role-badge" class="badge badge-emerald"></span>
+      </div>
+    </div>
+
+    <div id="content">
+      <!-- Konten halaman dirender di sini -->
+    </div>
+  </div>
+</div>
+
+<!-- ── Access Denied ─────────────────────────────── -->
+<div id="access-denied" class="hidden">
+  <div style="max-width:400px;">
+    <div style="font-size:3rem;margin-bottom:16px;">🔒</div>
+    <h1 style="margin-bottom:8px;">Akses Ditolak</h1>
+    <p style="color:var(--ink-muted);margin-bottom:24px;line-height:1.6;">
+      Akun Google kamu belum terdaftar di sistem JONG WBTb atau aksesmu sudah dicabut.
+      Hubungi Operator untuk mendapatkan akses.
+    </p>
+    <div class="alert alert-info" style="text-align:left;">
+      <div>
+        <div style="font-weight:500;margin-bottom:4px;">Email yang digunakan:</div>
+        <div id="denied-email" class="mono" style="color:var(--info);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast Container ───────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── Modals ────────────────────────────────────── -->
+
+<!-- Modal: Buat Usulan Baru -->
+<div id="modal-usulan-baru" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Buat Usulan Baru</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-usulan-baru')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nama Karya Budaya <span class="required">*</span></label>
+        <input type="text" id="input-nama-karya" class="form-control" placeholder="contoh: Tepung Tawar Lingga">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Judul Singkat <span class="required">*</span></label>
+        <input type="text" id="input-judul-singkat" class="form-control mono" placeholder="contoh: TEPUNG-TAWAR" style="text-transform:uppercase;">
+        <div class="form-hint">UPPERCASE, hanya huruf A-Z, angka, dan tanda hubung (-). Dipakai untuk penamaan file.</div>
+        <div class="form-error hidden" id="error-judul-singkat"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Domain WBTb <span class="required">*</span></label>
+        <select id="input-domain" class="form-control">
+          <option value="">— Pilih domain —</option>
+          <option>Tradisi dan Ekspresi Lisan</option>
+          <option>Seni Pertunjukan</option>
+          <option>Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan</option>
+          <option>Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta</option>
+          <option>Kemahiran Kerajinan Tradisional</option>
+          <option>Olahraga Tradisional dan Permainan Rakyat</option>
+          <option>Kuliner Tradisional</option>
+          <option>Arsitektur Tradisional</option>
+          <option>Moda Transportasi Tradisional</option>
+          <option>Tekstil Tradisional</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Penanggung Jawab <span class="required">*</span></label>
+        <select id="input-penanggung-jawab" class="form-control">
+          <option value="">— Memuat daftar Anggota Tim... —</option>
+        </select>
+        <div class="form-hint">Juknis Bab VII B: satu folder hanya boleh dikerjakan satu Anggota Tim.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-usulan-baru')">Batal</button>
+      <button class="btn btn-primary" id="btn-submit-usulan" onclick="submitUsulanBaru()">
+        Buat Usulan
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Konfirmasi Generic -->
+<div id="modal-konfirmasi" class="modal-overlay hidden">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3 id="konfirmasi-title">Konfirmasi</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-konfirmasi')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="konfirmasi-body" style="line-height:1.6;color:var(--ink-muted);"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-konfirmasi')">Batal</button>
+      <button class="btn btn-primary" id="btn-konfirmasi-ok">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// GAS BRIDGE
+// ════════════════════════════════════════════════
+
+function gasCall(fnName, ...args) {
+  return new Promise((resolve, reject) => {
+    let runner = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(reject);
+    runner[fnName](...args);
+  });
+}
+
+
+// ════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════
+
+const App = {
+  user: {
+    email : null,
+    nama  : null,
+    role  : null
+  },
+  currentPage : 'dashboard',
+  data: {
+    proposals    : [],
+    arsip        : [],
+    users        : [],
+    totalHalaman : 1,
+    halamanAktif : 1
+  }
+};
+
+
+// ════════════════════════════════════════════════
+// NAVIGATION CONFIG
+// ════════════════════════════════════════════════
+
+const NAV_CONFIG = {
+  'Anggota Tim': [
+    { id: 'dashboard',  label: 'Dashboard',      icon: '◈' },
+    { id: 'workspace',  label: 'Workspace Saya',  icon: '◉' },
+    { id: 'arsip',      label: 'Arsip Historis',  icon: '◫' }
+  ],
+  'Operator': [
+    { id: 'dashboard',       label: 'Dashboard',          icon: '◈' },
+    { id: 'semua-usulan',    label: 'Semua Usulan',        icon: '◉' },
+    { id: 'catatan-penilai', label: 'Catatan Penilai',     icon: '◎' },
+    { id: 'arsip',           label: 'Arsip Historis',      icon: '◫' },
+    { id: 'kelola-akses',    label: 'Kelola Akses',        icon: '◧' },
+    { id: 'log-aktivitas',   label: 'Log Aktivitas',       icon: '☰' }
+  ],
+  'Atasan': [
+    { id: 'dashboard',    label: 'Dashboard',         icon: '◈' },
+    { id: 'verifikasi',   label: 'Verifikasi Usulan',  icon: '◉' },
+    { id: 'arsip',        label: 'Arsip Historis',     icon: '◫' },
+    { id: 'administrasi', label: 'Administrasi',        icon: '◧' },
+    { id: 'log-aktivitas',label: 'Log Aktivitas',       icon: '☰' }
+  ]
+};
+
+const ROLE_LABEL = {
+  'Anggota Tim' : 'Anggota Tim',
+  'Operator'    : 'Operator',
+  'Atasan'      : 'Atasan (Kabid NATBK)'
+};
+
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+
+async function init() {
+  try {
+    // Ambil data user dari GAS
+    const result = await gasCall('getActiveUserInfo');
+
+    if (!result || !result.role) {
+      // Tidak terdaftar atau akses dicabut
+      showAccessDenied(result ? result.email : '—');
+      return;
+    }
+
+    App.user = result;
+
+    // Setup UI
+    setupSidebar();
+    setupUserInfo();
+    hideLoading();
+    showApp();
+
+    // Render halaman default
+    navigateTo('dashboard');
+
+  } catch (err) {
+    showToast('Gagal memuat sistem: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+
+// ════════════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════════════
+
+function setupSidebar() {
+  const nav   = document.getElementById('sidebar-nav');
+  const items = NAV_CONFIG[App.user.role] || [];
+
+  nav.innerHTML = items.map(item => `
+    <a class="nav-item" id="nav-${item.id}" onclick="navigateTo('${item.id}')">
+      <span class="nav-icon">${item.icon}</span>
+      <span>${item.label}</span>
+    </a>
+  `).join('');
+}
+
+function setupUserInfo() {
+  const nama  = App.user.nama || App.user.email;
+  const inisial = nama.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+  document.getElementById('user-avatar').textContent  = inisial;
+  document.getElementById('user-name').textContent    = nama;
+  document.getElementById('user-role-badge').textContent = ROLE_LABEL[App.user.role] || App.user.role;
+  document.getElementById('topbar-role-badge').textContent = ROLE_LABEL[App.user.role] || App.user.role;
+}
+
+
+// ════════════════════════════════════════════════
+// ROUTING
+// ════════════════════════════════════════════════
+
+function navigateTo(pageId) {
+  App.currentPage = pageId;
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + pageId);
+  if (navEl) navEl.classList.add('active');
+
+  // Render page
+  const pages = {
+    'dashboard'      : renderDashboard,
+    'workspace'      : renderWorkspace,
+    'semua-usulan'   : renderSemuaUsulan,
+    'catatan-penilai': renderCatatanPenilai,
+    'arsip'          : renderArsip,
+    'kelola-akses'   : renderKelolaAkses,
+    'verifikasi'     : renderVerifikasi,
+    'administrasi'   : renderAdministrasi,
+    'log-aktivitas'  : renderLogAktivitas
+  };
+
+  const renderFn = pages[pageId];
+  if (renderFn) {
+    renderFn();
+  } else {
+    renderPlaceholder(pageId);
+  }
+}
+
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+
+async function renderDashboard() {
+  setPageTitle('Dashboard', 'Ringkasan status pengusulan WBTb');
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+      <div class="grid-4" id="metrics-grid">
+        ${[1,2,3,4].map(() => `
+          <div class="metric-card">
+            <div class="metric-label" style="background:var(--surface-2);height:12px;border-radius:3px;width:60%;"></div>
+            <div class="metric-value" style="background:var(--surface-2);height:36px;border-radius:4px;margin-top:8px;"></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card" id="dashboard-table-card">
+        <div class="card-header">
+          <h3>Usulan Aktif</h3>
+          <div id="dashboard-table-actions"></div>
+        </div>
+        <div id="dashboard-table-body">
+          <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat data...
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  try {
+    const data = await gasCall('getDashboardData', App.user.email);
+    renderMetrics(data.metrics);
+    renderDashboardTable(data.proposals);
+  } catch (err) {
+    showToast('Gagal memuat dashboard: ' + err.message, 'error');
+  }
+}
+
+function renderMetrics(metrics) {
+  const grid = document.getElementById('metrics-grid');
+  if (!metrics) return;
+
+  const items = [
+    { label: 'Total Usulan',       value: metrics.total      || 0, sub: 'seluruh status' },
+    { label: 'Sedang Dikerjakan',  value: metrics.dikerjakan || 0, sub: 'aktif' },
+    { label: 'Tahap Revisi',       value: metrics.revisi     || 0, sub: 'dari penilai eksternal' },
+    { label: 'Terpenetapkan',      value: metrics.final      || 0, sub: 'WBTb resmi' }
+  ];
+
+  grid.innerHTML = items.map(item => `
+    <div class="metric-card">
+      <div class="metric-label">${item.label}</div>
+      <div class="metric-value">${item.value}</div>
+      <div class="metric-sub">${item.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderDashboardTable(proposals) {
+  const body    = document.getElementById('dashboard-table-body');
+  const actions = document.getElementById('dashboard-table-actions');
+
+  // Tombol buat usulan baru hanya untuk Operator
+  if (App.user.role === 'Operator') {
+    actions.innerHTML = `
+      <button class="btn btn-primary btn-sm" onclick="openModalUsulanBaru()">
+        + Usulan Baru
+      </button>
+    `;
+  }
+
+  if (!proposals || proposals.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+        Belum ada usulan aktif.
+      </div>
+    `;
+    return;
+  }
+
+  // Filter berdasarkan role
+  let filtered = proposals;
+  if (App.user.role === 'Anggota Tim') {
+    filtered = proposals.filter(p => p.penanggungJawabEmail === App.user.email);
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <div style="padding:12px 16px 8px;display:flex;align-items:center;gap:10px;">
+        <div class="search-wrap" style="flex:1;max-width:300px;">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="form-control" placeholder="Cari nama karya..."
+            oninput="filterTable(this.value)" style="padding-left:32px;height:34px;font-size:0.8rem;">
+        </div>
+      </div>
+      <table id="proposals-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Karya</th>
+            <th>Domain</th>
+            <th>Penanggung Jawab</th>
+            <th>Status</th>
+            <th>Putaran</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="proposals-tbody">
+          ${filtered.map(p => renderProposalRow(p)).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // Simpan data untuk filter
+  App.data.proposals = filtered;
+}
+
+function renderProposalRow(p) {
+  const statusClass = 'status-' + (p.status || '').toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z-]/g, '');
+
+  return `
+    <tr data-id="${p.id}" data-search="${(p.namaKarya || '').toLowerCase()}">
+      <td><span class="mono text-muted">${p.id}</span></td>
+      <td><strong>${p.namaKarya || '—'}</strong></td>
+      <td><span class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</span></td>
+      <td style="font-size:0.8rem;">${p.penanggungJawabNama || '—'}</td>
+      <td><span class="badge ${statusClass}">${p.status || '—'}</span></td>
+      <td style="text-align:center;">
+        ${p.revisiRound > 0
+          ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+          : '<span class="text-faint">—</span>'
+        }
+      </td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="bukaDetailUsulan('${p.id}')">
+          Buka →
+        </button>
+      </td>
+    </tr>
+  `;
+}
+
+function filterTable(query) {
+  const rows = document.querySelectorAll('#proposals-tbody tr');
+  const q    = query.toLowerCase().trim();
+  rows.forEach(row => {
+    const search = row.getAttribute('data-search') || '';
+    row.style.display = (!q || search.includes(q)) ? '' : 'none';
+  });
+}
+
+function shortenDomain(domain) {
+  if (!domain) return '—';
+  const map = {
+    'Tradisi dan Ekspresi Lisan': 'Tradisi Lisan',
+    'Seni Pertunjukan': 'Seni Pertunjukan',
+    'Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan': 'Adat Istiadat',
+    'Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta': 'Pengetahuan Alam',
+    'Kemahiran Kerajinan Tradisional': 'Kerajinan Tradisional',
+    'Olahraga Tradisional dan Permainan Rakyat': 'Olahraga Tradisional',
+    'Kuliner Tradisional': 'Kuliner',
+    'Arsitektur Tradisional': 'Arsitektur',
+    'Moda Transportasi Tradisional': 'Transportasi',
+    'Tekstil Tradisional': 'Tekstil'
+  };
+  return map[domain] || domain;
+}
+
+
+// ════════════════════════════════════════════════
+// PLACEHOLDER PAGES
+// (diisi di iterasi berikutnya)
+// ════════════════════════════════════════════════
+
+/**
+ * PATCH 1 — renderWorkspace()
+ *
+ * INSTRUKSI:
+ * 1. Buka jong_wbtb_frontend.html di Notepad++
+ * 2. Ctrl+F → cari: function renderWorkspace()
+ * 3. Select dari baris itu sampai kurung kurawal } penutupnya
+ *    (satu baris: function renderWorkspace() { renderPlaceholder('Workspace Saya'); })
+ * 4. Delete selection
+ * 5. Paste seluruh kode di bawah ini sebagai gantinya
+ */
+
+// ════════════════════════════════════════════════
+// WORKSPACE — Anggota Tim
+// ════════════════════════════════════════════════
+
+async function renderWorkspace() {
+  setPageTitle('Workspace Saya', 'Folder usulan yang menjadi tanggung jawabmu');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <!-- Pilih folder jika lebih dari satu -->
+      <div class="card" id="ws-pilih-folder">
+        <div class="card-header">
+          <h3>Folder Usulan</h3>
+        </div>
+        <div id="ws-folder-list">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat folder...
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail folder aktif -->
+      <div id="ws-detail" class="hidden">
+
+        <!-- Header proposal -->
+        <div class="card" id="ws-header-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span id="ws-proposal-id" class="mono badge badge-neutral"></span>
+                <span id="ws-status-badge" class="badge"></span>
+                <span id="ws-putaran-badge" class="badge badge-neutral hidden"></span>
+              </div>
+              <h2 id="ws-nama-karya" style="margin-bottom:4px;"></h2>
+              <div id="ws-domain" class="text-muted" style="font-size:0.8rem;"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;" id="ws-aksi-buttons">
+              <!-- Tombol aksi dirender dinamis berdasarkan status -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Catatan Penilai Eksternal (tampil jika ada putaran revisi) -->
+        <div id="ws-catatan-penilai-card" class="hidden">
+          <div class="alert alert-gold">
+            <div style="flex:1;">
+              <div style="font-weight:500;margin-bottom:6px;">
+                📋 Catatan Penilai Eksternal — <span id="ws-catatan-putaran"></span>
+              </div>
+              <div id="ws-catatan-isi" style="white-space:pre-line;line-height:1.7;font-size:0.85rem;"></div>
+              <div id="ws-catatan-meta" style="font-size:0.72rem;color:var(--ink-faint);margin-top:8px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs konten -->
+        <div class="card">
+          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
+            <button class="ws-tab active" data-tab="formulir" onclick="switchWsTab('formulir')">Formulir</button>
+            <button class="ws-tab" data-tab="kajian" onclick="switchWsTab('kajian')">Kajian Ilmiah</button>
+            <button class="ws-tab" data-tab="foto" onclick="switchWsTab('foto')">Foto</button>
+            <button class="ws-tab" data-tab="video" onclick="switchWsTab('video')">Video</button>
+          </div>
+
+          <!-- Tab: Formulir -->
+          <div id="ws-tab-formulir" class="ws-tab-content">
+            <div id="ws-formulir-wrap">
+              <div id="ws-no-formulir" class="hidden" style="text-align:center;padding:32px;color:var(--ink-faint);">
+                Formulir usulan belum dibuat.
+                <div style="margin-top:12px;">
+                  <button class="btn btn-primary" onclick="buatFormulirBaru()">Buat Formulir</button>
+                </div>
+              </div>
+              <div id="ws-iframe-wrap" class="hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <div>
+                    <span id="ws-formulir-versi" class="badge badge-neutral"></span>
+                    <span id="ws-formulir-locked" class="badge badge-danger hidden" style="margin-left:4px;">🔒 Terkunci</span>
+                  </div>
+                  <div style="display:flex;gap:6px;">
+                    <a id="ws-formulir-link" class="btn btn-ghost btn-sm" target="_blank">Buka di Google Docs ↗</a>
+                    <button class="btn btn-ghost btn-sm" id="btn-naik-versi" onclick="konfirmasiNaikVersi()">Naik Versi</button>
+                    <button class="btn btn-danger btn-sm hidden" id="btn-hapus-formulir" onclick="konfirmasiHapusFormulir()">Hapus Formulir</button>
+                  </div>
+                </div>
+                <iframe id="ws-formulir-iframe"
+                  style="width:100%;height:600px;border:1px solid var(--border);border-radius:6px;"
+                  frameborder="0" allowfullscreen>
+                </iframe>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Kajian Ilmiah -->
+          <div id="ws-tab-kajian" class="ws-tab-content hidden">
+            <div id="ws-kajian-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+            <div id="ws-upload-kajian-wrap">
+              <div class="divider"></div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  📎 Unggah Kajian (PDF, maks. 15MB)
+                  <input type="file" accept=".pdf" id="input-kajian-file" class="hidden"
+                    onchange="handleKajianUpload(this)">
+                </label>
+                <span class="text-faint" style="font-size:0.75rem;">Format: KAJIAN_JUDUL-SINGKAT_NNN.pdf</span>
+              </div>
+              <div id="ws-kajian-upload-progress" class="hidden" style="margin-top:8px;">
+                <div class="alert alert-info">
+                  <div class="spinner" style="border-color:rgba(36,113,163,0.2);border-top-color:var(--info);"></div>
+                  <span id="ws-kajian-upload-status">Mengupload...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Foto -->
+          <div id="ws-tab-foto" class="ws-tab-content hidden">
+            <div id="ws-foto-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px;"></div>
+            <div id="ws-upload-foto-wrap">
+              <div class="divider"></div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  🖼 Unggah Foto (JPG/PNG, maks. 5MB)
+                  <input type="file" accept=".jpg,.jpeg,.png" id="input-foto-file"
+                    class="hidden" multiple onchange="handleFotoUpload(this)">
+                </label>
+                <span class="text-faint" style="font-size:0.75rem;">Format: FOTO_JUDUL-SINGKAT_NNN.jpg</span>
+              </div>
+              <div id="ws-foto-upload-progress" class="hidden" style="margin-top:8px;">
+                <div class="alert alert-info">
+                  <div class="spinner" style="border-color:rgba(36,113,163,0.2);border-top-color:var(--info);"></div>
+                  <span id="ws-foto-upload-status">Mengupload...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Video -->
+          <div id="ws-tab-video" class="ws-tab-content hidden">
+            <div id="ws-video-current" style="margin-bottom:16px;"></div>
+            <div id="ws-video-divider" class="divider"></div>
+            <div id="ws-video-form" style="max-width:480px;">
+              <div class="form-group">
+                <label class="form-label">URL Video Dokumentasi</label>
+                <input type="url" id="input-video-url" class="form-control"
+                  placeholder="https://youtube.com/watch?v=...">
+                <div class="form-hint">Platform yang diizinkan: YouTube atau Google Drive Publik (HTTPS).</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Keterangan (opsional)</label>
+                <input type="text" id="input-video-keterangan" class="form-control"
+                  placeholder="contoh: Video prosesi adat versi revisi">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="simpanVideoUrl()">Simpan URL Video</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Verifikasi Mandiri (tampil saat akan kirim ke Atasan) -->
+        <div id="ws-verifikasi-card" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3>Verifikasi Mandiri</h3>
+              <span class="text-muted" style="font-size:0.75rem;">Juknis Bab V huruf B</span>
+            </div>
+            <div id="ws-verifikasi-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="tutupVerifikasi()">Batal</button>
+              <button class="btn btn-primary" id="btn-kirim-final" onclick="kirimKeAtasan()" disabled>
+                Kirim ke Atasan
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `);
+
+  // CSS tab
+  if (!document.getElementById('ws-tab-style')) {
+    var style = document.createElement('style');
+    style.id  = 'ws-tab-style';
+    style.textContent = `
+      .ws-tab {
+        padding: 10px 16px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: none;
+        background: transparent;
+        color: var(--ink-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+      }
+      .ws-tab:hover { color: var(--ink); }
+      .ws-tab.active { color: var(--emerald); border-bottom-color: var(--emerald); }
+      .file-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface-2);
+        font-size: 0.85rem;
+      }
+      .foto-thumb {
+        aspect-ratio: 1;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        position: relative;
+        background: var(--surface-2);
+      }
+      .foto-thumb img { width:100%;height:100%;object-fit:cover; }
+      .foto-thumb .foto-name {
+        position:absolute;bottom:0;left:0;right:0;
+        background:rgba(0,0,0,0.6);color:white;
+        font-size:0.65rem;padding:3px 5px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Load data
+  try {
+    const data = await gasCall('getDashboardData', App.user.email);
+    renderWsFolderList(data.proposals);
+  } catch (err) {
+    showToast('Gagal memuat workspace: ' + err.message, 'error');
+  }
+}
+
+function renderWsFolderList(proposals) {
+  const wrap = document.getElementById('ws-folder-list');
+  if (!proposals || proposals.length === 0) {
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink-faint);">
+        Belum ada folder usulan yang ditugaskan kepadamu.
+      </div>
+    `;
+    return;
+  }
+
+  wrap.innerHTML = proposals.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:12px 16px;border:1px solid var(--border);border-radius:6px;
+      cursor:pointer;transition:background 0.1s;"
+      onmouseover="this.style.background='var(--surface-2)'"
+      onmouseout="this.style.background=''"
+      onclick="bukaWsProposal('${p.id}')">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+          <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
+          <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+          ${p.revisiRound > 0
+            ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+            : ''}
+        </div>
+        <div style="font-weight:500;">${p.namaKarya}</div>
+        <div class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</div>
+      </div>
+      <span style="color:var(--ink-faint);">→</span>
+    </div>
+  `).join('');
+
+  // Auto-buka jika hanya satu folder
+  if (proposals.length === 1) {
+    bukaWsProposal(proposals[0].id);
+  }
+
+  // Atau jika ada activeProposalId dari navigasi
+  if (App.data.activeProposalId) {
+    bukaWsProposal(App.data.activeProposalId);
+    App.data.activeProposalId = null;
+  }
+}
+
+async function bukaWsProposal(proposalId) {
+  App.data.wsProposalId = proposalId;
+  document.getElementById('ws-detail').classList.remove('hidden');
+  document.getElementById('ws-pilih-folder').style.display = 'none';
+
+  try {
+    const p = await gasCall('getProposalDetail', App.user.email, proposalId);
+    App.data.wsProposal = p;
+    renderWsDetail(p);
+  } catch (err) {
+    showToast('Gagal memuat detail: ' + err.message, 'error');
+  }
+}
+
+function renderWsDetail(p) {
+  // Header
+  document.getElementById('ws-proposal-id').textContent  = p.id;
+  document.getElementById('ws-nama-karya').textContent   = p.namaKarya;
+  document.getElementById('ws-domain').textContent       = p.domain;
+
+  const statusBadge = document.getElementById('ws-status-badge');
+  statusBadge.textContent = p.status;
+  statusBadge.className   = 'badge status-' + statusClass(p.status);
+
+  const putaranBadge = document.getElementById('ws-putaran-badge');
+  if (p.revisiRound > 0) {
+    putaranBadge.textContent = 'P' + String(p.revisiRound).padStart(2,'0');
+    putaranBadge.classList.remove('hidden');
+  }
+
+  // Catatan Penilai Eksternal
+  if (p.catatanPenilai && p.catatanPenilai.length > 0) {
+    const aktif = p.catatanPenilai.find(c => c.putaran === p.revisiRound);
+    if (aktif) {
+      document.getElementById('ws-catatan-penilai-card').classList.remove('hidden');
+      document.getElementById('ws-catatan-putaran').textContent =
+        'P' + String(aktif.putaran).padStart(2,'0');
+      document.getElementById('ws-catatan-isi').textContent = aktif.catatan;
+      document.getElementById('ws-catatan-meta').textContent =
+        'Dari: ' + aktif.sumber +
+        ' · Diterima: ' + aktif.tanggalTerima +
+        ' · Didokumentasi oleh: ' + aktif.didokumentasiOleh;
+    }
+  }
+
+  // Tombol aksi
+  renderWsAksiButtons(p);
+
+  // Formulir
+  renderWsFormulir(p);
+
+  // Kajian
+  renderWsKajianList(p);
+
+  // Foto
+  renderWsFotoGrid(p);
+
+  // Video
+  renderWsVideo(p);
+}
+
+function renderWsAksiButtons(p) {
+  const wrap    = document.getElementById('ws-aksi-buttons');
+  const locked  = p.driveLocked;
+  const status  = p.status;
+
+  let html = '';
+
+  // Tombol kembali ke daftar folder
+  html += `<button class="btn btn-ghost btn-sm" onclick="kembaliKeDaftarFolder()">← Kembali</button>`;
+
+  // Kirim ke Atasan — hanya jika Sedang Dikerjakan dan tidak locked
+  if (status === 'Sedang Dikerjakan' && !locked) {
+    html += `
+      <button class="btn btn-primary btn-sm" onclick="tampilVerifikasiMandiri()">
+        Kirim ke Atasan →
+      </button>
+    `;
+  }
+
+  // Hapus Usulan — jika status Sedang Dikerjakan atau Diperbaiki, tidak locked, DAN user adalah Operator
+  if ((status === 'Sedang Dikerjakan' || status === 'Diperbaiki') && !locked && App.user.role === 'Operator') {
+    html += `
+      <button class="btn btn-danger btn-sm" onclick="konfirmasiHapusUsulan('${p.id}')">
+        Hapus Usulan
+      </button>
+    `;
+  }
+
+  // Link Drive folder
+  if (p.folderKaryaId) {
+    html += `
+      <a class="btn btn-ghost btn-sm"
+        href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
+        target="_blank">
+        Buka Drive ↗
+      </a>
+    `;
+  }
+
+  wrap.innerHTML = html;
+}
+
+function renderWsFormulir(p) {
+  const noFormulir  = document.getElementById('ws-no-formulir');
+  const iframeWrap  = document.getElementById('ws-iframe-wrap');
+  const iframe      = document.getElementById('ws-formulir-iframe');
+  const link        = document.getElementById('ws-formulir-link');
+  const versiBadge  = document.getElementById('ws-formulir-versi');
+  const lockedBadge = document.getElementById('ws-formulir-locked');
+  const btnNaikVersi = document.getElementById('btn-naik-versi');
+  const btnHapusFormulir = document.getElementById('btn-hapus-formulir');
+
+  const editable = isWorkspaceEditable(p);
+
+  if (!p.docActiveId) {
+    noFormulir.classList.remove('hidden');
+    iframeWrap.classList.add('hidden');
+    const buatBtn = noFormulir.querySelector('button');
+    if (buatBtn) buatBtn.style.display = editable ? '' : 'none';
+    return;
+  }
+
+  noFormulir.classList.add('hidden');
+  iframeWrap.classList.remove('hidden');
+
+  // Versi aktif
+  const versiKeys   = Object.keys(p.docHistory || {});
+  const versiAktif  = versiKeys.length;
+  versiBadge.textContent = 'Versi ' + versiAktif;
+
+  // Iframe mode: edit jika workspace bisa diedit, preview jika read-only
+  const mode = editable ? 'edit' : 'preview';
+  iframe.src = 'https://docs.google.com/document/d/' + p.docActiveId + '/' + mode + '?embedded=true';
+  link.href  = 'https://docs.google.com/document/d/' + p.docActiveId + '/' + mode;
+
+  if (!editable) {
+    lockedBadge.classList.remove('hidden');
+    lockedBadge.textContent = p.driveLocked ? '🔒 Terkunci' : '🔒 Hanya Lihat';
+    btnNaikVersi.classList.add('hidden');
+    if (btnHapusFormulir) btnHapusFormulir.classList.add('hidden');
+  } else {
+    lockedBadge.classList.add('hidden');
+    btnNaikVersi.classList.remove('hidden');
+    if (btnHapusFormulir) {
+      if (App.user.role === 'Operator') {
+        btnHapusFormulir.classList.remove('hidden');
+      } else {
+        btnHapusFormulir.classList.add('hidden');
+      }
+    }
+  }
+}
+
+function renderWsKajianList(p) {
+  const list = document.getElementById('ws-kajian-list');
+  const uploadWrap = document.getElementById('ws-upload-kajian-wrap');
+
+  if (!p.kajianFiles || p.kajianFiles.length === 0) {
+    list.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada kajian ilmiah diunggah.</div>`;
+  } else {
+    list.innerHTML = p.kajianFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📄</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">v${f.versi} · ${f.uploadedBy}</div>
+        </div>
+        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank"
+          class="btn btn-ghost btn-sm">Lihat ↗</a>
+        ${isWorkspaceEditable(p)
+          ? `
+            <button class="btn btn-ghost btn-sm" onclick="konfirmasiGantiKajian('${f.fileId}','${f.name}')">Ganti</button>
+            ${App.user.role === 'Operator'
+              ? `<button class="btn btn-danger btn-sm" onclick="konfirmasiHapusKajian('${p.id}','${f.fileId}','${f.name}')">Hapus</button>`
+              : ''}
+          `
+          : ''}
+      </div>
+    `).join('');
+  }
+
+  // Sembunyikan upload jika locked/read-only
+  uploadWrap.style.display = isWorkspaceEditable(p) ? '' : 'none';
+}
+
+function renderWsFotoGrid(p) {
+  const grid = document.getElementById('ws-foto-grid');
+  const uploadWrap = document.getElementById('ws-upload-foto-wrap');
+
+  if (!p.fotoFiles || p.fotoFiles.length === 0) {
+    grid.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;grid-column:1/-1;">Belum ada foto diunggah.</div>`;
+  } else {
+    grid.innerHTML = p.fotoFiles.map(f => `
+      <div class="foto-thumb">
+        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank">
+          <img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w200"
+            onerror="this.src=''" alt="${f.name}">
+        </a>
+        <div class="foto-name">${f.name}</div>
+        ${isWorkspaceEditable(p)
+          ? `
+            <button onclick="konfirmasiGantiFoto('${f.fileId}','${f.name}')"
+              style="position:absolute;top:4px;right:${App.user.role === 'Operator' ? '48px' : '4px'};background:rgba(0,0,0,0.5);
+                color:white;border:none;border-radius:3px;padding:2px 5px;
+                font-size:0.65rem;cursor:pointer;">Ganti</button>
+            ${App.user.role === 'Operator'
+              ? `<button onclick="konfirmasiHapusFoto('${p.id}','${f.fileId}','${f.name}')"
+                  style="position:absolute;top:4px;right:4px;background:var(--danger);
+                    color:white;border:none;border-radius:3px;padding:2px 5px;
+                    font-size:0.65rem;cursor:pointer;">Hapus</button>`
+              : ''}
+          `
+          : ''}
+      </div>
+    `).join('');
+  }
+
+  uploadWrap.style.display = isWorkspaceEditable(p) ? '' : 'none';
+}
+
+function renderWsVideo(p) {
+  const current = document.getElementById('ws-video-current');
+  const editable = isWorkspaceEditable(p);
+  if (p.videoUrl) {
+    current.innerHTML = `
+      <div class="alert alert-info" style="align-items:center;">
+        <span>🎬</span>
+        <div style="flex:1;">
+          <div style="font-weight:500;margin-bottom:2px;">URL Video Aktif</div>
+          <a href="${p.videoUrl}" target="_blank" class="mono"
+            style="font-size:0.8rem;color:var(--info);word-break:break-all;">${p.videoUrl}</a>
+        </div>
+        ${editable && App.user.role === 'Operator'
+          ? `<button class="btn btn-danger btn-sm" onclick="konfirmasiHapusVideo('${p.id}')">Hapus Video</button>`
+          : ''}
+      </div>
+    `;
+    document.getElementById('input-video-url').value = p.videoUrl;
+  } else {
+    current.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada URL video.</div>`;
+    document.getElementById('input-video-url').value = '';
+  }
+
+  // Tampilkan/sembunyikan form input video berdasarkan status editabilitas
+  const div = document.getElementById('ws-video-divider');
+  const form = document.getElementById('ws-video-form');
+  if (div) div.style.display = editable ? '' : 'none';
+  if (form) form.style.display = editable ? '' : 'none';
+
+  // Ubah teks tombol simpan jika video sudah terisi
+  const saveBtn = document.querySelector('#ws-tab-video button[onclick="simpanVideoUrl()"]');
+  if (saveBtn) {
+    saveBtn.textContent = p.videoUrl ? 'Ganti URL Video' : 'Simpan URL Video';
+  }
+}
+
+// ── Tab switching ─────────────────────────────
+function switchWsTab(tabId) {
+  document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ws-tab-content').forEach(t => t.classList.add('hidden'));
+  document.querySelector(`.ws-tab[data-tab="${tabId}"]`).classList.add('active');
+  document.getElementById('ws-tab-' + tabId).classList.remove('hidden');
+}
+
+// ── Navigasi ──────────────────────────────────
+function kembaliKeDaftarFolder() {
+  document.getElementById('ws-detail').classList.add('hidden');
+  document.getElementById('ws-pilih-folder').style.display = '';
+  App.data.wsProposal   = null;
+  App.data.wsProposalId = null;
+}
+
+// ── Formulir ──────────────────────────────────
+async function buatFormulirBaru() {
+  const p = App.data.wsProposal;
+  if (!p) return;
+  showToast('Membuat formulir baru...', 'info');
+  try {
+    await gasCall('buatFormulirProposal', App.user.email, p.id);
+    showToast('Formulir berhasil dibuat.', 'success');
+    bukaWsProposal(p.id); // refresh
+  } catch (err) {
+    showToast('Gagal membuat formulir: ' + err.message, 'error');
+  }
+}
+
+function konfirmasiNaikVersi() {
+  showKonfirmasi(
+    'Naik Versi Formulir',
+    'Formulir versi saat ini akan dipindahkan ke Arsip Versi dan versi baru akan dibuat. Lanjutkan?',
+    naikVersiFormulir
+  );
+}
+
+async function naikVersiFormulir() {
+  const p = App.data.wsProposal;
+  if (!p) return;
+  try {
+    await gasCall('naikVersiFormulir', App.user.email, p.id);
+    showToast('Formulir berhasil naik versi.', 'success');
+    bukaWsProposal(p.id);
+  } catch (err) {
+    showToast('Gagal naik versi: ' + err.message, 'error');
+  }
+}
+
+// ── Deletion Event Handlers ───────────────────────
+function konfirmasiHapusFormulir() {
+  const p = App.data.wsProposal;
+  if (!p) return;
+  showKonfirmasi(
+    'Hapus Formulir',
+    'Apakah Anda yakin ingin menghapus formulir usulan aktif beserta seluruh riwayat versinya secara permanen dari Google Drive dan database?',
+    eksekusiHapusFormulir
+  );
+}
+
+async function eksekusiHapusFormulir() {
+  const p = App.data.wsProposal;
+  if (!p) return;
+  showLoading('Menghapus formulir...');
+  try {
+    await gasCall('deleteActiveFormulir', App.user.email, p.id);
+    showToast('Formulir berhasil dihapus.', 'success');
+    bukaWsProposal(p.id); // refresh
+  } catch (err) {
+    showToast('Gagal menghapus formulir: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function konfirmasiHapusKajian(proposalId, fileId, fileName) {
+  showKonfirmasi(
+    'Hapus Kajian Ilmiah',
+    `Apakah Anda yakin ingin menghapus file kajian "${fileName}" secara permanen dari Google Drive dan database?`,
+    () => eksekusiHapusKajian(proposalId, fileId)
+  );
+}
+
+async function eksekusiHapusKajian(proposalId, fileId) {
+  showLoading('Menghapus file kajian...');
+  try {
+    await gasCall('deleteKajianFile', App.user.email, proposalId, fileId);
+    showToast('File kajian berhasil dihapus.', 'success');
+    bukaWsProposal(proposalId); // refresh
+  } catch (err) {
+    showToast('Gagal menghapus kajian: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function konfirmasiHapusFoto(proposalId, fileId, fileName) {
+  showKonfirmasi(
+    'Hapus Foto Dokumentasi',
+    `Apakah Anda yakin ingin menghapus foto "${fileName}" secara permanen dari Google Drive dan database?`,
+    () => eksekusiHapusFoto(proposalId, fileId)
+  );
+}
+
+async function eksekusiHapusFoto(proposalId, fileId) {
+  showLoading('Menghapus foto...');
+  try {
+    await gasCall('deleteFotoFile', App.user.email, proposalId, fileId);
+    showToast('Foto berhasil dihapus.', 'success');
+    bukaWsProposal(proposalId); // refresh
+  } catch (err) {
+    showToast('Gagal menghapus foto: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function konfirmasiHapusVideo(proposalId) {
+  showKonfirmasi(
+    'Hapus Video',
+    'Apakah Anda yakin ingin menghapus URL Video beserta file pendukungnya di Google Drive?',
+    () => eksekusiHapusVideo(proposalId)
+  );
+}
+
+async function eksekusiHapusVideo(proposalId) {
+  showLoading('Menghapus video...');
+  try {
+    await gasCall('deleteVideoUrl', App.user.email, proposalId);
+    showToast('Video URL berhasil dihapus.', 'success');
+    bukaWsProposal(proposalId); // refresh
+  } catch (err) {
+    showToast('Gagal menghapus video: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+
+// ── Kajian Upload ─────────────────────────────
+function konfirmasiGantiKajian(fileIdLama, namaFile) {
+  App.data.wsGantiKajianId = fileIdLama;
+  showKonfirmasi(
+    'Ganti Kajian',
+    `File "${namaFile}" akan diarsipkan. Pilih file baru setelah konfirmasi.`,
+    () => document.getElementById('input-kajian-file').click()
+  );
+}
+
+async function handleKajianUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const p        = App.data.wsProposal;
+  const progress = document.getElementById('ws-kajian-upload-progress');
+  const status   = document.getElementById('ws-kajian-upload-status');
+
+  // Validasi client-side
+  if (file.type !== 'application/pdf') {
+    showToast('Hanya file PDF yang diizinkan.', 'error');
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    showToast('Ukuran file melebihi batas 15MB.', 'error');
+    return;
+  }
+
+  progress.classList.remove('hidden');
+  status.textContent = 'Mengkonversi file...';
+
+  try {
+    const base64 = await fileToBase64(file);
+    status.textContent = 'Mengunggah ke Drive...';
+
+    await gasCall('uploadKajian', App.user.email, p.id, {
+      name        : file.name,
+      mimeType    : file.type,
+      base64      : base64,
+      sizeBytes   : file.size,
+      gantiFileId : App.data.wsGantiKajianId || null
+    });
+
+    App.data.wsGantiKajianId = null;
+    input.value = '';
+    showToast('Kajian berhasil diunggah.', 'success');
+    bukaWsProposal(p.id);
+  } catch (err) {
+    showToast('Gagal unggah kajian: ' + err.message, 'error');
+  } finally {
+    progress.classList.add('hidden');
+  }
+}
+
+// ── Foto Upload ───────────────────────────────
+function konfirmasiGantiFoto(fileIdLama, namaFile) {
+  App.data.wsGantiFotoId = fileIdLama;
+  showKonfirmasi(
+    'Ganti Foto',
+    `Foto "${namaFile}" akan diarsipkan. Pilih foto baru setelah konfirmasi.`,
+    () => document.getElementById('input-foto-file').click()
+  );
+}
+
+async function handleFotoUpload(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  const p        = App.data.wsProposal;
+  const progress = document.getElementById('ws-foto-upload-progress');
+  const status   = document.getElementById('ws-foto-upload-status');
+
+  // Validasi total payload
+  const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+  if (totalSize > 30 * 1024 * 1024) {
+    showToast('Total ukuran foto melebihi 30MB. Upload bertahap.', 'error');
+    return;
+  }
+
+  // Validasi per file
+  for (const f of files) {
+    if (!['image/jpeg','image/png'].includes(f.type)) {
+      showToast(`${f.name}: hanya JPG/PNG yang diizinkan.`, 'error');
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      showToast(`${f.name}: ukuran melebihi 5MB.`, 'error');
+      return;
+    }
+  }
+
+  progress.classList.remove('hidden');
+  status.textContent = 'Mengkonversi ' + files.length + ' foto...';
+
+  try {
+    const payloads = await Promise.all(files.map(async (f) => ({
+      name      : f.name,
+      mimeType  : f.type,
+      base64    : await fileToBase64(f),
+      sizeBytes : f.size
+    })));
+
+    status.textContent = 'Mengunggah ke Drive...';
+
+    await gasCall('uploadFoto', App.user.email, p.id, {
+      files       : payloads,
+      gantiFileId : App.data.wsGantiFotoId || null
+    });
+
+    App.data.wsGantiFotoId = null;
+    input.value = '';
+    showToast(files.length + ' foto berhasil diunggah.', 'success');
+    bukaWsProposal(p.id);
+  } catch (err) {
+    showToast('Gagal unggah foto: ' + err.message, 'error');
+  } finally {
+    progress.classList.add('hidden');
+  }
+}
+
+// ── Video URL ─────────────────────────────────
+async function simpanVideoUrl() {
+  const url        = document.getElementById('input-video-url').value.trim();
+  const keterangan = document.getElementById('input-video-keterangan').value.trim();
+  const p          = App.data.wsProposal;
+
+  if (!url) { showToast('URL video tidak boleh kosong.', 'error'); return; }
+
+  try {
+    await gasCall('simpanVideoUrl', App.user.email, p.id, url, keterangan);
+    showToast('URL video berhasil disimpan.', 'success');
+    bukaWsProposal(p.id);
+  } catch (err) {
+    showToast('Gagal simpan URL: ' + err.message, 'error');
+  }
+}
+
+// ── Verifikasi Mandiri ────────────────────────
+async function tampilVerifikasiMandiri() {
+  const p    = App.data.wsProposal;
+  const card = document.getElementById('ws-verifikasi-card');
+  const items = document.getElementById('ws-verifikasi-items');
+  const btn  = document.getElementById('btn-kirim-final');
+
+  card.classList.remove('hidden');
+  card.scrollIntoView({ behavior: 'smooth' });
+  items.innerHTML = '<div class="text-muted">Memeriksa...</div>';
+  btn.disabled    = true;
+
+  try {
+    const hasil = await gasCall('cekVerifikasiMandiri', App.user.email, p.id);
+
+    items.innerHTML = [
+      ...hasil.itemLulus.map(item => `
+        <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.85rem;">
+          <span style="color:var(--success);flex-shrink:0;">✓</span>
+          <span>${item}</span>
+        </div>
+      `),
+      ...hasil.itemGagal.map(item => `
+        <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.85rem;">
+          <span style="color:var(--danger);flex-shrink:0;">✗</span>
+          <span style="color:var(--danger);">${item}</span>
+        </div>
+      `)
+    ].join('');
+
+    if (hasil.siap) {
+      btn.disabled = false;
+    } else {
+      items.innerHTML += `
+        <div class="alert alert-danger" style="margin-top:12px;">
+          ${hasil.itemGagal.length} item belum terpenuhi. Selesaikan terlebih dahulu.
+        </div>
+      `;
+    }
+  } catch (err) {
+    showToast('Gagal cek verifikasi: ' + err.message, 'error');
+  }
+}
+
+function tutupVerifikasi() {
+  document.getElementById('ws-verifikasi-card').classList.add('hidden');
+}
+
+async function kirimKeAtasan() {
+  const p = App.data.wsProposal;
+  try {
+    await gasCall('updateProposalStatus', App.user.email, p.id, 'Persetujuan Internal');
+    showToast('Folder berhasil dikirim ke Atasan untuk diverifikasi.', 'success');
+    bukaWsProposal(p.id);
+  } catch (err) {
+    showToast('Gagal kirim: ' + err.message, 'error');
+  }
+}
+
+// ── Hapus Usulan ──────────────────────────────
+function konfirmasiHapusUsulan(proposalId) {
+  showKonfirmasi(
+    'Hapus Usulan',
+    'Apakah Anda yakin ingin menghapus usulan ini? Tindakan ini akan menghapus data dari spreadsheet dan memindahkan folder usulan di Google Drive ke Tempat Sampah (Trash).',
+    () => eksekusiHapusUsulan(proposalId)
+  );
+}
+
+async function eksekusiHapusUsulan(proposalId) {
+  showLoading('Menghapus usulan...');
+  try {
+    await gasCall('deleteProposal', App.user.email, proposalId);
+    showToast('Usulan berhasil dihapus.', 'success');
+    
+    // Alihkan tampilan kembali ke daftar usulan
+    if (App.user.role === 'Operator') {
+      closeModal('modal-detail-operator');
+      renderSemuaUsulan();
+    } else {
+      kembaliKeDaftarFolder();
+      renderWorkspace();
+    }
+  } catch (err) {
+    showToast('Gagal menghapus usulan: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── Helper ────────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function statusClass(status) {
+  return (status || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
+}
+
+function isWorkspaceEditable(p) {
+  if (!p) return false;
+  return (p.status === 'Sedang Dikerjakan' || p.status === 'Diperbaiki') && !p.driveLocked;
+}
+
+// ════════════════════════════════════════════════
+// SEMUA USULAN — Operator
+// ════════════════════════════════════════════════
+
+async function renderSemuaUsulan() {
+  setPageTitle('Semua Usulan', 'Pantau seluruh Folder Usulan WBTb aktif');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Daftar Usulan Aktif</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModalUsulanBaru()">
+            + Usulan Baru
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="search-wrap" style="flex:1;min-width:200px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control" placeholder="Cari nama karya atau ID..."
+              oninput="filterSemuaUsulan(this.value)"
+              style="padding-left:32px;height:34px;font-size:0.8rem;">
+          </div>
+          <select id="filter-status" class="form-control"
+            style="width:auto;height:34px;font-size:0.8rem;"
+            onchange="filterSemuaUsulan()">
+            <option value="">Semua Status</option>
+            <option>Sedang Dikerjakan</option>
+            <option>Persetujuan Internal</option>
+            <option>Diperbaiki</option>
+            <option>Dilanjutkan</option>
+            <option>Ditangguhkan</option>
+            <option>Final</option>
+          </select>
+        </div>
+
+        <div id="semua-usulan-body">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat data...
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  try {
+    const data = await gasCall('getDashboardData', App.user.email);
+    App.data.semuaProposals = data.proposals || [];
+    renderSemuaUsulanTable(App.data.semuaProposals);
+  } catch (err) {
+    showToast('Gagal memuat data: ' + err.message, 'error');
+  }
+}
+
+function renderSemuaUsulanTable(proposals) {
+  const body = document.getElementById('semua-usulan-body');
+
+  if (!proposals || proposals.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+        Belum ada usulan aktif.
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <table id="semua-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Karya</th>
+            <th>Domain</th>
+            <th>Penanggung Jawab</th>
+            <th>Status</th>
+            <th>Putaran</th>
+            <th>Diperbarui</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="semua-tbody">
+          ${proposals.map(p => renderSemuaUsulanRow(p)).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderSemuaUsulanRow(p) {
+  const updatedAt = p.updatedAt
+    ? new Date(p.updatedAt).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })
+    : '—';
+
+  return `
+    <tr data-id="${p.id}"
+      data-search="${(p.namaKarya||'').toLowerCase()} ${(p.id||'').toLowerCase()}"
+      data-status="${p.status||''}">
+      <td><span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span></td>
+      <td><strong>${p.namaKarya || '—'}</strong></td>
+      <td><span class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</span></td>
+      <td style="font-size:0.8rem;">${p.penanggungJawabNama || '—'}</td>
+      <td>
+        <span class="badge status-${statusClass(p.status)}">${p.status || '—'}</span>
+        ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+          ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+          : ''
+        }
+      </td>
+      <td style="text-align:center;">
+        ${p.revisiRound > 0
+          ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+          : '<span class="text-faint">—</span>'
+        }
+      </td>
+      <td class="text-muted" style="font-size:0.78rem;">${updatedAt}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm"
+            onclick="bukaDetailUsulan('${p.id}')">
+            Detail →
+          </button>
+          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+            ? `<button class="btn btn-gold btn-sm"
+                onclick="navigasiKeCatatanPenilai('${p.id}')">
+                + Catatan Penilai
+              </button>`
+            : ''
+          }
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function filterSemuaUsulan(query) {
+  const q      = (query || document.querySelector('#semua-usulan-body input') && '').toLowerCase().trim();
+  const status = document.getElementById('filter-status')
+    ? document.getElementById('filter-status').value
+    : '';
+
+  const rows = document.querySelectorAll('#semua-tbody tr');
+  rows.forEach(row => {
+    const search     = row.getAttribute('data-search') || '';
+    const rowStatus  = row.getAttribute('data-status') || '';
+    const matchQuery = !q || search.includes(q);
+    const matchStatus = !status || rowStatus === status;
+    row.style.display = (matchQuery && matchStatus) ? '' : 'none';
+  });
+}
+
+function bukaDetailDariOperator(proposalId) {
+  App.data.activeProposalId = proposalId;
+  // Operator buka di semua-usulan — buka modal detail
+  bukaModalDetailOperator(proposalId);
+}
+
+async function bukaModalDetailOperator(proposalId) {
+  // Untuk Operator, detail dibuka sebagai modal ringkas
+  // dengan link ke Drive dan opsi entry catatan penilai
+  try {
+    const p = await gasCall('getProposalDetail', App.user.email, proposalId);
+    tampilModalDetailOperator(p);
+  } catch (err) {
+    showToast('Gagal memuat detail: ' + err.message, 'error');
+  }
+}
+
+function tampilModalDetailOperator(p) {
+  // Inject modal detail operator jika belum ada
+  if (!document.getElementById('modal-detail-operator')) {
+    const modal = document.createElement('div');
+    modal.id    = 'modal-detail-operator';
+    modal.className = 'modal-overlay hidden';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:600px;">
+        <div class="modal-header">
+          <div>
+            <span id="mdo-id" class="mono badge badge-neutral" style="margin-right:6px;"></span>
+            <span id="mdo-status" class="badge"></span>
+          </div>
+          <button class="btn btn-ghost btn-sm"
+            onclick="closeModal('modal-detail-operator')">✕</button>
+        </div>
+        <div class="modal-body">
+          <h3 id="mdo-nama" style="margin-bottom:4px;"></h3>
+          <div id="mdo-domain" class="text-muted" style="font-size:0.8rem;margin-bottom:16px;"></div>
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div>
+              <div class="form-label">Penanggung Jawab</div>
+              <div id="mdo-pj" style="font-size:0.85rem;"></div>
+            </div>
+            <div>
+              <div class="form-label">Putaran Revisi</div>
+              <div id="mdo-putaran" style="font-size:0.85rem;"></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mdo-aksi">
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('mdo-id').textContent     = p.id;
+  document.getElementById('mdo-nama').textContent   = p.namaKarya;
+  document.getElementById('mdo-domain').textContent = p.domain;
+  document.getElementById('mdo-pj').textContent     =
+    p.penanggungJawabNama + ' (' + p.penanggungJawabEmail + ')';
+  document.getElementById('mdo-putaran').textContent =
+    p.revisiRound > 0
+      ? 'P' + String(p.revisiRound).padStart(2,'0')
+      : 'Belum ada revisi';
+
+  const statusEl = document.getElementById('mdo-status');
+  statusEl.textContent = p.status;
+  statusEl.className   = 'badge status-' + statusClass(p.status);
+
+  // Aksi
+  let aksiHtml = '';
+
+  if (p.folderKaryaId) {
+    aksiHtml += `
+      <a class="btn btn-ghost btn-sm"
+        href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
+        target="_blank">Buka Drive ↗</a>
+    `;
+  }
+
+  if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
+    aksiHtml += `
+      <button class="btn btn-gold btn-sm"
+        onclick="closeModal('modal-detail-operator');navigasiKeCatatanPenilai('${p.id}')">
+        + Entry Catatan Penilai
+      </button>
+    `;
+  }
+
+  // Ubah status yang diizinkan Operator
+  if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
+    aksiHtml += `
+      <button class="btn btn-ghost btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Dilanjutkan')">
+        Tandai Dilanjutkan
+      </button>
+    `;
+  }
+
+  // Tandai Selesai Revisi — jika status Diperbaiki (Revisi Nasional selesai)
+  if (p.status === 'Diperbaiki') {
+    aksiHtml += `
+      <button class="btn btn-ghost btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Sedang Dikerjakan')">
+        Tandai Selesai Revisi
+      </button>
+    `;
+  }
+
+  // Hapus Usulan — jika status Sedang Dikerjakan atau Diperbaiki
+  if (p.status === 'Sedang Dikerjakan' || p.status === 'Diperbaiki') {
+    aksiHtml += `
+      <button class="btn btn-danger btn-sm"
+        onclick="konfirmasiHapusUsulan('${p.id}')">
+        Hapus Usulan
+      </button>
+    `;
+  }
+
+  document.getElementById('mdo-aksi').innerHTML = aksiHtml;
+  openModal('modal-detail-operator');
+}
+
+async function konfirmasiUbahStatusOperator(proposalId, statusBaru) {
+  showKonfirmasi(
+    'Ubah Status',
+    `Ubah status ${proposalId} menjadi "${statusBaru}"?`,
+    async () => {
+      try {
+        await gasCall('updateProposalStatus', App.user.email, proposalId, statusBaru);
+        showToast('Status berhasil diubah ke ' + statusBaru, 'success');
+        renderSemuaUsulan();
+      } catch (err) {
+        showToast('Gagal ubah status: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+function navigasiKeCatatanPenilai(proposalId) {
+  App.data.catatanPenilaiProposalId = proposalId;
+  navigateTo('catatan-penilai');
+}
+
+// ════════════════════════════════════════════════
+// CATATAN PENILAI EKSTERNAL — Operator
+// ════════════════════════════════════════════════
+
+async function renderCatatanPenilai() {
+  setPageTitle('Catatan Penilai Eksternal', 'Dokumentasikan catatan dari Provinsi/Kementerian');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <div class="alert alert-gold">
+        <div>
+          <div style="font-weight:500;margin-bottom:4px;">⚠ Perhatian Penting</div>
+          <div style="font-size:0.85rem;line-height:1.6;">
+            Catatan Penilai Eksternal adalah satu-satunya cara membuka Putaran Revisi.
+            Pastikan catatan sudah diterima secara resmi oleh Atasan sebelum
+            mendokumentasikannya di sini. (Juknis Bab VI huruf D)
+          </div>
+        </div>
+      </div>
+
+      <!-- Pilih proposal -->
+      <div class="card" id="cp-pilih-card">
+        <div class="card-header">
+          <h3>Pilih Folder Usulan</h3>
+        </div>
+        <div id="cp-pilih-list">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat...
+          </div>
+        </div>
+      </div>
+
+      <!-- Form entry catatan -->
+      <div id="cp-form-card" class="card hidden">
+        <div class="card-header">
+          <div>
+            <h3>Entry Catatan Penilai</h3>
+            <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:2px;">
+              <span id="cp-proposal-label"></span>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="tutupFormCatatanPenilai()">
+            ← Kembali
+          </button>
+        </div>
+
+        <!-- Riwayat putaran sebelumnya -->
+        <div id="cp-riwayat" class="hidden" style="margin-bottom:20px;">
+          <div style="font-size:0.8rem;font-weight:500;color:var(--ink-muted);
+            margin-bottom:8px;">Riwayat Putaran Revisi Sebelumnya</div>
+          <div id="cp-riwayat-list"
+            style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div class="divider"></div>
+        </div>
+
+        <!-- Form -->
+        <div class="form-group">
+          <label class="form-label">
+            Sumber Catatan <span class="required">*</span>
+          </label>
+          <select id="cp-sumber" class="form-control" style="width:auto;">
+            <option value="">— Pilih sumber —</option>
+            <option value="Provinsi">Provinsi</option>
+            <option value="Kementerian">Kementerian</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Tanggal Atasan Menerima Catatan <span class="required">*</span>
+          </label>
+          <input type="date" id="cp-tanggal" class="form-control" style="width:auto;">
+          <div class="form-hint">
+            Tanggal dokumen catatan diterima Atasan dari Provinsi/Kementerian.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Isi Catatan Perbaikan <span class="required">*</span>
+          </label>
+          <textarea id="cp-catatan" class="form-control" rows="10"
+            style="resize:vertical;font-family:'Noto Sans Mono',monospace;font-size:0.85rem;"
+            placeholder="1. Kajian ilmiah: Tambahkan minimal 3 narasumber primer dari komunitas lokal.&#10;2. Foto dokumentasi: Ganti set foto dengan kualitas tinggi.&#10;3. Formulir: Data lokasi tidak konsisten dengan kajian ilmiah."></textarea>
+          <div class="form-hint">
+            Format poin bernomor wajib (Juknis Bab VIII huruf G).
+            Salin langsung dari dokumen catatan resmi penilai.
+          </div>
+        </div>
+
+        <!-- Preview putaran yang akan dibuka -->
+        <div id="cp-preview-putaran" class="alert alert-info" style="margin-bottom:16px;">
+          <div>
+            <div style="font-weight:500;margin-bottom:2px;">Putaran yang akan dibuka</div>
+            <div id="cp-putaran-label" style="font-size:0.85rem;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="tutupFormCatatanPenilai()">Batal</button>
+          <button class="btn btn-gold" id="btn-submit-catatan"
+            onclick="submitCatatanPenilaiForm()">
+            Dokumentasikan & Buka Putaran Revisi
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Load proposals yang bisa dientry catatan penilai
+  try {
+    const data = await gasCall('getDashboardData', App.user.email);
+
+    // Hanya proposal dengan status Diperbaiki ATAU Persetujuan Internal yang sudah di-ACC Atasan
+    const eligible = (data.proposals || []).filter(p =>
+      p.status === 'Diperbaiki' || (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true)
+    );
+
+    renderCpPilihList(eligible);
+
+    // Auto-buka jika dari navigasi
+    if (App.data.catatanPenilaiProposalId) {
+      bukaFormCatatanPenilai(App.data.catatanPenilaiProposalId);
+      App.data.catatanPenilaiProposalId = null;
+    }
+  } catch (err) {
+    showToast('Gagal memuat data: ' + err.message, 'error');
+  }
+}
+
+function renderCpPilihList(proposals) {
+  const list = document.getElementById('cp-pilih-list');
+
+  if (!proposals || proposals.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink-faint);">
+        Tidak ada folder yang bisa menerima Catatan Penilai saat ini.
+        <div style="font-size:0.78rem;margin-top:8px;">
+          Hanya folder berstatus
+          <span class="badge status-persetujuan-internal">Persetujuan Internal</span>
+          atau
+          <span class="badge status-diperbaiki">Diperbaiki</span>
+          yang dapat menerima catatan baru.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = proposals.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:12px 16px;border:1px solid var(--border);border-radius:6px;
+      margin-bottom:8px;cursor:pointer;transition:background 0.1s;"
+      onmouseover="this.style.background='var(--surface-2)'"
+      onmouseout="this.style.background=''"
+      onclick="bukaFormCatatanPenilai('${p.id}')">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+          <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
+          <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+          ${p.revisiRound > 0
+            ? `<span class="badge badge-neutral">
+                Sudah P${String(p.revisiRound).padStart(2,'0')}
+               </span>`
+            : '<span class="badge badge-emerald">Pertama</span>'
+          }
+        </div>
+        <div style="font-weight:500;">${p.namaKarya}</div>
+      </div>
+      <span style="color:var(--gold-dark);font-weight:500;">+ Catatan →</span>
+    </div>
+  `).join('');
+}
+
+async function bukaFormCatatanPenilai(proposalId) {
+  App.data.cpProposalId = proposalId;
+
+  document.getElementById('cp-pilih-card').style.display = 'none';
+  document.getElementById('cp-form-card').classList.remove('hidden');
+
+  try {
+    const p = await gasCall('getProposalDetail', App.user.email, proposalId);
+    
+    if (p.status !== 'Diperbaiki' && !(p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true)) {
+      showToast('Gagal: Usulan ' + p.id + ' belum disetujui (ACC) oleh Atasan.', 'error');
+      tutupFormCatatanPenilai();
+      return;
+    }
+
+    App.data.cpProposal = p;
+
+    // Label
+    document.getElementById('cp-proposal-label').textContent =
+      p.id + ' — ' + p.namaKarya;
+
+    // Preview putaran yang akan dibuka
+    const putaranBaru = (p.revisiRound || 0) + 1;
+    document.getElementById('cp-putaran-label').textContent =
+      'P' + String(putaranBaru).padStart(2,'0') +
+      ' — Subfolder baru akan dibuat di 03_REVISI/P' +
+      String(putaranBaru).padStart(2,'0') + '/';
+
+    // Set tanggal default hari ini
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('cp-tanggal').value = today;
+
+    // Riwayat putaran sebelumnya
+    if (p.catatanPenilai && p.catatanPenilai.length > 0) {
+      const riwayatDiv  = document.getElementById('cp-riwayat');
+      const riwayatList = document.getElementById('cp-riwayat-list');
+      riwayatDiv.classList.remove('hidden');
+      riwayatList.innerHTML = p.catatanPenilai.map(c => `
+        <div style="padding:10px 12px;background:var(--surface-2);
+          border-radius:6px;font-size:0.8rem;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span class="badge badge-neutral">
+              P${String(c.putaran).padStart(2,'0')}
+            </span>
+            <span class="text-muted">${c.sumber} · ${c.tanggalTerima}</span>
+          </div>
+          <div style="white-space:pre-line;color:var(--ink-muted);line-height:1.6;">
+            ${c.catatan}
+          </div>
+        </div>
+      `).join('');
+    }
+
+  } catch (err) {
+    showToast('Gagal memuat detail proposal: ' + err.message, 'error');
+  }
+}
+
+function tutupFormCatatanPenilai() {
+  document.getElementById('cp-pilih-card').style.display = '';
+  document.getElementById('cp-form-card').classList.add('hidden');
+  App.data.cpProposal   = null;
+  App.data.cpProposalId = null;
+
+  // Reset form
+  document.getElementById('cp-sumber').value  = '';
+  document.getElementById('cp-catatan').value = '';
+  document.getElementById('cp-riwayat').classList.add('hidden');
+}
+
+async function submitCatatanPenilaiForm() {
+  const sumber   = document.getElementById('cp-sumber').value;
+  const tanggal  = document.getElementById('cp-tanggal').value;
+  const catatan  = document.getElementById('cp-catatan').value.trim();
+  const p        = App.data.cpProposal;
+
+  if (!sumber || !tanggal || !catatan) {
+    showToast('Semua field wajib diisi.', 'error');
+    return;
+  }
+  if (catatan.indexOf('1.') === -1) {
+    showToast('Format catatan harus berupa poin bernomor. Minimal ada "1."', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-catatan');
+  btn.disabled    = true;
+  btn.textContent = 'Memproses...';
+
+  try {
+    const hasil = await gasCall(
+      'submitCatatanPenilai',
+      App.user.email,
+      p.id,
+      catatan,
+      sumber,
+      tanggal
+    );
+
+    showToast(
+      'Catatan Penilai P' + String(hasil.putaranBaru).padStart(2,'0') +
+      ' berhasil didokumentasikan. Status berubah ke Diperbaiki.',
+      'success'
+    );
+
+    tutupFormCatatanPenilai();
+    renderCatatanPenilai(); // refresh
+
+  } catch (err) {
+    showToast('Gagal submit catatan: ' + err.message, 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Dokumentasikan & Buka Putaran Revisi';
+  }
+}
+
+// ════════════════════════════════════════════════
+// ARSIP HISTORIS — Semua role
+// ════════════════════════════════════════════════
+
+async function renderArsip() {
+  setPageTitle('Arsip Historis',
+    'WBTb yang telah ditetapkan sebelum berlakunya Juknis 2026');
+
+  const isOperator = App.user.role === 'Operator';
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <div class="alert alert-info">
+        <div style="font-size:0.85rem;line-height:1.6;">
+          Arsip Historis bersifat <strong>hanya-baca</strong> setelah diisi.
+          Data dapat ditambah oleh Operator. (Juknis Bab IX huruf B)
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Daftar Arsip Historis</h3>
+          ${isOperator ? `
+            <button class="btn btn-primary btn-sm"
+              onclick="openModalImportHistoris()">
+              + Import WBTb Historis
+            </button>
+          ` : ''}
+        </div>
+
+        <!-- Search -->
+        <div style="margin-bottom:16px;">
+          <div class="search-wrap" style="max-width:300px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control"
+              placeholder="Cari nama karya..."
+              oninput="filterArsip(this.value)"
+              style="padding-left:32px;height:34px;font-size:0.8rem;">
+          </div>
+        </div>
+
+        <div id="arsip-body">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat arsip...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Import Historis -->
+    ${isOperator ? `
+    <div id="modal-import-historis" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Import WBTb Historis</h3>
+          <button class="btn btn-ghost btn-sm"
+            onclick="closeModal('modal-import-historis')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-gold" style="margin-bottom:16px;">
+            <div style="font-size:0.85rem;">
+              Untuk WBTb yang sudah ditetapkan sebelum Juknis ini berlaku.
+              Sertifikat penetapan wajib ada. Dokumen lain opsional.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Nama Karya Budaya <span class="required">*</span>
+            </label>
+            <input type="text" id="ih-nama" class="form-control"
+              placeholder="contoh: Tepung Tawar Lingga">
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Judul Singkat <span class="required">*</span>
+            </label>
+            <input type="text" id="ih-judul-singkat" class="form-control mono"
+              placeholder="contoh: TEPUNG-TAWAR"
+              style="text-transform:uppercase;">
+            <div class="form-hint">
+              UPPERCASE, hanya A-Z dan tanda hubung.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Domain WBTb <span class="required">*</span>
+            </label>
+            <select id="ih-domain" class="form-control">
+              <option value="">— Pilih domain —</option>
+              <option>Tradisi dan Ekspresi Lisan</option>
+              <option>Seni Pertunjukan</option>
+              <option>Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan</option>
+              <option>Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta</option>
+              <option>Kemahiran Kerajinan Tradisional</option>
+              <option>Olahraga Tradisional dan Permainan Rakyat</option>
+              <option>Kuliner Tradisional</option>
+              <option>Arsitektur Tradisional</option>
+              <option>Moda Transportasi Tradisional</option>
+              <option>Tekstil Tradisional</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Tahun Penetapan <span class="required">*</span>
+            </label>
+            <input type="number" id="ih-tahun" class="form-control"
+              placeholder="contoh: 2024" min="2000"
+              max="${new Date().getFullYear()}" style="width:160px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost"
+            onclick="closeModal('modal-import-historis')">Batal</button>
+          <button class="btn btn-primary" onclick="submitImportHistoris()">
+            Import ke Arsip
+          </button>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+  `);
+
+  try {
+    const arsip = await gasCall('getArsipHistoris', App.user.email);
+    App.data.arsipList = arsip;
+    renderArsipTable(arsip);
+  } catch (err) {
+    showToast('Gagal memuat arsip: ' + err.message, 'error');
+  }
+}
+
+function renderArsipTable(arsip) {
+  const body = document.getElementById('arsip-body');
+
+  if (!arsip || arsip.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+        Belum ada data arsip historis.
+        ${App.user.role === 'Operator'
+          ? '<div style="margin-top:12px;">Gunakan tombol "Import WBTb Historis" untuk menambahkan.</div>'
+          : ''}
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <table id="arsip-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Karya Budaya</th>
+            <th>Domain</th>
+            <th>Tahun Penetapan</th>
+            <th>Drive</th>
+          </tr>
+        </thead>
+        <tbody id="arsip-tbody">
+          ${arsip.map(p => `
+            <tr data-search="${(p.namaKarya||'').toLowerCase()}">
+              <td><span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span></td>
+              <td>
+                <div style="font-weight:500;">${p.namaKarya}</div>
+                <span class="badge badge-emerald" style="margin-top:3px;">
+                  Final
+                </span>
+              </td>
+              <td class="text-muted" style="font-size:0.78rem;">
+                ${shortenDomain(p.domain)}
+              </td>
+              <td style="font-size:0.85rem;">${p.tahunUsulan || '—'}</td>
+              <td>
+                ${p.folderKaryaId
+                  ? `<a href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
+                      target="_blank" class="btn btn-ghost btn-sm">
+                      Drive ↗
+                    </a>`
+                  : '<span class="text-faint">—</span>'
+                }
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-faint" style="font-size:0.75rem;margin-top:8px;text-align:right;">
+      Total: ${arsip.length} karya terdaftar
+    </div>
+  `;
+}
+
+function filterArsip(query) {
+  const rows = document.querySelectorAll('#arsip-tbody tr');
+  const q    = query.toLowerCase().trim();
+  rows.forEach(row => {
+    const search = row.getAttribute('data-search') || '';
+    row.style.display = (!q || search.includes(q)) ? '' : 'none';
+  });
+}
+
+function openModalImportHistoris() {
+  document.getElementById('ih-nama').value         = '';
+  document.getElementById('ih-judul-singkat').value = '';
+  document.getElementById('ih-domain').value       = '';
+  document.getElementById('ih-tahun').value        = '';
+  openModal('modal-import-historis');
+}
+
+async function submitImportHistoris() {
+  const nama         = document.getElementById('ih-nama').value.trim();
+  const judulSingkat = document.getElementById('ih-judul-singkat').value.trim().toUpperCase();
+  const domain       = document.getElementById('ih-domain').value;
+  const tahun        = parseInt(document.getElementById('ih-tahun').value, 10);
+
+  if (!nama || !judulSingkat || !domain || !tahun) {
+    showToast('Semua field wajib diisi.', 'error');
+    return;
+  }
+
+  if (isNaN(tahun) || tahun < 2000 || tahun > new Date().getFullYear()) {
+    showToast('Tahun penetapan tidak valid.', 'error');
+    return;
+  }
+
+  try {
+    const hasil = await gasCall('createArsipHistoris', App.user.email, {
+      namaKarya     : nama,
+      judulSingkat  : judulSingkat,
+      domain        : domain,
+      tahunPenetapan: tahun
+    });
+
+    closeModal('modal-import-historis');
+    showToast(
+      hasil.proposalId + ' berhasil diimport ke Arsip Historis. ' +
+      'Unggah sertifikat penetapan ke folder Drive.',
+      'success'
+    );
+    renderArsip();
+  } catch (err) {
+    showToast('Gagal import: ' + err.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════
+// KELOLA AKSES — Operator
+// ════════════════════════════════════════════════
+
+async function renderKelolaAkses() {
+  setPageTitle('Kelola Akses', 'Tambah dan cabut akses pengguna sistem JONG WBTb');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <div class="alert alert-info">
+        <div style="font-size:0.85rem;line-height:1.6;">
+          Perubahan akses hanya boleh dilakukan atas
+          <strong>perintah tertulis Atasan</strong>.
+          Pastikan dokumen Perintah Akses sudah diterbitkan Atasan sebelum
+          mengeksekusi perubahan. (Juknis Bab II huruf C)
+        </div>
+      </div>
+
+      <!-- Pengguna Aktif -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Pengguna Aktif</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModalTambahUser()">
+            + Tambah Pengguna
+          </button>
+        </div>
+        <div id="ka-users-body">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat...
+          </div>
+        </div>
+      </div>
+
+      <!-- Riwayat Akses Dicabut -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Riwayat Akses Dicabut</h3>
+        </div>
+        <div id="ka-revoked-body"></div>
+      </div>
+    </div>
+
+    <!-- Modal Tambah User -->
+    <div id="modal-tambah-user" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Tambah Pengguna</h3>
+          <button class="btn btn-ghost btn-sm"
+            onclick="closeModal('modal-tambah-user')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-gold" style="margin-bottom:16px;">
+            <div style="font-size:0.85rem;">
+              Pastikan Perintah Akses tertulis dari Atasan sudah tersedia
+              sebelum menambahkan pengguna ini.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Email Google <span class="required">*</span>
+            </label>
+            <input type="email" id="ka-input-email" class="form-control"
+              placeholder="nama@gmail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Nama Lengkap <span class="required">*</span>
+            </label>
+            <input type="text" id="ka-input-nama" class="form-control"
+              placeholder="Nama lengkap pengguna">
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Role <span class="required">*</span>
+            </label>
+            <select id="ka-input-role" class="form-control">
+              <option value="">— Pilih role —</option>
+              <option value="Anggota Tim">Anggota Tim</option>
+              <option value="Operator">Operator</option>
+              <option value="Atasan">Atasan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catatan (opsional)</label>
+            <input type="text" id="ka-input-catatan" class="form-control"
+              placeholder="contoh: Nomor perintah akses JONG-WBTb/PA/20260601/001">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost"
+            onclick="closeModal('modal-tambah-user')">Batal</button>
+          <button class="btn btn-primary" onclick="submitTambahUser()">
+            Tambah Pengguna
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Cabut Akses -->
+    <div id="modal-cabut-user" class="modal-overlay hidden">
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-header">
+          <h3>Cabut Akses</h3>
+          <button class="btn btn-ghost btn-sm"
+            onclick="closeModal('modal-cabut-user')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger" style="margin-bottom:16px;">
+            <div style="font-size:0.85rem;">
+              Akses <strong id="cabut-nama-target"></strong> akan dicabut.
+              Pencabutan efektif segera setelah disimpan.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Alasan Pencabutan <span class="required">*</span>
+            </label>
+            <input type="text" id="ka-input-alasan-cabut" class="form-control"
+              placeholder="contoh: Mutasi per Juni 2026">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost"
+            onclick="closeModal('modal-cabut-user')">Batal</button>
+          <button class="btn btn-danger" onclick="submitCabutUser()">
+            Ya, Cabut Akses
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  loadKelolaAksesData();
+}
+
+async function loadKelolaAksesData() {
+  try {
+    const data = await gasCall('getAllUsers', App.user.email);
+    renderKaUsersAktif(data.aktif);
+    renderKaUsersRevoked(data.tidakAktif);
+  } catch (err) {
+    showToast('Gagal memuat data pengguna: ' + err.message, 'error');
+  }
+}
+
+function renderKaUsersAktif(aktif) {
+  const body = document.getElementById('ka-users-body');
+  const semua = [
+    ...aktif.atasan.map(u => ({ ...u, roleLabel: 'Atasan' })),
+    ...aktif.operator.map(u => ({ ...u, roleLabel: 'Operator' })),
+    ...aktif.anggotaTim.map(u => ({ ...u, roleLabel: 'Anggota Tim' }))
+  ];
+
+  if (semua.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink-faint);">
+        Belum ada pengguna terdaftar.
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Ditambahkan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${semua.map(u => `
+            <tr>
+              <td><strong>${u.nama}</strong></td>
+              <td class="mono" style="font-size:0.78rem;">${u.email}</td>
+              <td>
+                <span class="badge ${
+                  u.role === 'Atasan'     ? 'badge-emerald' :
+                  u.role === 'Operator'   ? 'badge-gold'    :
+                                            'badge-neutral'
+                }">${u.role}</span>
+              </td>
+              <td class="text-muted" style="font-size:0.78rem;">
+                ${u.ditambahAt
+                  ? new Date(u.ditambahAt).toLocaleDateString('id-ID')
+                  : '—'}
+              </td>
+              <td>
+                ${u.email !== App.user.email
+                  ? `<button class="btn btn-danger btn-sm"
+                      onclick="openModalCabutUser('${u.email}','${u.nama}')">
+                      Cabut Akses
+                    </button>`
+                  : '<span class="text-faint" style="font-size:0.75rem;">Kamu</span>'
+                }
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderKaUsersRevoked(tidakAktif) {
+  const body = document.getElementById('ka-revoked-body');
+
+  if (!tidakAktif || tidakAktif.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:24px;color:var(--ink-faint);font-size:0.85rem;">
+        Belum ada riwayat pencabutan akses.
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Dicabut</th>
+            <th>Catatan</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tidakAktif.map(u => `
+            <tr style="opacity:0.6;">
+              <td>${u.nama}</td>
+              <td class="mono" style="font-size:0.78rem;">${u.email}</td>
+              <td><span class="badge badge-neutral">${u.role}</span></td>
+              <td class="text-muted" style="font-size:0.78rem;">
+                ${u.dicabutAt
+                  ? new Date(u.dicabutAt).toLocaleDateString('id-ID')
+                  : '—'}
+              </td>
+              <td class="text-muted" style="font-size:0.78rem;">${u.catatan || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openModalTambahUser() {
+  document.getElementById('ka-input-email').value   = '';
+  document.getElementById('ka-input-nama').value    = '';
+  document.getElementById('ka-input-role').value    = '';
+  document.getElementById('ka-input-catatan').value = '';
+  openModal('modal-tambah-user');
+}
+
+async function submitTambahUser() {
+  const email   = document.getElementById('ka-input-email').value.trim();
+  const nama    = document.getElementById('ka-input-nama').value.trim();
+  const role    = document.getElementById('ka-input-role').value;
+  const catatan = document.getElementById('ka-input-catatan').value.trim();
+
+  if (!email || !nama || !role) {
+    showToast('Email, nama, dan role wajib diisi.', 'error');
+    return;
+  }
+
+  try {
+    await gasCall('addUserAccess', App.user.email, email, role, nama, catatan);
+    closeModal('modal-tambah-user');
+    showToast(nama + ' berhasil ditambahkan sebagai ' + role + '.', 'success');
+    loadKelolaAksesData();
+  } catch (err) {
+    showToast('Gagal tambah pengguna: ' + err.message, 'error');
+  }
+}
+
+function openModalCabutUser(email, nama) {
+  App.data.cabutTargetEmail = email;
+  document.getElementById('cabut-nama-target').textContent = nama;
+  document.getElementById('ka-input-alasan-cabut').value   = '';
+  openModal('modal-cabut-user');
+}
+
+async function submitCabutUser() {
+  const alasan = document.getElementById('ka-input-alasan-cabut').value.trim();
+  if (!alasan) {
+    showToast('Alasan pencabutan wajib diisi.', 'error');
+    return;
+  }
+
+  try {
+    await gasCall('revokeUserAccess', App.user.email,
+      App.data.cabutTargetEmail, alasan);
+    closeModal('modal-cabut-user');
+    showToast('Akses berhasil dicabut.', 'success');
+    loadKelolaAksesData();
+  } catch (err) {
+    showToast('Gagal cabut akses: ' + err.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════
+// VERIFIKASI — Atasan (Kabid NATBK)
+// ════════════════════════════════════════════════
+
+async function renderVerifikasi() {
+  setPageTitle('Verifikasi Usulan', 'Tinjau dan putuskan kelayakan dokumen usulan WBTb');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <!-- Daftar usulan menunggu verifikasi -->
+      <div class="card" id="ver-daftar-card">
+        <div class="card-header">
+          <h3>Menunggu Verifikasi</h3>
+          <span class="badge badge-gold" id="ver-jumlah-badge">0 usulan</span>
+        </div>
+        <div id="ver-daftar-list">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat daftar...
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail verifikasi -->
+      <div id="ver-detail" class="hidden">
+
+        <!-- Header -->
+        <div class="card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;
+            gap:16px;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span id="ver-proposal-id" class="mono badge badge-neutral"></span>
+                <span id="ver-status-badge" class="badge"></span>
+              </div>
+              <h2 id="ver-nama-karya" style="margin-bottom:4px;"></h2>
+              <div id="ver-domain" class="text-muted" style="font-size:0.8rem;"></div>
+              <div style="margin-top:6px;font-size:0.8rem;color:var(--ink-muted);">
+                Penanggung Jawab: <strong id="ver-pj"></strong>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="kembaliKeDaftarVerifikasi()">
+              ← Kembali
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabs dokumen -->
+        <div class="card">
+          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
+            <button class="ws-tab active" data-tab="ver-formulir" onclick="switchWsTab('ver-formulir')">Formulir</button>
+            <button class="ws-tab" data-tab="ver-kajian" onclick="switchWsTab('ver-kajian')">Kajian Ilmiah</button>
+            <button class="ws-tab" data-tab="ver-foto" onclick="switchWsTab('ver-foto')">Foto</button>
+            <button class="ws-tab" data-tab="ver-video" onclick="switchWsTab('ver-video')">Video</button>
+          </div>
+
+          <!-- Formulir -->
+          <div id="ws-tab-ver-formulir" class="ws-tab-content">
+            <div id="ver-formulir-wrap">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span id="ver-formulir-versi" class="badge badge-neutral"></span>
+                <a id="ver-formulir-link" class="btn btn-ghost btn-sm" target="_blank">
+                  Buka di Google Docs ↗
+                </a>
+              </div>
+              <iframe id="ver-formulir-iframe"
+                style="width:100%;height:600px;border:1px solid var(--border);border-radius:6px;"
+                frameborder="0">
+              </iframe>
+            </div>
+          </div>
+
+          <!-- Kajian -->
+          <div id="ws-tab-ver-kajian" class="ws-tab-content hidden">
+            <div id="ver-kajian-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Foto -->
+          <div id="ws-tab-ver-foto" class="ws-tab-content hidden">
+            <div id="ver-foto-grid"
+              style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
+            </div>
+          </div>
+
+          <!-- Video -->
+          <div id="ws-tab-ver-video" class="ws-tab-content hidden">
+            <div id="ver-video-wrap"></div>
+          </div>
+        </div>
+
+        <!-- Panel Keputusan Atasan -->
+        <div class="card" id="ver-keputusan-card">
+          <div class="card-header">
+            <h3>Keputusan Verifikasi</h3>
+            <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
+          </div>
+
+          <!-- Pilih keputusan -->
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="btn-ver-acc" onclick="pilihKeputusan('acc')">
+              ✓ Setujui (ACC)
+            </button>
+            <button class="btn btn-danger" id="btn-ver-kembalikan"
+              onclick="pilihKeputusan('kembalikan')">
+              ↩ Kembalikan untuk Diperbaiki
+            </button>
+            <button class="btn btn-ghost" id="btn-ver-tangguhkan"
+              onclick="pilihKeputusan('tangguhkan')">
+              ⊘ Tangguhkan Usulan
+            </button>
+          </div>
+
+          <!-- Form ACC -->
+          <div id="ver-form-acc" class="hidden">
+            <div class="alert alert-success">
+              <div>
+                <div style="font-weight:500;margin-bottom:4px;">Konfirmasi Persetujuan Internal</div>
+                <div style="font-size:0.85rem;">
+                  Dokumen usulan akan disetujui dan statusnya berubah menjadi
+                  <strong>Persetujuan Internal</strong>. Pastikan seluruh dokumen
+                  sudah diperiksa dan memenuhi standar Kementerian.
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+              <button class="btn btn-primary" onclick="eksekusiACC()">
+                Ya, Setujui Usulan Ini
+              </button>
+            </div>
+          </div>
+
+          <!-- Form Kembalikan -->
+          <div id="ver-form-kembalikan" class="hidden">
+            <div class="alert alert-gold" style="margin-bottom:16px;">
+              <div style="font-size:0.85rem;">
+                Catatan perbaikan akan disampaikan ke Anggota Tim.
+                Status berubah ke <strong>Sedang Dikerjakan</strong>.
+                Ini berbeda dari Catatan Penilai Eksternal — ini catatan internal Atasan.
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Catatan Perbaikan <span class="required">*</span>
+              </label>
+              <textarea id="input-catatan-kembalikan" class="form-control"
+                rows="6" style="resize:vertical;"
+                placeholder="1. Kajian ilmiah: Tambahkan minimal 3 narasumber primer dari komunitas lokal.&#10;2. Foto dokumentasi: Ganti set foto dengan kualitas lebih tinggi.&#10;3. Formulir: Data lokasi tidak konsisten dengan kajian."></textarea>
+              <div class="form-hint">
+                Format poin bernomor wajib (Juknis Bab VIII huruf G).
+                Minimal ada poin "1."
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+              <button class="btn btn-danger" onclick="eksekusiKembalikan()">
+                Kembalikan dengan Catatan
+              </button>
+            </div>
+          </div>
+
+          <!-- Form Tangguhkan -->
+          <div id="ver-form-tangguhkan" class="hidden">
+            <div class="alert alert-danger" style="margin-bottom:16px;">
+              <div style="font-size:0.85rem;">
+                <strong>Perhatian:</strong> Penangguhan bersifat permanen.
+                Folder akan dikunci dan tidak bisa dilanjutkan kembali.
+                WBTb yang pernah ditangguhkan dan diusulkan kembali diperlakukan
+                sebagai usulan baru (Juknis Bab IX huruf C).
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Alasan Penangguhan <span class="required">*</span>
+              </label>
+              <textarea id="input-alasan-tangguhkan" class="form-control"
+                rows="4" style="resize:vertical;"
+                placeholder="Jelaskan alasan penangguhan usulan ini..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+              <button class="btn btn-danger" onclick="konfirmasiTangguhkan()">
+                Tangguhkan Usulan Ini
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Load data
+  try {
+    const data = await gasCall('getDashboardData', App.user.email);
+
+    // Filter hanya yang menunggu verifikasi
+    const menunggu = (data.proposals || []).filter(p =>
+      p.status === 'Persetujuan Internal' ||
+      p.status === 'Dilanjutkan'
+    );
+
+    renderVerDaftarList(menunggu);
+
+    // Auto-buka jika dari navigasi detail
+    if (App.data.activeProposalId) {
+      bukaVerProposal(App.data.activeProposalId);
+      App.data.activeProposalId = null;
+    }
+  } catch (err) {
+    showToast('Gagal memuat daftar verifikasi: ' + err.message, 'error');
+  }
+}
+
+function renderVerDaftarList(proposals) {
+  const list  = document.getElementById('ver-daftar-list');
+  const badge = document.getElementById('ver-jumlah-badge');
+
+  badge.textContent = proposals.length + ' usulan';
+
+  if (!proposals || proposals.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink-faint);">
+        Tidak ada usulan yang menunggu verifikasi saat ini.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = proposals.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:12px 16px;border:1px solid var(--border);border-radius:6px;
+      cursor:pointer;transition:background 0.1s;"
+      onmouseover="this.style.background='var(--surface-2)'"
+      onmouseout="this.style.background=''"
+      onclick="bukaVerProposal('${p.id}')">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+          <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
+          <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+        </div>
+        <div style="font-weight:500;">${p.namaKarya}</div>
+        <div class="text-muted" style="font-size:0.78rem;">
+          ${shortenDomain(p.domain)} ·
+          PJ: ${p.penanggungJawabNama || '—'}
+        </div>
+      </div>
+      <span style="color:var(--ink-faint);">→</span>
+    </div>
+  `).join('');
+}
+
+async function bukaVerProposal(proposalId) {
+  App.data.verProposalId = proposalId;
+  document.getElementById('ver-daftar-card').style.display = 'none';
+  document.getElementById('ver-detail').classList.remove('hidden');
+
+  try {
+    const p = await gasCall('getProposalDetail', App.user.email, proposalId);
+    App.data.verProposal = p;
+    renderVerDetail(p);
+  } catch (err) {
+    showToast('Gagal memuat detail: ' + err.message, 'error');
+  }
+}
+
+function renderVerDetail(p) {
+  document.getElementById('ver-proposal-id').textContent = p.id;
+  document.getElementById('ver-nama-karya').textContent  = p.namaKarya;
+  document.getElementById('ver-domain').textContent      = p.domain;
+  document.getElementById('ver-pj').textContent          = p.penanggungJawabNama || '—';
+
+  const statusBadge    = document.getElementById('ver-status-badge');
+  statusBadge.textContent = p.status;
+  statusBadge.className   = 'badge status-' + statusClass(p.status);
+
+  // Formulir — preview mode (read-only untuk Atasan)
+  if (p.docActiveId) {
+    const versiKeys  = Object.keys(p.docHistory || {});
+    document.getElementById('ver-formulir-versi').textContent =
+      'Versi ' + versiKeys.length;
+    document.getElementById('ver-formulir-iframe').src =
+      'https://docs.google.com/document/d/' + p.docActiveId + '/preview?embedded=true';
+    document.getElementById('ver-formulir-link').href =
+      'https://docs.google.com/document/d/' + p.docActiveId + '/preview';
+  }
+
+  // Kajian
+  const kajianList = document.getElementById('ver-kajian-list');
+  if (!p.kajianFiles || p.kajianFiles.length === 0) {
+    kajianList.innerHTML = `<div class="text-faint" style="font-size:0.85rem;">Belum ada kajian.</div>`;
+  } else {
+    kajianList.innerHTML = p.kajianFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📄</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;
+            text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">v${f.versi}</div>
+        </div>
+        <a href="https://drive.google.com/file/d/${f.fileId}/view"
+          target="_blank" class="btn btn-ghost btn-sm">Lihat ↗</a>
+      </div>
+    `).join('');
+  }
+
+  // Foto
+  const fotoGrid = document.getElementById('ver-foto-grid');
+  if (!p.fotoFiles || p.fotoFiles.length === 0) {
+    fotoGrid.innerHTML = `<div class="text-faint" style="font-size:0.85rem;grid-column:1/-1;">Belum ada foto.</div>`;
+  } else {
+    fotoGrid.innerHTML = p.fotoFiles.map(f => `
+      <div class="foto-thumb">
+        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank">
+          <img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w200"
+            onerror="this.src=''" alt="${f.name}">
+        </a>
+        <div class="foto-name">${f.name}</div>
+      </div>
+    `).join('');
+  }
+
+  // Video
+  const videoWrap = document.getElementById('ver-video-wrap');
+  if (p.videoUrl) {
+    videoWrap.innerHTML = `
+      <div class="alert alert-info" style="align-items:center;">
+        <span>🎬</span>
+        <div style="flex:1;">
+          <div style="font-weight:500;margin-bottom:2px;">URL Video</div>
+          <a href="${p.videoUrl}" target="_blank" class="mono"
+            style="font-size:0.8rem;color:var(--info);word-break:break-all;">
+            ${p.videoUrl}
+          </a>
+        </div>
+      </div>
+    `;
+  } else {
+    videoWrap.innerHTML = `<div class="text-faint" style="font-size:0.85rem;">Belum ada URL video.</div>`;
+  }
+
+  // Reset keputusan
+  batalKeputusan();
+
+  // Sembunyikan panel keputusan jika sudah tidak bisa diputuskan,
+  // atau tampilkan banner sukses jika usulan sudah di-ACC Atasan (Persetujuan Internal dan isApprovedByAtasan === true)
+  const card = document.getElementById('ver-keputusan-card');
+  const statusTidakBisaDiputuskan = [
+    'Final', 'Ditangguhkan', 'Sedang Dikerjakan', 'Diperbaiki'
+  ];
+  if (statusTidakBisaDiputuskan.includes(p.status)) {
+    card.style.display = 'none';
+  } else if (p.isApprovedByAtasan) {
+    card.style.display = '';
+    card.innerHTML = `
+      <div class="card-header">
+        <h3>Keputusan Verifikasi</h3>
+        <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
+      </div>
+      <div class="alert alert-success" style="margin-bottom:0; align-items:center;">
+        <span>✓</span>
+        <div>
+          <strong>Usulan Disetujui (ACC)</strong>
+          <div style="font-size:0.8rem;margin-top:2px;">Usulan ini telah disetujui secara internal oleh Atasan dan siap untuk diproses ke tingkat nasional.</div>
+        </div>
+      </div>
+    `;
+  } else {
+    card.style.display = '';
+    card.innerHTML = `
+      <div class="card-header">
+        <h3>Keputusan Verifikasi</h3>
+        <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btn-ver-acc" onclick="pilihKeputusan('acc')">
+          ✓ Setujui (ACC)
+        </button>
+        <button class="btn btn-danger" id="btn-ver-kembalikan"
+          onclick="pilihKeputusan('kembalikan')">
+          ↩ Kembalikan untuk Diperbaiki
+        </button>
+        <button class="btn btn-ghost" id="btn-ver-tangguhkan"
+          onclick="pilihKeputusan('tangguhkan')">
+          ⊘ Tangguhkan Usulan
+        </button>
+      </div>
+      
+      <!-- Form ACC -->
+      <div id="ver-form-acc" class="hidden">
+        <div class="alert alert-success">
+          <div>
+            <div style="font-weight:500;margin-bottom:4px;">Konfirmasi Persetujuan Internal</div>
+            <div style="font-size:0.85rem;">
+              Dokumen usulan akan disetujui dan statusnya berubah menjadi
+              <strong>Persetujuan Internal</strong>. Pastikan seluruh dokumen
+              sudah diperiksa dan memenuhi standar Kementerian.
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+          <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+          <button class="btn btn-primary" onclick="eksekusiACC()">
+            Ya, Setujui Usulan Ini
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Kembalikan -->
+      <div id="ver-form-kembalikan" class="hidden">
+        <div class="alert alert-gold" style="margin-bottom:16px;">
+          <div style="font-size:0.85rem;">
+            Catatan perbaikan akan disampaikan ke Anggota Tim.
+            Status berubah ke <strong>Sedang Dikerjakan</strong>.
+            Ini berbeda dari Catatan Penilai Eksternal — ini catatan internal Atasan.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Catatan Perbaikan <span class="required">*</span>
+          </label>
+          <textarea id="input-catatan-kembalikan" class="form-control"
+            rows="6" style="resize:vertical;"
+            placeholder="1. Kajian ilmiah: Tambahkan minimal 3 narasumber primer dari komunitas lokal.&#10;2. Foto dokumentasi: Ganti set foto dengan kualitas lebih tinggi.&#10;3. Formulir: Data lokasi tidak konsisten dengan kajian."></textarea>
+          <div class="form-hint">
+            Format poin bernomor wajib (Juknis Bab VIII huruf G).
+            Minimal ada poin "1."
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+          <button class="btn btn-danger" onclick="eksekusiKembalikan()">
+            Kembalikan dengan Catatan
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Tangguhkan -->
+      <div id="ver-form-tangguhkan" class="hidden">
+        <div class="alert alert-danger" style="margin-bottom:16px;">
+          <div style="font-size:0.85rem;">
+            <strong>Perhatian:</strong> Penangguhan bersifat permanen.
+            Folder akan dikunci dan tidak bisa dilanjutkan kembali.
+            WBTb yang pernah ditangguhkan dan diusulkan kembali diperlakukan
+            sebagai usulan baru (Juknis Bab IX huruf C).
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Alasan Penangguhan <span class="required">*</span>
+          </label>
+          <textarea id="input-alasan-tangguhkan" class="form-control"
+            rows="4" style="resize:vertical;"
+            placeholder="Jelaskan alasan penangguhan usulan ini..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+          <button class="btn btn-danger" onclick="konfirmasiTangguhkan()">
+            Tangguhkan Usulan Ini
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function kembaliKeDaftarVerifikasi() {
+  document.getElementById('ver-daftar-card').style.display = '';
+  document.getElementById('ver-detail').classList.add('hidden');
+  App.data.verProposal   = null;
+  App.data.verProposalId = null;
+}
+
+// ── Keputusan ─────────────────────────────────
+
+function pilihKeputusan(jenis) {
+  ['acc','kembalikan','tangguhkan'].forEach(j => {
+    document.getElementById('ver-form-' + j).classList.add('hidden');
+  });
+  document.getElementById('ver-form-' + jenis).classList.remove('hidden');
+}
+
+function batalKeputusan() {
+  ['acc','kembalikan','tangguhkan'].forEach(j => {
+    const el = document.getElementById('ver-form-' + j);
+    if (el) el.classList.add('hidden');
+  });
+}
+
+async function eksekusiACC() {
+  const p = App.data.verProposal;
+  if (!p) return;
+
+  try {
+    await gasCall('updateProposalStatus', App.user.email, p.id, 'Persetujuan Internal');
+    showToast('Usulan ' + p.id + ' disetujui. Status: Persetujuan Internal.', 'success');
+    kembaliKeDaftarVerifikasi();
+    renderVerifikasi(); // refresh
+  } catch (err) {
+    showToast('Gagal ACC: ' + err.message, 'error');
+  }
+}
+
+async function eksekusiKembalikan() {
+  const p       = App.data.verProposal;
+  const catatan = document.getElementById('input-catatan-kembalikan').value.trim();
+
+  if (!catatan) {
+    showToast('Catatan perbaikan wajib diisi.', 'error');
+    return;
+  }
+  if (catatan.indexOf('1.') === -1) {
+    showToast('Format catatan harus berupa poin bernomor. Minimal ada "1."', 'error');
+    return;
+  }
+
+  try {
+    // Simpan catatan atasan + kembalikan ke Sedang Dikerjakan
+    await gasCall('kembalikanKeAnggota', App.user.email, p.id, catatan);
+    showToast('Usulan dikembalikan dengan catatan perbaikan.', 'success');
+    kembaliKeDaftarVerifikasi();
+    renderVerifikasi();
+  } catch (err) {
+    showToast('Gagal kembalikan: ' + err.message, 'error');
+  }
+}
+
+function konfirmasiTangguhkan() {
+  const alasan = document.getElementById('input-alasan-tangguhkan').value.trim();
+  if (!alasan) {
+    showToast('Alasan penangguhan wajib diisi.', 'error');
+    return;
+  }
+  showKonfirmasi(
+    'Konfirmasi Penangguhan',
+    'Tindakan ini bersifat permanen. Folder akan dikunci dan tidak bisa dilanjutkan. Lanjutkan?',
+    () => eksekusiTangguhkan(alasan)
+  );
+}
+
+async function eksekusiTangguhkan(alasan) {
+  const p = App.data.verProposal;
+  if (!p) return;
+
+  try {
+    await gasCall('tangguhkanProposal', App.user.email, p.id, alasan);
+    showToast('Usulan ' + p.id + ' ditangguhkan secara permanen.', 'success');
+    kembaliKeDaftarVerifikasi();
+    renderVerifikasi();
+  } catch (err) {
+    showToast('Gagal tangguhkan: ' + err.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════
+// ADMINISTRASI — Atasan
+// ════════════════════════════════════════════════
+
+async function renderAdministrasi() {
+  setPageTitle('Administrasi', 'Kelola penetapan Operator dan perintah akses tertulis');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <!-- Penetapan Operator -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Penetapan Operator</h3>
+          <span class="text-muted" style="font-size:0.75rem;">Juknis Bab II huruf B</span>
+        </div>
+
+        <div id="admin-operator-info" style="margin-bottom:20px;">
+          <div style="text-align:center;padding:20px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="margin-top:16px;">
+          <h3 style="font-size:0.9rem;margin-bottom:12px;">Tetapkan Operator Baru</h3>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div id="admin-op-select-wrap" style="margin-bottom:0;">
+              <div style="text-align:center;padding:16px;">
+                <div class="spinner dark" style="margin:0 auto;"></div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Catatan (opsional)</label>
+              <input type="text" id="admin-op-catatan" class="form-control"
+                placeholder="contoh: Pergantian karena mutasi">
+            </div>
+          </div>
+          <div class="alert alert-gold" style="margin-bottom:12px;">
+            <div style="font-size:0.85rem;">
+              Menetapkan Operator baru akan <strong>mencabut Operator lama</strong>
+              secara otomatis dan menerbitkan dokumen penetapan PDF.
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="submitPenetapanOperator()">
+            Tetapkan & Terbitkan Surat Penetapan
+          </button>
+        </div>
+      </div>
+
+      <!-- Perintah Akses Tertulis -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Terbitkan Perintah Akses Tertulis</h3>
+          <span class="text-muted" style="font-size:0.75rem;">Juknis Bab II huruf C</span>
+        </div>
+
+        <p class="text-muted" style="font-size:0.85rem;margin-bottom:16px;line-height:1.6;">
+          Sebelum Operator menambah atau mencabut akses pengguna, Atasan wajib
+          menerbitkan Perintah Akses Tertulis ini. Dokumen PDF akan tersimpan
+          di Google Drive folder administrasi.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">
+              Tindakan <span class="required">*</span>
+            </label>
+            <select id="admin-akses-tindakan" class="form-control">
+              <option value="">— Pilih tindakan —</option>
+              <option value="TAMBAH">TAMBAH akses</option>
+              <option value="CABUT">CABUT akses</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">
+              Role <span class="required">*</span>
+            </label>
+            <select id="admin-akses-role" class="form-control">
+              <option value="">— Pilih role —</option>
+              <option value="Anggota Tim">Anggota Tim</option>
+              <option value="Operator">Operator</option>
+              <option value="Atasan">Atasan</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">
+              Email Pengguna <span class="required">*</span>
+            </label>
+            <input type="email" id="admin-akses-email" class="form-control"
+              placeholder="email@gmail.com">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">
+              Nama Pengguna <span class="required">*</span>
+            </label>
+            <input type="text" id="admin-akses-nama" class="form-control"
+              placeholder="Nama lengkap">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Alasan <span class="required">*</span>
+          </label>
+          <input type="text" id="admin-akses-alasan" class="form-control"
+            placeholder="contoh: Penambahan Anggota Tim baru periode Juni 2026">
+        </div>
+
+        <button class="btn btn-primary" onclick="submitPerintahAkses()">
+          Terbitkan Perintah Akses (PDF)
+        </button>
+      </div>
+
+      <!-- Evaluasi Kepatuhan -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Evaluasi Kepatuhan Bulanan</h3>
+          <span class="text-muted" style="font-size:0.75rem;">Juknis Bab X huruf A</span>
+        </div>
+
+        <p class="text-muted" style="font-size:0.85rem;margin-bottom:16px;line-height:1.6;">
+          Evaluasi kepatuhan mencakup pemenuhan standar penamaan, kelengkapan subfolder,
+          ketertiban pencatatan riwayat perubahan, dan kepatuhan alur koordinasi.
+          Hasil evaluasi disampaikan kepada seluruh Anggota Tim.
+        </p>
+
+        <div id="admin-evaluasi-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="jalankanEvaluasi()">
+              Jalankan Evaluasi Sekarang
+            </button>
+          </div>
+        </div>
+
+        <div id="admin-evaluasi-hasil" class="hidden" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  `);
+
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  try {
+    const data = await gasCall('getAllUsers', App.user.email);
+
+    // Info Operator aktif
+    const infoEl   = document.getElementById('admin-operator-info');
+    const operator = data.aktif.operator[0] || null;
+
+    if (operator) {
+      infoEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;
+          background:var(--emerald-light);border-radius:6px;">
+          <div style="width:40px;height:40px;border-radius:50%;
+            background:var(--emerald);color:white;display:flex;
+            align-items:center;justify-content:center;font-weight:600;flex-shrink:0;">
+            ${operator.nama.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+          </div>
+          <div>
+            <div style="font-weight:500;">${operator.nama}</div>
+            <div class="mono text-muted" style="font-size:0.78rem;">
+              ${operator.email}
+            </div>
+            <div style="font-size:0.72rem;color:var(--emerald);margin-top:2px;">
+              Operator aktif sejak ${operator.ditambahAt
+                ? new Date(operator.ditambahAt).toLocaleDateString('id-ID')
+                : '—'}
+            </div>
+          </div>
+          <span class="badge badge-emerald" style="margin-left:auto;">Aktif</span>
+        </div>
+      `;
+    } else {
+      infoEl.innerHTML = `
+        <div class="alert alert-danger">
+          Belum ada Operator yang ditetapkan. Tetapkan Operator segera.
+        </div>
+      `;
+    }
+
+    // Populate form Penetapan Operator
+    const wrap    = document.getElementById('admin-op-select-wrap');
+    const anggota = data.aktif.anggotaTim;
+
+    if (anggota.length === 0) {
+      // Mode bootstrap: belum ada Anggota Tim, input manual
+      wrap.innerHTML = `
+        <div class="alert alert-info" style="margin-bottom:10px;font-size:0.82rem;">
+          Belum ada Anggota Tim terdaftar. Masukkan data Operator pertama secara manual.
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label class="form-label">Email Operator <span class="required">*</span></label>
+          <input type="email" id="admin-op-email-manual" class="form-control"
+            placeholder="fahmifattahul@gmail.com">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Nama Lengkap <span class="required">*</span></label>
+          <input type="text" id="admin-op-nama-manual" class="form-control"
+            placeholder="Fattahul Fahmi">
+        </div>
+      `;
+    } else {
+      // Mode normal: pilih dari Anggota Tim yang sudah terdaftar
+      wrap.innerHTML = `
+        <label class="form-label">Pilih Anggota Tim <span class="required">*</span></label>
+        <select id="admin-op-select" class="form-control">
+          <option value="">— Pilih Anggota Tim —</option>
+          ${anggota.map(u =>
+            `<option value="${u.email}" data-nama="${u.nama}">
+              ${u.nama} (${u.email})
+            </option>`
+          ).join('')}
+        </select>
+      `;
+    }
+
+  } catch (err) {
+    showToast('Gagal memuat data administrasi: ' + err.message, 'error');
+  }
+}
+
+async function submitPenetapanOperator() {
+  // Deteksi mode: dropdown (normal) atau input manual (bootstrap)
+  const selectEl    = document.getElementById('admin-op-select');
+  const emailManual = document.getElementById('admin-op-email-manual');
+  const namaManual  = document.getElementById('admin-op-nama-manual');
+
+  let email = '', nama = '';
+
+  if (selectEl) {
+    // Mode normal
+    email = selectEl.value;
+    nama  = selectEl.options[selectEl.selectedIndex]
+      ? selectEl.options[selectEl.selectedIndex].getAttribute('data-nama')
+      : '';
+  } else if (emailManual && namaManual) {
+    // Mode bootstrap
+    email = emailManual.value.trim();
+    nama  = namaManual.value.trim();
+  }
+
+  if (!email || !nama) {
+    showToast('Email dan nama Operator wajib diisi.', 'error');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Format email tidak valid.', 'error');
+    return;
+  }
+
+  const catatan = document.getElementById('admin-op-catatan').value.trim();
+
+  showKonfirmasi(
+    'Konfirmasi Penetapan Operator',
+    `${nama} (${email}) akan ditetapkan sebagai Operator. Operator lama (jika ada) akan dicabut otomatis. Dokumen penetapan PDF akan diterbitkan. Lanjutkan?`,
+    async () => {
+      try {
+        const hasil = await gasCall(
+          'assignOperator',
+          App.user.email,
+          email,
+          nama,
+          catatan
+        );
+        showToast(
+          'Operator berhasil ditetapkan. Nomor: ' + hasil.nomorDokumen +
+          '. Dokumen PDF tersimpan di Drive administrasi.',
+          'success'
+        );
+        loadAdminData();
+      } catch (err) {
+        showToast('Gagal menetapkan Operator: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+async function submitPerintahAkses() {
+  const tindakan = document.getElementById('admin-akses-tindakan').value;
+  const role     = document.getElementById('admin-akses-role').value;
+  const email    = document.getElementById('admin-akses-email').value.trim();
+  const nama     = document.getElementById('admin-akses-nama').value.trim();
+  const alasan   = document.getElementById('admin-akses-alasan').value.trim();
+
+  if (!tindakan || !role || !email || !nama || !alasan) {
+    showToast('Semua field wajib diisi.', 'error');
+    return;
+  }
+
+  try {
+    const hasil = await gasCall(
+      'issueAccessOrder',
+      App.user.email,
+      email,
+      nama,
+      tindakan,
+      role,
+      alasan
+    );
+
+    showToast(
+      'Perintah Akses berhasil diterbitkan. Nomor: ' + hasil.nomorPerintah +
+      '. PDF tersimpan di Drive administrasi. Sampaikan ke Operator untuk dieksekusi.',
+      'success'
+    );
+
+    // Reset form
+    ['admin-akses-tindakan','admin-akses-role'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    ['admin-akses-email','admin-akses-nama','admin-akses-alasan'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+  } catch (err) {
+    showToast('Gagal terbitkan perintah: ' + err.message, 'error');
+  }
+}
+
+async function jalankanEvaluasi() {
+  const hasilEl = document.getElementById('admin-evaluasi-hasil');
+  hasilEl.classList.remove('hidden');
+  hasilEl.innerHTML = `
+    <div style="text-align:center;padding:20px;">
+      <div class="spinner dark" style="margin:0 auto 12px;"></div>
+      Menjalankan evaluasi kepatuhan...
+    </div>
+  `;
+
+  try {
+    const hasil = await gasCall('jalankanEvaluasiKepatuhan', App.user.email);
+    renderHasilEvaluasi(hasil);
+  } catch (err) {
+    hasilEl.innerHTML = `
+      <div class="alert alert-danger">
+        Gagal menjalankan evaluasi: ${err.message}
+      </div>
+    `;
+  }
+}
+
+function renderHasilEvaluasi(hasil) {
+  const el = document.getElementById('admin-evaluasi-hasil');
+
+  if (!hasil || hasil.length === 0) {
+    el.innerHTML = `
+      <div class="alert alert-success">
+        ✓ Semua folder memenuhi standar kepatuhan Juknis.
+      </div>
+    `;
+    return;
+  }
+
+  const tidakPatuh = hasil.filter(h => h.itemGagal && h.itemGagal.length > 0);
+
+  if (tidakPatuh.length === 0) {
+    el.innerHTML = `
+      <div class="alert alert-success">
+        ✓ Semua folder memenuhi standar kepatuhan. Total dievaluasi: ${hasil.length} folder.
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="alert alert-danger" style="margin-bottom:12px;">
+      ${tidakPatuh.length} dari ${hasil.length} folder tidak memenuhi standar kepatuhan.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${tidakPatuh.map(h => `
+        <div style="padding:12px;border:1px solid var(--danger-light);
+          border-radius:6px;background:var(--danger-light);">
+          <div style="font-weight:500;margin-bottom:6px;font-size:0.85rem;">
+            <span class="mono">${h.proposalId}</span> — ${h.namaKarya || ''}
+          </div>
+          ${h.itemGagal.map(item => `
+            <div style="display:flex;align-items:flex-start;gap:6px;
+              font-size:0.8rem;color:var(--danger);margin-bottom:3px;">
+              <span>✗</span><span>${item}</span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:12px;font-size:0.78rem;color:var(--ink-muted);">
+      Hasil evaluasi ini wajib disampaikan kepada seluruh Anggota Tim.
+      (Juknis Bab X huruf A)
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════
+// LOG AKTIVITAS — Operator & Atasan
+// ════════════════════════════════════════════════
+
+async function renderLogAktivitas() {
+  setPageTitle('Log Aktivitas', 'Audit trail seluruh aktivitas sistem JONG WBTb');
+
+  setContent(`
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="accent-bar"></div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Log Aktivitas</h3>
+          <span id="log-total-badge" class="badge badge-neutral">Memuat...</span>
+        </div>
+
+        <!-- Filter -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="search-wrap" style="flex:1;min-width:200px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-control"
+              placeholder="Cari email, ID proposal, atau aksi..."
+              oninput="filterLog(this.value)"
+              style="padding-left:32px;height:34px;font-size:0.8rem;">
+          </div>
+          <select id="log-filter-action" class="form-control"
+            style="width:auto;height:34px;font-size:0.8rem;"
+            onchange="filterLog()">
+            <option value="">Semua Aksi</option>
+            <option value="STATUS_CHANGE">Perubahan Status</option>
+            <option value="WORKSPACE_INIT">Buat Workspace</option>
+            <option value="CATATAN_PENILAI">Catatan Penilai</option>
+            <option value="AKSES">Kelola Akses</option>
+            <option value="DRIVE">Drive Access</option>
+            <option value="ARSIP">Arsip Versi</option>
+          </select>
+        </div>
+
+        <div id="log-body">
+          <div style="text-align:center;padding:32px;">
+            <div class="spinner dark" style="margin:0 auto 12px;"></div>
+            Memuat log...
+          </div>
+        </div>
+
+        <div id="log-pagination" class="pagination" style="justify-content:center;"></div>
+      </div>
+    </div>
+  `);
+
+  App.data.logHalaman = 1;
+  await loadLogData(1);
+}
+
+async function loadLogData(halaman) {
+  try {
+    const data = await gasCall('getLogAktivitas', App.user.email, halaman, 15);
+    App.data.logData         = data;
+    App.data.logHalaman      = halaman;
+    renderLogTable(data.logs);
+    renderLogPagination(data.totalHalaman, halaman);
+    document.getElementById('log-total-badge').textContent =
+      data.totalLog + ' entri';
+  } catch (err) {
+    showToast('Gagal memuat log: ' + err.message, 'error');
+  }
+}
+
+function renderLogTable(logs) {
+  const body = document.getElementById('log-body');
+
+  if (!logs || logs.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+        Belum ada log aktivitas.
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:140px;">Waktu</th>
+            <th>Pengguna</th>
+            <th style="width:80px;">Role</th>
+            <th style="width:90px;">Proposal</th>
+            <th style="width:160px;">Aksi</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody">
+          ${logs.map(log => renderLogRow(log)).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderLogRow(log) {
+  const waktu = log.timestamp
+    ? new Date(log.timestamp).toLocaleString('id-ID', {
+        day:'numeric', month:'short', year:'numeric',
+        hour:'2-digit', minute:'2-digit'
+      })
+    : '—';
+
+  const actionColor = getActionColor(log.actionType);
+
+  return `
+    <tr data-search="${[
+      log.userEmail, log.proposalId, log.actionType, log.detail
+    ].join(' ').toLowerCase()}"
+    data-action="${log.actionType || ''}">
+      <td class="mono text-muted" style="font-size:0.72rem;white-space:nowrap;">
+        ${waktu}
+      </td>
+      <td style="font-size:0.8rem;">
+        ${log.userEmail || '—'}
+      </td>
+      <td>
+        <span class="badge ${
+          log.userRole === 'Atasan'     ? 'badge-emerald' :
+          log.userRole === 'Operator'   ? 'badge-gold'    :
+                                          'badge-neutral'
+        }" style="font-size:0.65rem;">
+          ${log.userRole || '—'}
+        </span>
+      </td>
+      <td>
+        ${log.proposalId
+          ? `<span class="mono" style="font-size:0.72rem;color:var(--ink-muted);">
+              ${log.proposalId}
+            </span>`
+          : '<span class="text-faint">—</span>'
+        }
+      </td>
+      <td>
+        <span style="font-size:0.72rem;font-weight:500;
+          color:${actionColor};font-family:'Noto Sans Mono',monospace;">
+          ${log.actionType || '—'}
+        </span>
+      </td>
+      <td style="font-size:0.78rem;color:var(--ink-muted);max-width:300px;">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+          title="${(log.detail || '').replace(/"/g,'&quot;')}">
+          ${log.detail || '—'}
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function getActionColor(actionType) {
+  if (!actionType) return 'var(--ink-faint)';
+  if (actionType.includes('STATUS'))    return 'var(--info)';
+  if (actionType.includes('AKSES'))     return 'var(--success)';
+  if (actionType.includes('ERROR'))     return 'var(--danger)';
+  if (actionType.includes('CATATAN'))   return 'var(--gold-dark)';
+  if (actionType.includes('DRIVE'))     return '#8E44AD';
+  if (actionType.includes('ARSIP'))     return '#D35400';
+  return 'var(--ink-muted)';
+}
+
+function renderLogPagination(total, aktif) {
+  const wrap = document.getElementById('log-pagination');
+  if (total <= 1) { wrap.innerHTML = ''; return; }
+
+  let html = `
+    <button class="page-btn" onclick="loadLogData(${aktif-1})"
+      ${aktif === 1 ? 'disabled' : ''}>‹</button>
+  `;
+
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 || i === total ||
+      (i >= aktif - 2 && i <= aktif + 2)
+    ) {
+      html += `
+        <button class="page-btn ${i === aktif ? 'active' : ''}"
+          onclick="loadLogData(${i})">${i}</button>
+      `;
+    } else if (i === aktif - 3 || i === aktif + 3) {
+      html += `<span style="padding:0 4px;color:var(--ink-faint);">…</span>`;
+    }
+  }
+
+  html += `
+    <button class="page-btn" onclick="loadLogData(${aktif+1})"
+      ${aktif === total ? 'disabled' : ''}>›</button>
+  `;
+
+  wrap.innerHTML = html;
+}
+
+function filterLog(query) {
+  const q      = (query || '').toLowerCase().trim();
+  const action = document.getElementById('log-filter-action')
+    ? document.getElementById('log-filter-action').value
+    : '';
+
+  const rows = document.querySelectorAll('#log-tbody tr');
+  rows.forEach(row => {
+    const search    = row.getAttribute('data-search') || '';
+    const rowAction = row.getAttribute('data-action') || '';
+
+    const matchQuery  = !q || search.includes(q);
+    const matchAction = !action || rowAction.includes(action);
+    row.style.display = (matchQuery && matchAction) ? '' : 'none';
+  });
+}
+
+function renderPlaceholder(label) {
+  setPageTitle(label, '');
+  setContent(`
+    <div class="card" style="text-align:center;padding:60px;">
+      <div style="font-size:2rem;margin-bottom:12px;">🚧</div>
+      <h3 style="margin-bottom:8px;">${label}</h3>
+      <p class="text-muted">Modul ini sedang dalam pengembangan.</p>
+    </div>
+  `);
+}
+
+
+// ════════════════════════════════════════════════
+// MODAL: USULAN BARU
+// ════════════════════════════════════════════════
+
+async function openModalUsulanBaru() {
+  // Load Anggota Tim aktif untuk dropdown
+  try {
+    const users = await gasCall('getAllActiveUsers', App.user.email);
+    const select = document.getElementById('input-penanggung-jawab');
+    const anggota = users.anggotaTim || [];
+
+    if (anggota.length === 0) {
+      select.innerHTML = '<option value="">— Belum ada Anggota Tim terdaftar —</option>';
+    } else {
+      select.innerHTML = '<option value="">— Pilih Anggota Tim —</option>' +
+        anggota.map(u => `<option value="${u.email}">${u.nama} (${u.email})</option>`).join('');
+    }
+  } catch (err) {
+    showToast('Gagal memuat daftar Anggota Tim.', 'error');
+  }
+
+  openModal('modal-usulan-baru');
+}
+
+async function submitUsulanBaru() {
+  const namaKarya      = document.getElementById('input-nama-karya').value.trim();
+  const judulSingkat   = document.getElementById('input-judul-singkat').value.trim().toUpperCase();
+  const domain         = document.getElementById('input-domain').value;
+  const pjEmail        = document.getElementById('input-penanggung-jawab').value;
+
+  // Validasi frontend
+  if (!namaKarya || !judulSingkat || !domain || !pjEmail) {
+    showToast('Semua field wajib diisi.', 'error');
+    return;
+  }
+
+  // Validasi judul singkat
+  const polaNama = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
+  if (!polaNama.test(judulSingkat) || judulSingkat.includes('--')) {
+    const errEl = document.getElementById('error-judul-singkat');
+    errEl.textContent = 'Format tidak valid. Contoh: TEPUNG-TAWAR';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  document.getElementById('error-judul-singkat').classList.add('hidden');
+
+  const btn = document.getElementById('btn-submit-usulan');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+  try {
+    const result = await gasCall('createProposal', App.user.email, {
+      namaKarya, judulSingkat, domain, penanggungJawabEmail: pjEmail
+    });
+
+    closeModal('modal-usulan-baru');
+    showToast('Usulan ' + result.proposalId + ' berhasil dibuat.', 'success');
+    renderDashboard(); // refresh
+  } catch (err) {
+    showToast('Gagal membuat usulan: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Buat Usulan';
+  }
+}
+
+function bukaDetailUsulan(proposalId) {
+  // Navigasi ke workspace dengan context proposalId
+  App.data.activeProposalId = proposalId;
+  navigateTo(App.user.role === 'Atasan' ? 'verifikasi' : 'workspace');
+}
+
+
+// ════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════
+
+function setPageTitle(title, subtitle) {
+  document.getElementById('page-title').textContent    = title;
+  document.getElementById('page-subtitle').textContent = subtitle || '';
+}
+
+function setContent(html) {
+  document.getElementById('content').innerHTML = html;
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+function showToast(msg, type = 'info', duration = 4000) {
+  const container = document.getElementById('toast-container');
+  const toast     = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span style="flex:1;">${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+function showKonfirmasi(title, body, onOk) {
+  document.getElementById('konfirmasi-title').textContent = title;
+  document.getElementById('konfirmasi-body').textContent  = body;
+  const btn = document.getElementById('btn-konfirmasi-ok');
+  btn.onclick = () => { closeModal('modal-konfirmasi'); onOk(); };
+  openModal('modal-konfirmasi');
+}
+
+function showLoading(msg) {
+  document.querySelector('#loading-screen .load-sub').textContent = msg || 'Memuat sistem...';
+  document.getElementById('loading-screen').style.display = 'flex';
+}
+
+function hideLoading() {
+  document.getElementById('loading-screen').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('access-denied').classList.add('hidden');
+}
+
+function showAccessDenied(email) {
+  hideLoading();
+  document.getElementById('access-denied').classList.remove('hidden');
+  document.getElementById('denied-email').textContent = email;
+}
+
+function statusClass(status) {
+  return (status || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z-]/g, '');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
