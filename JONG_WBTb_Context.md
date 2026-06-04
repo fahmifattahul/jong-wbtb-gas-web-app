@@ -2,6 +2,7 @@
 
 ## Deployment Info
 - URL Web App: [isi URL kamu]
+- GitHub Repo: https://github.com/fahmifattahul/jong-wbtb-gas-web-app
 - GAS Project: JONG_WBTb
 - Spreadsheet: db_jong_wbtb
 - Deploy setting: Execute as User, Anyone with Google Account
