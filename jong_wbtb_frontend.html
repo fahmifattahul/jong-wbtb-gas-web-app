@@ -1011,13 +1011,13 @@ function renderProposalRow(p) {
       <td>
         <span class="badge ${statusClass}">${p.status || '—'}</span>
         ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-          ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+          ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
           : ''
         }
       </td>
       <td style="text-align:center;">
         ${p.revisiRound > 0
-          ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+          ? '<span class="badge badge-neutral">P' + String(p.revisiRound).padStart(2,'0') + '</span>'
           : '<span class="text-faint">—</span>'
         }
       </td>
@@ -1336,11 +1336,11 @@ function renderWsFolderList(proposals) {
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
           ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
             : ''
           }
           ${p.revisiRound > 0
-            ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+            ? '<span class="badge badge-neutral">P' + String(p.revisiRound).padStart(2,'0') + '</span>'
             : ''}
         </div>
         <div style="font-weight:500;">${p.namaKarya}</div>
@@ -2122,13 +2122,13 @@ function renderSemuaUsulanRow(p) {
       <td>
         <span class="badge status-${statusClass(p.status)}">${p.status || '—'}</span>
         ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-          ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+          ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
           : ''
         }
       </td>
       <td style="text-align:center;">
         ${p.revisiRound > 0
-          ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
+          ? '<span class="badge badge-neutral">P' + String(p.revisiRound).padStart(2,'0') + '</span>'
           : '<span class="text-faint">—</span>'
         }
       </td>
@@ -2486,13 +2486,11 @@ function renderCpPilihList(proposals) {
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
           ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
             : ''
           }
           ${p.revisiRound > 0
-            ? `<span class="badge badge-neutral">
-                Sudah P${String(p.revisiRound).padStart(2,'0')}
-               </span>`
+            ? '<span class="badge badge-neutral">Sudah P' + String(p.revisiRound).padStart(2,'0') + '</span>'
             : '<span class="badge badge-emerald">Pertama</span>'
           }
         </div>
@@ -3420,7 +3418,7 @@ function renderVerDaftarList(proposals) {
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
           ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
             : ''
           }
         </div>
