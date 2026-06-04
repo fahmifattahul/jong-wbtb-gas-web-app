@@ -176,3 +176,20 @@ Lakukan pengujian berikut setelah web app dideploy untuk memastikan semua fitur 
     5.  Klik **Save** (Ctrl+S) dan lakukan deploy ulang (**New Version**).
     6.  *(Sangat Penting)*: Buka Web App sekali menggunakan akun **Operator** agar rutin *Self-Healing* berjalan dan memberikan akses Editor kepada Atasan untuk usulan aktif saat ini. Setelah itu, silakan lakukan reset status/testing ulang Skenario 2.2.
 
+---
+
+## Update: Konsistensi Penanda ACC Hijau di Seluruh Tampilan
+
+*   **Masalah**: Penanda (**badge**) hijau **ACC** saat usulan disetujui Atasan (`isApprovedByAtasan === true`) sebelumnya hanya muncul pada menu Semua Usulan di akun Operator. Di halaman lain (seperti Dashboard, Workspace Anggota Tim, Modal Detail, Catatan Penilai, dan Verifikasi Atasan), penanda ini tidak tampil di samping status `Persetujuan Internal`.
+*   **Solusi & Perubahan**:
+    *   Memperbarui [jong_wbtb_frontend.html](file:///c:/Users/ASUS/Documents/JONG%20WBTB%20GAS%20WEB%20APP/jong_wbtb_frontend.html) untuk menampilkan badge **ACC** secara konsisten di samping badge status:
+        1.  **Dashboard**: Tabel "Usulan Aktif" (`renderProposalRow(p)`).
+        2.  **Workspace Anggota Tim**: Daftar Folder Usulan (`renderWsFolderList(proposals)`) dan Header Detail Workspace (`ws-acc-badge` & `renderWsDetail(p)`).
+        3.  **Detail Operator**: Modal Detail Usulan (`mdo-acc-badge` & `tampilModalDetailOperator(p)`).
+        4.  **Catatan Penilai**: Daftar Pemilihan Usulan (`renderCpPilihList(proposals)`).
+        5.  **Verifikasi Atasan**: Daftar tunggu verifikasi (`renderVerDaftarList(proposals)`) dan Header Detail Verifikasi (`ver-acc-badge` & `renderVerDetail(p)`).
+*   **Tindakan Pengguna**:
+    1.  Copy seluruh isi file [jong_wbtb_frontend.html](file:///c:/Users/ASUS/Documents/JONG%20WBTB%20GAS%20WEB%20APP/jong_wbtb_frontend.html) ke `jong_wbtb_frontend.html` di GAS.
+    2.  Klik **Save** (Ctrl+S) dan lakukan deploy ulang (**New Version**).
+
+
