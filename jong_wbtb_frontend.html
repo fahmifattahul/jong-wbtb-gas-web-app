@@ -1008,7 +1008,13 @@ function renderProposalRow(p) {
       <td><strong>${p.namaKarya || '—'}</strong></td>
       <td><span class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</span></td>
       <td style="font-size:0.8rem;">${p.penanggungJawabNama || '—'}</td>
-      <td><span class="badge ${statusClass}">${p.status || '—'}</span></td>
+      <td>
+        <span class="badge ${statusClass}">${p.status || '—'}</span>
+        ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+          ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+          : ''
+        }
+      </td>
       <td style="text-align:center;">
         ${p.revisiRound > 0
           ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
@@ -1102,6 +1108,7 @@ async function renderWorkspace() {
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                 <span id="ws-proposal-id" class="mono badge badge-neutral"></span>
                 <span id="ws-status-badge" class="badge"></span>
+                <span id="ws-acc-badge" class="badge badge-success hidden" style="font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>
                 <span id="ws-putaran-badge" class="badge badge-neutral hidden"></span>
               </div>
               <h2 id="ws-nama-karya" style="margin-bottom:4px;"></h2>
@@ -1328,6 +1335,10 @@ function renderWsFolderList(proposals) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            : ''
+          }
           ${p.revisiRound > 0
             ? `<span class="badge badge-neutral">P${String(p.revisiRound).padStart(2,'0')}</span>`
             : ''}
@@ -1374,6 +1385,15 @@ function renderWsDetail(p) {
   const statusBadge = document.getElementById('ws-status-badge');
   statusBadge.textContent = p.status;
   statusBadge.className   = 'badge status-' + statusClass(p.status);
+
+  const accBadge = document.getElementById('ws-acc-badge');
+  if (accBadge) {
+    if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
+      accBadge.classList.remove('hidden');
+    } else {
+      accBadge.classList.add('hidden');
+    }
+  }
 
   const putaranBadge = document.getElementById('ws-putaran-badge');
   if (p.revisiRound > 0) {
@@ -2177,6 +2197,7 @@ function tampilModalDetailOperator(p) {
           <div>
             <span id="mdo-id" class="mono badge badge-neutral" style="margin-right:6px;"></span>
             <span id="mdo-status" class="badge"></span>
+            <span id="mdo-acc-badge" class="badge badge-success hidden" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>
           </div>
           <button class="btn btn-ghost btn-sm"
             onclick="closeModal('modal-detail-operator')">✕</button>
@@ -2216,6 +2237,15 @@ function tampilModalDetailOperator(p) {
   const statusEl = document.getElementById('mdo-status');
   statusEl.textContent = p.status;
   statusEl.className   = 'badge status-' + statusClass(p.status);
+
+  const accEl = document.getElementById('mdo-acc-badge');
+  if (accEl) {
+    if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
+      accEl.classList.remove('hidden');
+    } else {
+      accEl.classList.add('hidden');
+    }
+  }
 
   // Aksi
   let aksiHtml = '';
@@ -2455,6 +2485,10 @@ function renderCpPilihList(proposals) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            : ''
+          }
           ${p.revisiRound > 0
             ? `<span class="badge badge-neutral">
                 Sudah P${String(p.revisiRound).padStart(2,'0')}
@@ -3178,6 +3212,7 @@ async function renderVerifikasi() {
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                 <span id="ver-proposal-id" class="mono badge badge-neutral"></span>
                 <span id="ver-status-badge" class="badge"></span>
+                <span id="ver-acc-badge" class="badge badge-success hidden" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>
               </div>
               <h2 id="ver-nama-karya" style="margin-bottom:4px;"></h2>
               <div id="ver-domain" class="text-muted" style="font-size:0.8rem;"></div>
@@ -3384,6 +3419,10 @@ function renderVerDaftarList(proposals) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
           <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
           <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+            ? `<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>`
+            : ''
+          }
         </div>
         <div style="font-weight:500;">${p.namaKarya}</div>
         <div class="text-muted" style="font-size:0.78rem;">
@@ -3419,6 +3458,15 @@ function renderVerDetail(p) {
   const statusBadge    = document.getElementById('ver-status-badge');
   statusBadge.textContent = p.status;
   statusBadge.className   = 'badge status-' + statusClass(p.status);
+
+  const accBadge = document.getElementById('ver-acc-badge');
+  if (accBadge) {
+    if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
+      accBadge.classList.remove('hidden');
+    } else {
+      accBadge.classList.add('hidden');
+    }
+  }
 
   // Formulir — preview mode (read-only untuk Atasan)
   if (p.docActiveId) {
