@@ -95,6 +95,14 @@ var TRANSITIONS = [
     syarat: "Anggota Tim menyelesaikan penyusunan berkas usulan dan mengirimkannya ke Atasan untuk diverifikasi."
   },
 
+  // Sedang Dikerjakan → Persetujuan Internal (oleh Operator - Kirim ke Atasan)
+  {
+    dari  : STATUS.SEDANG_DIKERJAKAN,
+    ke    : STATUS.PERSETUJUAN_INTERNAL,
+    aktor : ROLES.OPERATOR,
+    syarat: "Operator menyelesaikan penyusunan berkas usulan dan mengirimkannya ke Atasan untuk diverifikasi."
+  },
+
   // Sedang Dikerjakan → Persetujuan Internal (oleh Atasan - Setujui Awal)
   {
     dari  : STATUS.SEDANG_DIKERJAKAN,

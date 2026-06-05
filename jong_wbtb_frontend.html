@@ -722,9 +722,9 @@
       <div class="form-group">
         <label class="form-label">Penanggung Jawab <span class="required">*</span></label>
         <select id="input-penanggung-jawab" class="form-control">
-          <option value="">— Memuat daftar Anggota Tim... —</option>
+          <option value="">— Memuat daftar penanggung jawab... —</option>
         </select>
-        <div class="form-hint">Juknis Bab VII B: satu folder hanya boleh dikerjakan satu Anggota Tim.</div>
+        <div class="form-hint">Juknis Bab VII B: satu folder dikerjakan oleh satu penanggung jawab (Anggota/Operator).</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -802,8 +802,9 @@ const NAV_CONFIG = {
   ],
   'Operator': [
     { id: 'dashboard',       label: 'Dashboard',          icon: '◈' },
-    { id: 'semua-usulan',    label: 'Semua Usulan',        icon: '◉' },
-    { id: 'catatan-penilai', label: 'Catatan Penilai',     icon: '◎' },
+    { id: 'workspace',       label: 'Workspace Saya',     icon: '◉' },
+    { id: 'semua-usulan',    label: 'Semua Usulan',        icon: '◎' },
+    { id: 'catatan-penilai', label: 'Catatan Penilai',     icon: '⦿' },
     { id: 'arsip',           label: 'Arsip Historis',      icon: '◫' },
     { id: 'kelola-akses',    label: 'Kelola Akses',        icon: '◧' },
     { id: 'log-aktivitas',   label: 'Log Aktivitas',       icon: '☰' }
@@ -996,9 +997,6 @@ function renderDashboardTable(proposals) {
   }
 
   let filtered = proposals || [];
-  if (App.user.role === 'Anggota Tim') {
-    filtered = filtered.filter(p => (p.penanggungJawabEmail || '').toLowerCase() === App.user.email.toLowerCase());
-  }
 
   if (filtered.length === 0) {
     body.innerHTML = `
@@ -1157,6 +1155,9 @@ async function renderWorkspace() {
               </div>
               <h2 id="ws-nama-karya" style="margin-bottom:4px;"></h2>
               <div id="ws-domain" class="text-muted" style="font-size:0.8rem;"></div>
+              <div style="margin-top:6px;font-size:0.8rem;color:var(--ink-muted);">
+                Penanggung Jawab: <strong id="ws-pj"></strong>
+              </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;" id="ws-aksi-buttons">
               <!-- Tombol aksi dirender dinamis berdasarkan status -->
@@ -1373,14 +1374,14 @@ async function renderWorkspace() {
 function renderWsFolderList(proposals) {
   const wrap = document.getElementById('ws-folder-list');
   let filtered = proposals || [];
-  if (App.user.role === 'Anggota Tim') {
+  if (App.user.role === 'Anggota Tim' || App.user.role === 'Operator') {
     filtered = filtered.filter(p => (p.penanggungJawabEmail || '').toLowerCase() === App.user.email.toLowerCase());
   }
 
   if (filtered.length === 0) {
     wrap.innerHTML = `
       <div style="text-align:center;padding:32px;color:var(--ink-faint);">
-        ${App.user.role === 'Anggota Tim' ? 'Belum ada folder usulan yang ditugaskan kepadamu.' : 'Belum ada folder usulan aktif.'}
+        ${(App.user.role === 'Anggota Tim' || App.user.role === 'Operator') ? 'Belum ada folder usulan yang ditugaskan kepadamu.' : 'Belum ada folder usulan aktif.'}
       </div>
     `;
     return;
@@ -1443,6 +1444,7 @@ function renderWsDetail(p) {
   document.getElementById('ws-proposal-id').textContent  = p.id;
   document.getElementById('ws-nama-karya').textContent   = p.namaKarya;
   document.getElementById('ws-domain').textContent       = p.domain;
+  document.getElementById('ws-pj').textContent           = p.penanggungJawabNama || '—';
 
   const statusBadge = document.getElementById('ws-status-badge');
   statusBadge.textContent = p.status;
@@ -1550,8 +1552,8 @@ function renderWsAksiButtons(p) {
     `;
   }
 
-  // Anggota Tim tandai revisi selesai (hanya oleh Penanggung Jawab)
-  if (status === 'Diperbaiki' && !locked && App.user.role === 'Anggota Tim' && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase()) {
+  // Penanggung Jawab tandai revisi selesai (baik Anggota Tim maupun Operator yang ditunjuk)
+  if (status === 'Diperbaiki' && !locked && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase()) {
     if (p.isRevisiSelesai) {
       html += `
         <span style="color:var(--emerald);font-weight:500;font-size:0.8rem;background:var(--success-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(27,107,69,0.2);display:inline-flex;align-items:center;gap:4px;">
@@ -4708,20 +4710,25 @@ function renderPlaceholder(label) {
 // ════════════════════════════════════════════════
 
 async function openModalUsulanBaru() {
-  // Load Anggota Tim aktif untuk dropdown
+  // Load Anggota Tim & Operator aktif untuk dropdown
   try {
     const users = await gasCall('getAllActiveUsers', App.user.email);
     const select = document.getElementById('input-penanggung-jawab');
     const anggota = users.anggotaTim || [];
+    const operator = users.operator || [];
+    const pengerja = [...anggota, ...operator];
 
-    if (anggota.length === 0) {
-      select.innerHTML = '<option value="">— Belum ada Anggota Tim terdaftar —</option>';
+    if (pengerja.length === 0) {
+      select.innerHTML = '<option value="">— Belum ada Anggota Tim / Operator terdaftar —</option>';
     } else {
-      select.innerHTML = '<option value="">— Pilih Anggota Tim —</option>' +
-        anggota.map(u => `<option value="${u.email}">${u.nama} (${u.email})</option>`).join('');
+      select.innerHTML = '<option value="">— Pilih Penanggung Jawab —</option>' +
+        pengerja.map(u => {
+          const roleLabel = u.role === 'Operator' ? 'Operator' : 'Anggota Tim';
+          return `<option value="${u.email}">${u.nama} (${u.email}) [${roleLabel}]</option>`;
+        }).join('');
     }
   } catch (err) {
-    showToast('Gagal memuat daftar Anggota Tim.', 'error');
+    showToast('Gagal memuat daftar Penanggung Jawab.', 'error');
   }
 
   openModal('modal-usulan-baru');

@@ -283,12 +283,6 @@ function getProposalDetail(requesterEmail, proposalId) {
 
     var row = hasil.rowData;
 
-    if (getUserRole(requesterEmail) === ROLES.ANGGOTA_TIM) {
-      if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
-        throw new Error('Akses ditolak: folder ini bukan tanggung jawabmu.');
-      }
-    }
-
     var kajianFiles    = safeParseJSON(row[COL.KAJIAN_FILES_JSON],    []);
     var fotoFiles      = safeParseJSON(row[COL.FOTO_FILES_JSON],      []);
     var catatanPenilai = safeParseJSON(row[COL.CATATAN_PENILAI_JSON], []);
@@ -478,13 +472,27 @@ function kunciFolderRekursif(folder, userEmail) {
  */
 function buatFormulirProposal(anggotaEmail, proposalId) {
   try {
-    requireRole(anggotaEmail, ROLES.ANGGOTA_TIM);
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
     var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row           = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
+    }
+
     var judulSingkat  = row[COL.JUDUL_SINGKAT];
     var namaKarya     = row[COL.NAMA_KARYA];
     var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
@@ -530,13 +538,27 @@ return { docId: fileCopy.getId(), namaFile: namaFileStr };
  */
 function naikVersiFormulir(anggotaEmail, proposalId) {
   try {
-    requireRole(anggotaEmail, ROLES.ANGGOTA_TIM);
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
     var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row          = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
+    }
+
     var docActiveId  = row[COL.DOC_ACTIVE_ID];
     var judulSingkat = row[COL.JUDUL_SINGKAT];
     var folderIds    = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
@@ -591,7 +613,7 @@ function naikVersiFormulir(anggotaEmail, proposalId) {
  */
 function uploadKajian(anggotaEmail, proposalId, fileMeta) {
   try {
-    requireRole(anggotaEmail, ROLES.ANGGOTA_TIM);
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
     // Validasi server-side
     var validasi = validateFilePDF(fileMeta);
@@ -602,6 +624,19 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row           = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
+    }
     var judulSingkat  = row[COL.JUDUL_SINGKAT];
     var revisiRound   = parseInt(row[COL.REVISI_ROUND] || '0', 10);
     var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
@@ -690,7 +725,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
  */
 function uploadFoto(anggotaEmail, proposalId, payload) {
   try {
-    requireRole(anggotaEmail, ROLES.ANGGOTA_TIM);
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
     // Validasi total payload
     var validasiTotal = validateTotalPayload(payload.files);
@@ -701,6 +736,19 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row          = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
+    }
     var judulSingkat = row[COL.JUDUL_SINGKAT];
     var revisiRound  = parseInt(row[COL.REVISI_ROUND] || '0', 10);
     var folderIds    = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
@@ -766,7 +814,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
 
 function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
   try {
-    requireRole(anggotaEmail, ROLES.ANGGOTA_TIM);
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
     var validasi = validateVideoUrl(url);
     if (!validasi.valid) throw new Error(validasi.pesan);
@@ -776,6 +824,19 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row           = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
+    }
     var namaKarya     = row[COL.NAMA_KARYA];
     var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
     var fileIdLama    = null;
@@ -831,7 +892,7 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
 
 function cekVerifikasiMandiri(requesterEmail, proposalId) {
   try {
-    requireRole(requesterEmail, ROLES.ANGGOTA_TIM);
+    requireRole(requesterEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
     return verifikasiMandiri(proposalId);
   } catch (err) {
     throw new Error('cekVerifikasiMandiri gagal: ' + err.message);
