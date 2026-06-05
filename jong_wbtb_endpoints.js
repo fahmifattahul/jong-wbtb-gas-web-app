@@ -390,19 +390,36 @@ function tangguhkanProposal(atasanEmail, proposalId, alasan) {
 // ════════════════════════════════════════════════
 
 function kunciFolderDrive(proposalId, operatorEmail) {
+  var folderKaryaId = null;
+  var pjEmail = null;
+  
   try {
     var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) return;
-    var folderKaryaId = hasil.rowData[COL.FOLDER_KARYA_ID];
-    var pjEmail       = hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL];
-    if (!folderKaryaId || !pjEmail) return;
+    folderKaryaId = hasil.rowData[COL.FOLDER_KARYA_ID];
+    pjEmail       = hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL];
+  } catch (dbReadErr) {
+    Logger.log('kunciFolderDrive DB read error: ' + dbReadErr.toString());
+    return;
+  }
 
-    var folder = DriveApp.getFolderById(folderKaryaId);
-    folder.removeEditor(pjEmail);
-    folder.addViewer(pjEmail);
-    kunciFolderRekursif(folder, pjEmail);
+  // Coba ubah permission di Google Drive
+  var driveSuccess = false;
+  if (folderKaryaId && pjEmail) {
+    try {
+      var folder = DriveApp.getFolderById(folderKaryaId);
+      folder.removeEditor(pjEmail);
+      folder.addViewer(pjEmail);
+      kunciFolderRekursif(folder, pjEmail);
+      driveSuccess = true;
+    } catch (driveErr) {
+      Logger.log('kunciFolderDrive DriveApp error (lanjut update DB): ' + driveErr.toString());
+    }
+  }
 
+  // Tetap update status database agar tidak inkonsisten
+  try {
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
       var h = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
       if (h) {
@@ -412,12 +429,13 @@ function kunciFolderDrive(proposalId, operatorEmail) {
     });
 
     writeAuditLog(ACTION_TYPES.DRIVE_ACCESS_FROZEN,
-      'Folder dikunci. PJ ' + pjEmail + ' → Viewer. ID: ' + folderKaryaId,
+      'Folder dikunci secara administratif' + (driveSuccess ? ' & fisik Drive.' : ' (gagal kunci fisik Drive).') + ' PJ: ' + pjEmail,
       proposalId);
-  } catch (err) {
-    Logger.log('kunciFolderDrive error: ' + err.toString());
+  } catch (dbWriteErr) {
+    Logger.log('kunciFolderDrive DB write error: ' + dbWriteErr.toString());
   }
 }
+
 
 function kunciFolderRekursif(folder, userEmail) {
   var iterFiles = folder.getFiles();
