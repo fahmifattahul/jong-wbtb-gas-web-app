@@ -8,26 +8,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  /* ── CSS Variables (RawBlock Brutalism) ────────── */
+  /* ── CSS Variables (RawBlock Brutalism + Melayu Lingga) ────────── */
   :root {
-    --gold:        #F5A623; /* Tetap pertahankan aksen Melayu Emas */
-    --gold-dark:   #C8841A;
-    --gold-light:  #FFF9EB;
-    --emerald:     #000000; /* Sidebar dan aksen utama hitam */
-    --emerald-dark:#000000;
-    --emerald-light:#FFFFFF;
+    --gold:        #F1C40F; /* Kuning Keemasan Melayu */
+    --gold-dark:   #9A7D0A;
+    --gold-light:  #FEF9E7;
+    --emerald:     #1E5631; /* Hijau Lumut Melayu */
+    --emerald-dark:#143D22;
+    --emerald-light:#EAF2EC;
     --ink:         #000000;
-    --ink-muted:   #000000;
-    --ink-faint:   #555555;
+    --ink-muted:   #333333;
+    --ink-faint:   #666666;
     --surface:     #FFFFFF;
     --surface-2:   #F0F0F0;
     --border:      #000000;
-    --danger:      #FF0000;
-    --danger-light:#FFFFFF;
-    --info:        #0000FF;
-    --info-light:  #FFFFFF;
-    --success:     #008000;
-    --success-light:#FFFFFF;
+    --danger:      #A91B1D; /* Merah Darah Melayu */
+    --danger-light:#FDEDEC;
+    --info:        #0F2C59; /* Biru Tua Melayu */
+    --info-light:  #EBF2FA;
+    --success:     #1E5631;
+    --success-light:#EAF2EC;
   }
 
   /* ── Base Reset & Brutalism Rules ──────────────── */
@@ -82,12 +82,12 @@
   /* ── Layout ─────────────────────────────────────── */
   #app { position: relative; z-index: 1; min-height: 100vh; }
 
-  /* Sidebar (Black Inverted Block) */
+  /* Sidebar (Moss Green Block) */
   #sidebar {
     position: fixed;
     top: 0; left: 0; bottom: 0;
     width: 240px;
-    background: #000000;
+    background: var(--emerald);
     color: white;
     display: flex;
     flex-direction: column;
@@ -98,8 +98,8 @@
 
   #sidebar-logo {
     padding: 24px 20px;
-    border-bottom: 3px solid #FFFFFF;
-    background: #000000;
+    border-bottom: 3px solid #000000;
+    background: transparent;
   }
 
   #sidebar-logo .logo-title {
@@ -149,25 +149,27 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    border-bottom: 2px solid transparent;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
     transition: all 0.15s;
     text-decoration: none;
   }
 
   /* Inversi Hover & Active Emas Melayu */
   .nav-item:hover {
-    background: #FFFFFF;
+    background: var(--gold);
     color: #000000;
     font-weight: 700;
+    border-top: 3px solid #000000;
+    border-bottom: 3px solid #000000;
   }
 
   .nav-item.active {
     background: var(--gold);
     color: #000000;
     font-weight: 800;
-    border: 3px solid #000000;
-    border-left: none;
-    border-right: none;
+    border-top: 3px solid #000000;
+    border-bottom: 3px solid #000000;
   }
 
   .nav-item .nav-icon {
@@ -177,8 +179,8 @@
 
   #sidebar-footer {
     padding: 20px;
-    border-top: 3px solid #FFFFFF;
-    background: #000000;
+    border-top: 3px solid #000000;
+    background: var(--emerald-dark);
   }
 
   #user-info {
@@ -292,19 +294,19 @@
     border: 2px solid #000000 !important;
   }
 
-  .badge-gold      { background: #FFFFFF; color: #000000; border-color: #000000 !important; }
-  .badge-emerald   { background: #FFFFFF; color: #000000; border-color: #000000 !important; }
-  .badge-danger    { background: #FFFFFF; color: var(--danger); border-color: var(--danger) !important; }
-  .badge-info      { background: #FFFFFF; color: var(--info); border-color: var(--info) !important; }
+  .badge-gold      { background: var(--gold-light); color: var(--gold-dark); border-color: var(--gold) !important; }
+  .badge-emerald   { background: var(--emerald-light); color: var(--emerald); border-color: var(--emerald) !important; }
+  .badge-danger    { background: var(--danger-light); color: var(--danger); border-color: var(--danger) !important; }
+  .badge-info      { background: var(--info-light); color: var(--info); border-color: var(--info) !important; }
   .badge-neutral   { background: #F0F0F0; color: #000000; border-color: #000000 !important; }
 
   /* Status badge mapping */
-  .status-sedang-dikerjakan   { background: #FFFFFF; color: var(--info);   border-color: var(--info) !important; }
-  .status-persetujuan-internal{ background: #FFFFFF; color: var(--gold-dark); border-color: var(--gold-dark) !important; }
-  .status-diperbaiki          { background: #FFFFFF; color: #D35400;       border-color: #D35400 !important; }
-  .status-dilanjutkan         { background: #FFFFFF; color: var(--success);    border-color: var(--success) !important; }
-  .status-ditangguhkan        { background: #FFFFFF; color: var(--danger);    border-color: var(--danger) !important; }
-  .status-final               { background: #FFFFFF; color: #1E8449;       border-color: #1E8449 !important; }
+  .status-sedang-dikerjakan   { background: var(--info-light); color: var(--info); border-color: var(--info) !important; }
+  .status-persetujuan-internal{ background: var(--gold-light); color: var(--gold-dark); border-color: var(--gold) !important; }
+  .status-diperbaiki          { background: var(--danger-light); color: var(--danger); border-color: var(--danger) !important; }
+  .status-dilanjutkan         { background: var(--emerald-light); color: var(--emerald); border-color: var(--emerald) !important; }
+  .status-ditangguhkan        { background: var(--danger-light); color: var(--danger); border-color: var(--danger) !important; }
+  .status-final               { background: var(--emerald-light); color: var(--emerald); border-color: var(--emerald) !important; }
 
   /* ── Tombol (Brutalist Buttons) ─────────────────── */
   .btn {
@@ -333,11 +335,11 @@
   }
 
   .btn-primary {
-    background: #000000;
+    background: var(--emerald);
     color: #FFFFFF;
   }
   .btn-primary:hover:not(:disabled) { 
-    background: #FFFFFF; 
+    background: var(--gold); 
     color: #000000; 
   }
   .btn-primary:active:not(:disabled) {
@@ -349,8 +351,8 @@
     color: #000000;
   }
   .btn-gold:hover:not(:disabled) { 
-    background: #000000; 
-    color: var(--gold); 
+    background: var(--emerald); 
+    color: #FFFFFF; 
   }
   .btn-gold:active:not(:disabled) {
     border-width: 5px !important;
@@ -372,8 +374,8 @@
     color: #FFFFFF;
   }
   .btn-danger:hover:not(:disabled) { 
-    background: #000000; 
-    color: var(--danger); 
+    background: var(--gold); 
+    color: #000000; 
   }
   .btn-danger:active:not(:disabled) {
     border-width: 5px !important;
@@ -548,7 +550,7 @@
   #loading-screen {
     position: fixed;
     inset: 0;
-    background: #000000;
+    background: var(--emerald);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -645,12 +647,12 @@
     font-weight: 500;
   }
 
-  /* Gold accent bar (Brutalist Top Accent Block) */
+  /* Brutalist Top Accent Block (Triwarna Melayu) */
   .accent-bar {
-    height: 6px;
-    background: #000000;
+    height: 10px;
+    background: linear-gradient(90deg, var(--danger) 0%, var(--gold) 50%, var(--emerald) 100%);
+    border: 3px solid #000000 !important;
     margin-bottom: 24px;
-    border-bottom: 3px solid var(--gold);
   }
 
   /* Search input */
@@ -910,11 +912,94 @@
 // ════════════════════════════════════════════════
 
 function gasCall(fnName, ...args) {
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    console.warn(`[Local Mock] gasCall(${fnName}) called with args:`, args);
+    return mockGasCall(fnName, ...args);
+  }
   return new Promise((resolve, reject) => {
     let runner = google.script.run
       .withSuccessHandler(resolve)
       .withFailureHandler(reject);
     runner[fnName](...args);
+  });
+}
+
+function mockGasCall(fnName, ...args) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (fnName === 'getActiveUserInfo') {
+        resolve({
+          email: 'operator@linggakab.go.id',
+          nama: 'Fahmi Fattahul',
+          role: 'Operator'
+        });
+      } else if (fnName === 'getDashboardData') {
+        resolve({
+          metrics: {
+            total: 12,
+            dikerjakan: 5,
+            revisi: 3,
+            final: 4
+          },
+          proposals: [
+            {
+              id: 'WBTB-001',
+              namaKarya: 'Tepung Tawar Lingga',
+              domain: 'Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan',
+              penanggungJawabNama: 'Fahmi Fattahul',
+              penanggungJawabEmail: 'operator@linggakab.go.id',
+              status: 'Sedang Dikerjakan',
+              revisiRound: 0
+            },
+            {
+              id: 'WBTB-002',
+              namaKarya: 'Gasing Lingga',
+              domain: 'Olahraga Tradisional dan Permainan Rakyat',
+              penanggungJawabNama: 'Budi Santoso',
+              penanggungJawabEmail: 'budi@linggakab.go.id',
+              status: 'Persetujuan Internal',
+              revisiRound: 1
+            },
+            {
+              id: 'WBTB-003',
+              namaKarya: 'Sagu Lenggang',
+              domain: 'Kuliner Tradisional',
+              penanggungJawabNama: 'Siti Aminah',
+              penanggungJawabEmail: 'siti@linggakab.go.id',
+              status: 'Diperbaiki',
+              revisiRound: 2
+            },
+            {
+              id: 'WBTB-004',
+              namaKarya: 'Joget Dambil',
+              domain: 'Seni Pertunjukan',
+              penanggungJawabNama: 'Fahmi Fattahul',
+              penanggungJawabEmail: 'operator@linggakab.go.id',
+              status: 'Final',
+              revisiRound: 0
+            }
+          ]
+        });
+      } else if (fnName === 'getProposalDetail') {
+        resolve({
+          id: args[1],
+          namaKarya: 'Tepung Tawar Lingga',
+          domain: 'Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan',
+          penanggungJawabNama: 'Fahmi Fattahul',
+          penanggungJawabEmail: 'operator@linggakab.go.id',
+          status: 'Sedang Dikerjakan',
+          revisiRound: 0,
+          isApprovedByAtasan: false,
+          kajianFiles: [],
+          fotoFiles: [],
+          videoUrl: '',
+          presentasiFiles: [],
+          sertifikatFiles: []
+        });
+      } else {
+        resolve({});
+      }
+    }, 300);
   });
 }
 
