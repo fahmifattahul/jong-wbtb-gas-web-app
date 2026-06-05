@@ -37,3 +37,8 @@ JONG_WBTb_Context.md
 task.md
 walkthrough.md
 
+# Gemini / Agent directories
+.gemini/
+
+# Standalone debug scripts
+jong_wbtb_debug.js
