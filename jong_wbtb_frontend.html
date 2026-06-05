@@ -567,6 +567,47 @@
     .grid-4 { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
   }
+
+  /* Workspace Tabs & Items (Saling Peduli & Verifikasi) */
+  .ws-tab {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .ws-tab:hover { color: var(--ink); }
+  .ws-tab.active { color: var(--emerald); border-bottom-color: var(--emerald); }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    font-size: 0.85rem;
+  }
+  .foto-thumb {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+    background: var(--surface-2);
+  }
+  .foto-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .foto-thumb .foto-name {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.6); color: white;
+    font-size: 0.65rem; padding: 3px 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 </style>
 </head>
 <body>
@@ -754,9 +795,10 @@ const App = {
 
 const NAV_CONFIG = {
   'Anggota Tim': [
-    { id: 'dashboard',  label: 'Dashboard',      icon: '◈' },
-    { id: 'workspace',  label: 'Workspace Saya',  icon: '◉' },
-    { id: 'arsip',      label: 'Arsip Historis',  icon: '◫' }
+    { id: 'dashboard',    label: 'Dashboard',      icon: '◈' },
+    { id: 'workspace',    label: 'Workspace Saya',  icon: '◉' },
+    { id: 'semua-usulan', label: 'Semua Usulan',   icon: '◎' },
+    { id: 'arsip',        label: 'Arsip Historis',  icon: '◫' }
   ],
   'Operator': [
     { id: 'dashboard',       label: 'Dashboard',          icon: '◈' },
@@ -769,6 +811,7 @@ const NAV_CONFIG = {
   'Atasan': [
     { id: 'dashboard',    label: 'Dashboard',         icon: '◈' },
     { id: 'verifikasi',   label: 'Verifikasi Usulan',  icon: '◉' },
+    { id: 'semua-usulan', label: 'Semua Usulan',       icon: '◎' },
     { id: 'arsip',        label: 'Arsip Historis',     icon: '◫' },
     { id: 'administrasi', label: 'Administrasi',        icon: '◧' },
     { id: 'log-aktivitas',label: 'Log Aktivitas',       icon: '☰' }
@@ -911,7 +954,9 @@ async function renderDashboard() {
   try {
     const data = await gasCall('getDashboardData', App.user.email);
     renderMetrics(data.metrics);
-    renderDashboardTable(data.proposals);
+    // Filter only active proposals (status is NOT Final and NOT Ditangguhkan)
+    const activeProposals = (data.proposals || []).filter(p => p.status !== 'Final' && p.status !== 'Ditangguhkan');
+    renderDashboardTable(activeProposals);
   } catch (err) {
     showToast('Gagal memuat dashboard: ' + err.message, 'error');
   }
@@ -925,7 +970,7 @@ function renderMetrics(metrics) {
     { label: 'Total Usulan',       value: metrics.total      || 0, sub: 'seluruh status' },
     { label: 'Sedang Dikerjakan',  value: metrics.dikerjakan || 0, sub: 'aktif' },
     { label: 'Tahap Revisi',       value: metrics.revisi     || 0, sub: 'dari penilai eksternal' },
-    { label: 'Terpenetapkan',      value: metrics.final      || 0, sub: 'WBTb resmi' }
+    { label: 'Ditetapkan',         value: metrics.final      || 0, sub: 'WBTb resmi' }
   ];
 
   grid.innerHTML = items.map(item => `
@@ -950,19 +995,18 @@ function renderDashboardTable(proposals) {
     `;
   }
 
-  if (!proposals || proposals.length === 0) {
+  let filtered = proposals || [];
+  if (App.user.role === 'Anggota Tim') {
+    filtered = filtered.filter(p => (p.penanggungJawabEmail || '').toLowerCase() === App.user.email.toLowerCase());
+  }
+
+  if (filtered.length === 0) {
     body.innerHTML = `
       <div style="text-align:center;padding:40px;color:var(--ink-faint);">
-        Belum ada usulan aktif.
+        ${App.user.role === 'Anggota Tim' ? 'Belum ada usulan aktif yang ditugaskan kepadamu.' : 'Belum ada usulan aktif.'}
       </div>
     `;
     return;
-  }
-
-  // Filter berdasarkan role
-  let filtered = proposals;
-  if (App.user.role === 'Anggota Tim') {
-    filtered = proposals.filter(p => p.penanggungJawabEmail === App.user.email);
   }
 
   body.innerHTML = `
@@ -1315,52 +1359,7 @@ async function renderWorkspace() {
     </div>
   `);
 
-  // CSS tab
-  if (!document.getElementById('ws-tab-style')) {
-    var style = document.createElement('style');
-    style.id  = 'ws-tab-style';
-    style.textContent = `
-      .ws-tab {
-        padding: 10px 16px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        border: none;
-        background: transparent;
-        color: var(--ink-muted);
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        transition: all 0.15s;
-      }
-      .ws-tab:hover { color: var(--ink); }
-      .ws-tab.active { color: var(--emerald); border-bottom-color: var(--emerald); }
-      .file-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--surface-2);
-        font-size: 0.85rem;
-      }
-      .foto-thumb {
-        aspect-ratio: 1;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        overflow: hidden;
-        position: relative;
-        background: var(--surface-2);
-      }
-      .foto-thumb img { width:100%;height:100%;object-fit:cover; }
-      .foto-thumb .foto-name {
-        position:absolute;bottom:0;left:0;right:0;
-        background:rgba(0,0,0,0.6);color:white;
-        font-size:0.65rem;padding:3px 5px;
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      }
-    `;
-    document.head.appendChild(style);
-  }
+
 
   // Load data
   try {
@@ -1373,16 +1372,21 @@ async function renderWorkspace() {
 
 function renderWsFolderList(proposals) {
   const wrap = document.getElementById('ws-folder-list');
-  if (!proposals || proposals.length === 0) {
+  let filtered = proposals || [];
+  if (App.user.role === 'Anggota Tim') {
+    filtered = filtered.filter(p => (p.penanggungJawabEmail || '').toLowerCase() === App.user.email.toLowerCase());
+  }
+
+  if (filtered.length === 0) {
     wrap.innerHTML = `
       <div style="text-align:center;padding:32px;color:var(--ink-faint);">
-        Belum ada folder usulan yang ditugaskan kepadamu.
+        ${App.user.role === 'Anggota Tim' ? 'Belum ada folder usulan yang ditugaskan kepadamu.' : 'Belum ada folder usulan aktif.'}
       </div>
     `;
     return;
   }
 
-  wrap.innerHTML = proposals.map(p => `
+  wrap.innerHTML = filtered.map(p => `
     <div style="display:flex;align-items:center;justify-content:space-between;
       padding:12px 16px;border:1px solid var(--border);border-radius:6px;
       cursor:pointer;transition:background 0.1s;"
@@ -1409,8 +1413,8 @@ function renderWsFolderList(proposals) {
   `).join('');
 
   // Auto-buka jika hanya satu folder
-  if (proposals.length === 1) {
-    bukaWsProposal(proposals[0].id);
+  if (filtered.length === 1) {
+    bukaWsProposal(filtered[0].id);
   }
 
   // Atau jika ada activeProposalId dari navigasi
@@ -1537,8 +1541,8 @@ function renderWsAksiButtons(p) {
   // Tombol kembali ke daftar folder
   html += `<button class="btn btn-ghost btn-sm" onclick="kembaliKeDaftarFolder()">← Kembali</button>`;
 
-  // Kirim ke Atasan — hanya jika Sedang Dikerjakan dan tidak locked
-  if (status === 'Sedang Dikerjakan' && !locked) {
+  // Kirim ke Atasan — hanya jika Sedang Dikerjakan, tidak locked, dan oleh Operator atau Penanggung Jawab
+  if (status === 'Sedang Dikerjakan' && !locked && (App.user.role === 'Operator' || p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase())) {
     html += `
       <button class="btn btn-primary btn-sm" onclick="tampilVerifikasiMandiri()">
         Kirim ke Atasan →
@@ -1546,8 +1550,8 @@ function renderWsAksiButtons(p) {
     `;
   }
 
-  // Anggota Tim tandai revisi selesai
-  if (status === 'Diperbaiki' && !locked && App.user.role === 'Anggota Tim') {
+  // Anggota Tim tandai revisi selesai (hanya oleh Penanggung Jawab)
+  if (status === 'Diperbaiki' && !locked && App.user.role === 'Anggota Tim' && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase()) {
     if (p.isRevisiSelesai) {
       html += `
         <span style="color:var(--emerald);font-weight:500;font-size:0.8rem;background:var(--success-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(27,107,69,0.2);display:inline-flex;align-items:center;gap:4px;">
@@ -1620,8 +1624,8 @@ function renderWsAksiButtons(p) {
     `;
   }
 
-  // Link Drive folder
-  if (p.folderKaryaId) {
+  // Link Drive folder (hanya untuk Operator)
+  if (p.folderKaryaId && App.user.role === 'Operator') {
     html += `
       <a class="btn btn-ghost btn-sm"
         href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
@@ -2359,6 +2363,11 @@ function statusClass(status) {
 
 function isWorkspaceEditable(p) {
   if (!p) return false;
+  if (App.user.role === 'Anggota Tim') {
+    if ((p.penanggungJawabEmail || '').toLowerCase() !== App.user.email.toLowerCase()) {
+      return false;
+    }
+  }
   return (p.status === 'Sedang Dikerjakan' || p.status === 'Diperbaiki') && !p.driveLocked;
 }
 
@@ -2369,35 +2378,43 @@ function isWorkspaceEditable(p) {
 async function renderSemuaUsulan() {
   setPageTitle('Semua Usulan', 'Pantau seluruh Folder Usulan WBTb aktif');
 
+  App.data.semuaPage = App.data.semuaPage || 1;
+  App.data.semuaPageSize = 10;
+  App.data.semuaQuery = App.data.semuaQuery || "";
+  App.data.semuaStatus = App.data.semuaStatus || "";
+
   setContent(`
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="accent-bar"></div>
       <div class="card">
         <div class="card-header">
           <h3>Daftar Usulan Aktif</h3>
-          <button class="btn btn-primary btn-sm" onclick="openModalUsulanBaru()">
-            + Usulan Baru
-          </button>
+          ${App.user.role === 'Operator' ? `
+            <button class="btn btn-primary btn-sm" onclick="openModalUsulanBaru()">
+              + Usulan Baru
+            </button>
+          ` : ''}
         </div>
 
         <!-- Filter bar -->
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="search-wrap" style="flex:1;min-width:200px;">
             <span class="search-icon">🔍</span>
-            <input type="text" class="form-control" placeholder="Cari nama karya atau ID..."
+            <input type="text" id="semua-search-input" class="form-control" placeholder="Cari nama karya atau ID..."
               oninput="filterSemuaUsulan(this.value)"
+              value="${App.data.semuaQuery || ''}"
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
           <select id="filter-status" class="form-control"
             style="width:auto;height:34px;font-size:0.8rem;"
             onchange="filterSemuaUsulan()">
             <option value="">Semua Status</option>
-            <option>Sedang Dikerjakan</option>
-            <option>Persetujuan Internal</option>
-            <option>Diperbaiki</option>
-            <option>Dilanjutkan</option>
-            <option>Ditangguhkan</option>
-            <option>Final</option>
+            <option ${App.data.semuaStatus === 'Sedang Dikerjakan' ? 'selected' : ''}>Sedang Dikerjakan</option>
+            <option ${App.data.semuaStatus === 'Persetujuan Internal' ? 'selected' : ''}>Persetujuan Internal</option>
+            <option ${App.data.semuaStatus === 'Diperbaiki' ? 'selected' : ''}>Diperbaiki</option>
+            <option ${App.data.semuaStatus === 'Dilanjutkan' ? 'selected' : ''}>Dilanjutkan</option>
+            <option ${App.data.semuaStatus === 'Ditangguhkan' ? 'selected' : ''}>Ditangguhkan</option>
+            <option ${App.data.semuaStatus === 'Final' ? 'selected' : ''}>Final</option>
           </select>
         </div>
 
@@ -2414,25 +2431,49 @@ async function renderSemuaUsulan() {
   try {
     const data = await gasCall('getDashboardData', App.user.email);
     App.data.semuaProposals = data.proposals || [];
-    renderSemuaUsulanTable(App.data.semuaProposals);
+    renderSemuaUsulanTableAndPagination();
   } catch (err) {
     showToast('Gagal memuat data: ' + err.message, 'error');
   }
 }
 
-function renderSemuaUsulanTable(proposals) {
+function renderSemuaUsulanTableAndPagination() {
   const body = document.getElementById('semua-usulan-body');
+  if (!body) return;
 
-  if (!proposals || proposals.length === 0) {
+  const proposals = App.data.semuaProposals || [];
+  const q = (App.data.semuaQuery || '').toLowerCase().trim();
+  const status = App.data.semuaStatus || '';
+
+  // 1. Filter
+  const filtered = proposals.filter(p => {
+    const searchStr = `${(p.namaKarya||'').toLowerCase()} ${(p.id||'').toLowerCase()}`;
+    const matchQuery = !q || searchStr.includes(q);
+    const matchStatus = !status || p.status === status;
+    return matchQuery && matchStatus;
+  });
+
+  if (filtered.length === 0) {
     body.innerHTML = `
       <div style="text-align:center;padding:40px;color:var(--ink-faint);">
-        Belum ada usulan aktif.
+        Tidak ada usulan yang cocok.
       </div>
     `;
     return;
   }
 
-  body.innerHTML = `
+  // 2. Paginate
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / App.data.semuaPageSize);
+  
+  if (App.data.semuaPage > totalPages) App.data.semuaPage = totalPages;
+  if (App.data.semuaPage < 1) App.data.semuaPage = 1;
+
+  const start = (App.data.semuaPage - 1) * App.data.semuaPageSize;
+  const sliced = filtered.slice(start, start + App.data.semuaPageSize);
+
+  // 3. Render Table
+  let tableHtml = `
     <div class="table-wrap">
       <table id="semua-table">
         <thead>
@@ -2448,11 +2489,46 @@ function renderSemuaUsulanTable(proposals) {
           </tr>
         </thead>
         <tbody id="semua-tbody">
-          ${proposals.map(p => renderSemuaUsulanRow(p)).join('')}
+          ${sliced.map(p => renderSemuaUsulanRow(p)).join('')}
         </tbody>
       </table>
     </div>
   `;
+
+  // 4. Render Pagination Controls
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml = `
+      <div class="pagination" style="justify-content:center;margin-top:16px;">
+        <button class="page-btn" onclick="gantiHalamanSemuaUsulan(${App.data.semuaPage - 1})"
+          ${App.data.semuaPage === 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 || i === totalPages ||
+        (i >= App.data.semuaPage - 2 && i <= App.data.semuaPage + 2)
+      ) {
+        paginationHtml += `
+          <button class="page-btn ${i === App.data.semuaPage ? 'active' : ''}"
+            onclick="gantiHalamanSemuaUsulan(${i})">${i}</button>
+        `;
+      } else if (i === App.data.semuaPage - 3 || i === App.data.semuaPage + 3) {
+        paginationHtml += `<span style="padding:0 4px;color:var(--ink-faint);">…</span>`;
+      }
+    }
+
+    paginationHtml += `
+        <button class="page-btn" onclick="gantiHalamanSemuaUsulan(${App.data.semuaPage + 1})"
+          ${App.data.semuaPage === totalPages ? 'disabled' : ''}>›</button>
+      </div>
+      <div style="text-align:center;font-size:0.75rem;color:var(--ink-faint);margin-top:6px;">
+        Menampilkan ${start + 1}-${Math.min(start + App.data.semuaPageSize, totalItems)} dari ${totalItems} usulan
+      </div>
+    `;
+  }
+
+  body.innerHTML = tableHtml + paginationHtml;
 }
 
 function renderSemuaUsulanRow(p) {
@@ -2488,7 +2564,7 @@ function renderSemuaUsulanRow(p) {
             onclick="bukaDetailUsulan('${p.id}')">
             Detail →
           </button>
-          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true && App.user.role === 'Operator'
             ? `<button class="btn btn-gold btn-sm"
                 onclick="navigasiKeCatatanPenilai('${p.id}')">
                 + Catatan Penilai
@@ -2502,19 +2578,27 @@ function renderSemuaUsulanRow(p) {
 }
 
 function filterSemuaUsulan(query) {
-  const q      = (query || document.querySelector('#semua-usulan-body input') && '').toLowerCase().trim();
-  const status = document.getElementById('filter-status')
-    ? document.getElementById('filter-status').value
-    : '';
+  if (query !== undefined) {
+    App.data.semuaQuery = query;
+  } else {
+    const searchInput = document.getElementById('semua-search-input');
+    if (searchInput) {
+      App.data.semuaQuery = searchInput.value;
+    }
+  }
 
-  const rows = document.querySelectorAll('#semua-tbody tr');
-  rows.forEach(row => {
-    const search     = row.getAttribute('data-search') || '';
-    const rowStatus  = row.getAttribute('data-status') || '';
-    const matchQuery = !q || search.includes(q);
-    const matchStatus = !status || rowStatus === status;
-    row.style.display = (matchQuery && matchStatus) ? '' : 'none';
-  });
+  const statusSelect = document.getElementById('filter-status');
+  if (statusSelect) {
+    App.data.semuaStatus = statusSelect.value;
+  }
+
+  App.data.semuaPage = 1;
+  renderSemuaUsulanTableAndPagination();
+}
+
+function gantiHalamanSemuaUsulan(page) {
+  App.data.semuaPage = page;
+  renderSemuaUsulanTableAndPagination();
 }
 
 function bukaDetailDariOperator(proposalId) {
@@ -2599,7 +2683,7 @@ function tampilModalDetailOperator(p) {
   // Aksi
   let aksiHtml = '';
 
-  if (p.folderKaryaId) {
+  if (p.folderKaryaId && App.user.role === 'Operator') {
     aksiHtml += `
       <a class="btn btn-ghost btn-sm"
         href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
@@ -3002,254 +3086,6 @@ async function submitCatatanPenilaiForm() {
 }
 
 // ════════════════════════════════════════════════
-// ARSIP HISTORIS — Semua role
-// ════════════════════════════════════════════════
-
-async function renderArsip() {
-  setPageTitle('Arsip Historis',
-    'WBTb yang telah ditetapkan sebelum berlakunya Juknis 2026');
-
-  const isOperator = App.user.role === 'Operator';
-
-  setContent(`
-    <div style="display:flex;flex-direction:column;gap:20px;">
-      <div class="accent-bar"></div>
-
-      <div class="alert alert-info">
-        <div style="font-size:0.85rem;line-height:1.6;">
-          Arsip Historis bersifat <strong>hanya-baca</strong> setelah diisi.
-          Data dapat ditambah oleh Operator. (Juknis Bab IX huruf B)
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Daftar Arsip Historis</h3>
-          ${isOperator ? `
-            <button class="btn btn-primary btn-sm"
-              onclick="openModalImportHistoris()">
-              + Import WBTb Historis
-            </button>
-          ` : ''}
-        </div>
-
-        <!-- Search -->
-        <div style="margin-bottom:16px;">
-          <div class="search-wrap" style="max-width:300px;">
-            <span class="search-icon">🔍</span>
-            <input type="text" class="form-control"
-              placeholder="Cari nama karya..."
-              oninput="filterArsip(this.value)"
-              style="padding-left:32px;height:34px;font-size:0.8rem;">
-          </div>
-        </div>
-
-        <div id="arsip-body">
-          <div style="text-align:center;padding:32px;">
-            <div class="spinner dark" style="margin:0 auto 12px;"></div>
-            Memuat arsip...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Import Historis -->
-    ${isOperator ? `
-    <div id="modal-import-historis" class="modal-overlay hidden">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>Import WBTb Historis</h3>
-          <button class="btn btn-ghost btn-sm"
-            onclick="closeModal('modal-import-historis')">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="alert alert-gold" style="margin-bottom:16px;">
-            <div style="font-size:0.85rem;">
-              Untuk WBTb yang sudah ditetapkan sebelum Juknis ini berlaku.
-              Sertifikat penetapan wajib ada. Dokumen lain opsional.
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">
-              Nama Karya Budaya <span class="required">*</span>
-            </label>
-            <input type="text" id="ih-nama" class="form-control"
-              placeholder="contoh: Tepung Tawar Lingga">
-          </div>
-          <div class="form-group">
-            <label class="form-label">
-              Judul Singkat <span class="required">*</span>
-            </label>
-            <input type="text" id="ih-judul-singkat" class="form-control mono"
-              placeholder="contoh: TEPUNG-TAWAR"
-              style="text-transform:uppercase;">
-            <div class="form-hint">
-              UPPERCASE, hanya A-Z dan tanda hubung.
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">
-              Domain WBTb <span class="required">*</span>
-            </label>
-            <select id="ih-domain" class="form-control">
-              <option value="">— Pilih domain —</option>
-              <option>Tradisi dan Ekspresi Lisan</option>
-              <option>Seni Pertunjukan</option>
-              <option>Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan</option>
-              <option>Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta</option>
-              <option>Kemahiran Kerajinan Tradisional</option>
-              <option>Olahraga Tradisional dan Permainan Rakyat</option>
-              <option>Kuliner Tradisional</option>
-              <option>Arsitektur Tradisional</option>
-              <option>Moda Transportasi Tradisional</option>
-              <option>Tekstil Tradisional</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">
-              Tahun Penetapan <span class="required">*</span>
-            </label>
-            <input type="number" id="ih-tahun" class="form-control"
-              placeholder="contoh: 2024" min="2000"
-              max="${new Date().getFullYear()}" style="width:160px;">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-ghost"
-            onclick="closeModal('modal-import-historis')">Batal</button>
-          <button class="btn btn-primary" onclick="submitImportHistoris()">
-            Import ke Arsip
-          </button>
-        </div>
-      </div>
-    </div>
-    ` : ''}
-  `);
-
-  try {
-    const arsip = await gasCall('getArsipHistoris', App.user.email);
-    App.data.arsipList = arsip;
-    renderArsipTable(arsip);
-  } catch (err) {
-    showToast('Gagal memuat arsip: ' + err.message, 'error');
-  }
-}
-
-function renderArsipTable(arsip) {
-  const body = document.getElementById('arsip-body');
-
-  if (!arsip || arsip.length === 0) {
-    body.innerHTML = `
-      <div style="text-align:center;padding:40px;color:var(--ink-faint);">
-        Belum ada data arsip historis.
-        ${App.user.role === 'Operator'
-          ? '<div style="margin-top:12px;">Gunakan tombol "Import WBTb Historis" untuk menambahkan.</div>'
-          : ''}
-      </div>
-    `;
-    return;
-  }
-
-  body.innerHTML = `
-    <div class="table-wrap">
-      <table id="arsip-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nama Karya Budaya</th>
-            <th>Domain</th>
-            <th>Tahun Penetapan</th>
-            <th>Drive</th>
-          </tr>
-        </thead>
-        <tbody id="arsip-tbody">
-          ${arsip.map(p => `
-            <tr data-search="${(p.namaKarya||'').toLowerCase()}">
-              <td><span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span></td>
-              <td>
-                <div style="font-weight:500;">${p.namaKarya}</div>
-                <span class="badge badge-emerald" style="margin-top:3px;">
-                  Final
-                </span>
-              </td>
-              <td class="text-muted" style="font-size:0.78rem;">
-                ${shortenDomain(p.domain)}
-              </td>
-              <td style="font-size:0.85rem;">${p.tahunUsulan || '—'}</td>
-              <td>
-                ${p.folderKaryaId
-                  ? `<a href="https://drive.google.com/drive/folders/${p.folderKaryaId}"
-                      target="_blank" class="btn btn-ghost btn-sm">
-                      Drive ↗
-                    </a>`
-                  : '<span class="text-faint">—</span>'
-                }
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="text-faint" style="font-size:0.75rem;margin-top:8px;text-align:right;">
-      Total: ${arsip.length} karya terdaftar
-    </div>
-  `;
-}
-
-function filterArsip(query) {
-  const rows = document.querySelectorAll('#arsip-tbody tr');
-  const q    = query.toLowerCase().trim();
-  rows.forEach(row => {
-    const search = row.getAttribute('data-search') || '';
-    row.style.display = (!q || search.includes(q)) ? '' : 'none';
-  });
-}
-
-function openModalImportHistoris() {
-  document.getElementById('ih-nama').value         = '';
-  document.getElementById('ih-judul-singkat').value = '';
-  document.getElementById('ih-domain').value       = '';
-  document.getElementById('ih-tahun').value        = '';
-  openModal('modal-import-historis');
-}
-
-async function submitImportHistoris() {
-  const nama         = document.getElementById('ih-nama').value.trim();
-  const judulSingkat = document.getElementById('ih-judul-singkat').value.trim().toUpperCase();
-  const domain       = document.getElementById('ih-domain').value;
-  const tahun        = parseInt(document.getElementById('ih-tahun').value, 10);
-
-  if (!nama || !judulSingkat || !domain || !tahun) {
-    showToast('Semua field wajib diisi.', 'error');
-    return;
-  }
-
-  if (isNaN(tahun) || tahun < 2000 || tahun > new Date().getFullYear()) {
-    showToast('Tahun penetapan tidak valid.', 'error');
-    return;
-  }
-
-  try {
-    const hasil = await gasCall('createArsipHistoris', App.user.email, {
-      namaKarya     : nama,
-      judulSingkat  : judulSingkat,
-      domain        : domain,
-      tahunPenetapan: tahun
-    });
-
-    closeModal('modal-import-historis');
-    showToast(
-      hasil.proposalId + ' berhasil diimport ke Arsip Historis. ' +
-      'Unggah sertifikat penetapan ke folder Drive.',
-      'success'
-    );
-    renderArsip();
-  } catch (err) {
-    showToast('Gagal import: ' + err.message, 'error');
-  }
-}
-
-// ════════════════════════════════════════════════
 // KELOLA AKSES — Operator
 // ════════════════════════════════════════════════
 
@@ -3595,6 +3431,7 @@ async function renderVerifikasi() {
                 <span id="ver-proposal-id" class="mono badge badge-neutral"></span>
                 <span id="ver-status-badge" class="badge"></span>
                 <span id="ver-acc-badge" class="badge badge-success hidden" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>
+                <span id="ver-putaran-badge" class="badge badge-neutral hidden"></span>
               </div>
               <h2 id="ver-nama-karya" style="margin-bottom:4px;"></h2>
               <div id="ver-domain" class="text-muted" style="font-size:0.8rem;"></div>
@@ -3623,7 +3460,10 @@ async function renderVerifikasi() {
           <div id="ws-tab-ver-formulir" class="ws-tab-content">
             <div id="ver-formulir-wrap">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                <span id="ver-formulir-versi" class="badge badge-neutral"></span>
+                <div>
+                  <span id="ver-formulir-versi" class="badge badge-neutral"></span>
+                  <span id="ver-formulir-locked" class="badge badge-danger hidden" style="margin-left:4px;">🔒 Hanya Lihat</span>
+                </div>
                 <a id="ver-formulir-link" class="btn btn-ghost btn-sm" target="_blank">
                   Buka di Google Docs ↗
                 </a>
@@ -3862,11 +3702,27 @@ function renderVerDetail(p) {
     }
   }
 
+  const putaranBadge = document.getElementById('ver-putaran-badge');
+  if (putaranBadge) {
+    if (p.revisiRound > 0) {
+      putaranBadge.textContent = 'P' + String(p.revisiRound).padStart(2,'0');
+      putaranBadge.classList.remove('hidden');
+    } else {
+      putaranBadge.classList.add('hidden');
+    }
+  }
+
   // Formulir — preview mode (read-only untuk Atasan)
   if (p.docActiveId) {
     const versiKeys  = Object.keys(p.docHistory || {});
     document.getElementById('ver-formulir-versi').textContent =
       'Versi ' + versiKeys.length;
+
+    const lockedBadge = document.getElementById('ver-formulir-locked');
+    if (lockedBadge) {
+      lockedBadge.classList.remove('hidden');
+      lockedBadge.textContent = p.driveLocked ? '🔒 Terkunci' : '🔒 Hanya Lihat';
+    }
     document.getElementById('ver-formulir-iframe').src =
       'https://docs.google.com/document/d/' + p.docActiveId + '/preview?embedded=true';
     document.getElementById('ver-formulir-link').href =
@@ -4608,7 +4464,7 @@ async function renderLogAktivitas() {
             <span class="search-icon">🔍</span>
             <input type="text" class="form-control"
               placeholder="Cari email, ID proposal, atau aksi..."
-              oninput="filterLog(this.value)"
+              oninput="filterLogDebounced(this.value)"
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
           <select id="log-filter-action" class="form-control"
@@ -4616,11 +4472,14 @@ async function renderLogAktivitas() {
             onchange="filterLog()">
             <option value="">Semua Aksi</option>
             <option value="STATUS_CHANGE">Perubahan Status</option>
-            <option value="WORKSPACE_INIT">Buat Workspace</option>
-            <option value="CATATAN_PENILAI">Catatan Penilai</option>
+            <option value="WORKSPACE_INIT">Workspace & Inisialisasi</option>
+            <option value="DOKUMEN">Unggah Dokumen</option>
+            <option value="CATATAN">Catatan & Revisi</option>
             <option value="AKSES">Kelola Akses</option>
             <option value="DRIVE">Drive Access</option>
-            <option value="ARSIP">Arsip Versi</option>
+            <option value="HISTORIS">Arsip Historis</option>
+            <option value="EVALUASI">Evaluasi & Retensi</option>
+            <option value="ERROR">Error Sistem</option>
           </select>
         </div>
 
@@ -4642,7 +4501,12 @@ async function renderLogAktivitas() {
 
 async function loadLogData(halaman) {
   try {
-    const data = await gasCall('getLogAktivitas', App.user.email, halaman, 15);
+    const searchInput = document.querySelector('.search-wrap input');
+    const query = searchInput ? searchInput.value : '';
+    const actionSelect = document.getElementById('log-filter-action');
+    const action = actionSelect ? actionSelect.value : '';
+
+    const data = await gasCall('getLogAktivitas', App.user.email, halaman, 15, action, query);
     App.data.logData         = data;
     App.data.logHalaman      = halaman;
     renderLogTable(data.logs);
@@ -4687,6 +4551,35 @@ function renderLogTable(logs) {
   `;
 }
 
+const ACTION_LABELS = {
+  WORKSPACE_INIT_START: 'Mulai Workspace',
+  WORKSPACE_INIT_SUCCESS: 'Workspace Berhasil',
+  HISTORIS_INIT_START: 'Mulai Inisialisasi Arsip',
+  HISTORIS_INIT_SUCCESS: 'Arsip Berhasil',
+  STATUS_CHANGE: 'Perubahan Status',
+  PUTARAN_REVISI_CREATED: 'Putaran Revisi Baru',
+  CATATAN_PENILAI_UPLOAD: 'Unggah Catatan Penilai',
+  FORMULIR_VERSI_BARU: 'Unggah Formulir Baru',
+  KAJIAN_UPLOAD: 'Unggah Kajian',
+  FOTO_UPLOAD: 'Unggah Foto',
+  VIDEO_URL_SET: 'Tautan Video',
+  SERTIFIKAT_UPLOAD: 'Unggah Sertifikat',
+  ARSIP_VERSI_PINDAH: 'Arsip Versi Dipindah',
+  DRIVE_ACCESS_FROZEN: 'Akses Drive Dibekukan',
+  DRIVE_ACCESS_UNFROZEN: 'Akses Drive Dibuka',
+  AKSES_DITAMBAH: 'Akses Ditambahkan',
+  AKSES_DICABUT: 'Akses Dicabut',
+  CATATAN_ATASAN_SET: 'Catatan Atasan',
+  EVALUASI_KEPATUHAN: 'Evaluasi Kepatuhan',
+  RETENSI_CHECK: 'Pengecekan Retensi',
+  ERROR: 'Error Sistem',
+  IMPORT_HISTORIS: 'Impor Arsip',
+  EDIT_HISTORIS: 'Ubah Arsip',
+  DELETE_HISTORIS: 'Hapus Arsip',
+  PRESENTASI_UPLOAD: 'Unggah Presentasi',
+  SERTOR_UPLOAD: 'Unggah Sertifikat'
+};
+
 function renderLogRow(log) {
   const waktu = log.timestamp
     ? new Date(log.timestamp).toLocaleString('id-ID', {
@@ -4696,6 +4589,7 @@ function renderLogRow(log) {
     : '—';
 
   const actionColor = getActionColor(log.actionType);
+  const actionLabel = ACTION_LABELS[log.actionType] || log.actionType || '—';
 
   return `
     <tr data-search="${[
@@ -4726,9 +4620,9 @@ function renderLogRow(log) {
         }
       </td>
       <td>
-        <span style="font-size:0.72rem;font-weight:500;
-          color:${actionColor};font-family:'Noto Sans Mono',monospace;">
-          ${log.actionType || '—'}
+        <span style="font-size:0.75rem;font-weight:500;
+          color:${actionColor};">
+          ${actionLabel}
         </span>
       </td>
       <td style="font-size:0.78rem;color:var(--ink-muted);max-width:300px;">
@@ -4749,6 +4643,7 @@ function getActionColor(actionType) {
   if (actionType.includes('CATATAN'))   return 'var(--gold-dark)';
   if (actionType.includes('DRIVE'))     return '#8E44AD';
   if (actionType.includes('ARSIP'))     return '#D35400';
+  if (actionType.includes('EVALUASI') || actionType.includes('RETENSI')) return 'var(--gold-dark)';
   return 'var(--ink-muted)';
 }
 
@@ -4783,21 +4678,17 @@ function renderLogPagination(total, aktif) {
   wrap.innerHTML = html;
 }
 
-function filterLog(query) {
-  const q      = (query || '').toLowerCase().trim();
-  const action = document.getElementById('log-filter-action')
-    ? document.getElementById('log-filter-action').value
-    : '';
+let logSearchTimeout = null;
+function filterLogDebounced(val) {
+  clearTimeout(logSearchTimeout);
+  logSearchTimeout = setTimeout(() => {
+    filterLog();
+  }, 400);
+}
 
-  const rows = document.querySelectorAll('#log-tbody tr');
-  rows.forEach(row => {
-    const search    = row.getAttribute('data-search') || '';
-    const rowAction = row.getAttribute('data-action') || '';
-
-    const matchQuery  = !q || search.includes(q);
-    const matchAction = !action || rowAction.includes(action);
-    row.style.display = (matchQuery && matchAction) ? '' : 'none';
-  });
+function filterLog() {
+  App.data.logHalaman = 1;
+  loadLogData(1);
 }
 
 function renderPlaceholder(label) {
@@ -4961,5 +4852,8 @@ function fileToBase64(file) {
 // ════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', init);
 </script>
+<!-- ── ARSIP HISTORIS UI TEMPLATE ────────────────── -->
+<?!= include('jong_wbtb_arsip_ui'); ?>
+
 </body>
 </html>

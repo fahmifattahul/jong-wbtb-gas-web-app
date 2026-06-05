@@ -125,7 +125,7 @@ function cekRetensiArsipDitangguhkan() {
   }
 
   writeAuditLog(
-    ACTION_TYPES.ERROR, // pakai ERROR sebagai generic system log
+    ACTION_TYPES.RETENSI_CHECK,
     "Pengecekan retensi bulanan selesai. " +
     "Lewat retensi: " + folderLewatRetensi.length + ". " +
     "Mendekati retensi: " + folderMendekatiRetensi.length + ".",

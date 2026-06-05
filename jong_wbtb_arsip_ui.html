@@ -1,0 +1,953 @@
+<!-- Modal: Detail Berkas Arsip (Semua Role) -->
+<div id="modal-detail-berkas-arsip" class="modal-overlay hidden">
+  <div class="modal" style="max-width: 600px; width: 90%;">
+    <div class="modal-header">
+      <h3 id="view-arsip-title">Detail Berkas Kearsipan</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-detail-berkas-arsip')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+      <div style="background: var(--surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+        <div><b>Domain:</b> <span id="view-arsip-domain"></span></div>
+        <div><b>Tahun Penetapan / Usulan:</b> <span id="view-arsip-tahun"></span></div>
+        <div><b>Status:</b> <span id="view-arsip-status" class="badge"></span></div>
+        <div><b>Keterangan / Nomor SK:</b> <span id="view-arsip-keterangan"></span></div>
+      </div>
+
+      <h4 style="margin-bottom: 12px; color: var(--gold-dark);">Daftar Berkas Kearsipan</h4>
+      <div id="view-arsip-files-list" style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Dynamic content -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modal-detail-berkas-arsip')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Import Arsip Historis (Khusus Operator) -->
+<div id="modal-import-arsip" class="modal-overlay hidden">
+  <div class="modal" style="max-width: 600px; width: 90%;">
+    <div class="modal-header">
+      <h3>Import Arsip Historis</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-import-arsip')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+      <div class="alert alert-info" style="margin-bottom: 20px;">
+        <span>Gunakan form ini <b>hanya</b> untuk memasukkan data usulan yang sudah berstatus <b>Final (Ditetapkan)</b> atau <b>Ditangguhkan</b> dari tahun-tahun sebelumnya.</span>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Nama Karya Budaya <span class="required">*</span></label>
+        <input type="text" id="import-nama-karya" class="form-control" placeholder="contoh: Tepung Tawar Lingga">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Judul Singkat (A-Z, 0-9, &amp; tanda hubung) <span class="required">*</span></label>
+        <input type="text" id="import-judul-singkat" class="form-control mono" placeholder="contoh: TEPUNG-TAWAR" style="text-transform:uppercase;">
+        <span class="text-faint" style="font-size:0.75rem;">Harus UPPERCASE, hanya huruf, angka, dan tanda hubung (-). Dipakai untuk penamaan file &amp; folder.</span>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Domain WBTb <span class="required">*</span></label>
+        <select id="import-domain" class="form-control">
+          <option value="">— Pilih domain —</option>
+          <option>Tradisi dan Ekspresi Lisan</option>
+          <option>Seni Pertunjukan</option>
+          <option>Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan</option>
+          <option>Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta</option>
+          <option>Kemahiran Kerajinan Tradisional</option>
+          <option>Olahraga Tradisional dan Permainan Rakyat</option>
+          <option>Kuliner Tradisional</option>
+          <option>Arsitektur Tradisional</option>
+          <option>Moda Transportasi Tradisional</option>
+          <option>Tekstil Tradisional</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Tahun Penetapan / Usulan <span class="required">*</span></label>
+        <input type="number" id="import-tahun" class="form-control" placeholder="contoh: 2021" value="2021">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Keterangan / Nomor SK (Opsional)</label>
+        <textarea id="import-keterangan" class="form-control" rows="2" placeholder="contoh: Ditetapkan pada SK No. 123 Tahun 2021"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status Arsip <span class="required">*</span></label>
+        <select id="import-status" class="form-control" onchange="toggleImportSertifikatRequirement(this.value)">
+          <option value="Final">Ditetapkan (Final)</option>
+          <option value="Ditangguhkan">Ditangguhkan</option>
+        </select>
+      </div>
+
+      <hr style="border:0; border-top: 1px solid var(--border); margin: 20px 0;">
+      <h4 style="margin-bottom:12px; color:var(--gold-dark);">Unggah Berkas Kearsipan</h4>
+
+      <div class="form-group">
+        <label class="form-label">File Formulir Usulan (PDF/Doc/Docx) (Opsional)</label>
+        <input type="file" id="import-formulir" class="form-control" accept=".pdf,.doc,.docx">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">File Kajian Ilmiah (PDF) (Opsional, Bisa pilih banyak)</label>
+        <input type="file" id="import-kajian" class="form-control" accept=".pdf" multiple>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">File Foto Dokumentasi (JPG/PNG) (Opsional, Bisa pilih banyak)</label>
+        <input type="file" id="import-foto" class="form-control" accept=".jpg,.jpeg,.png" multiple>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tautan Video Dokumentasi (YouTube/Drive) (Opsional)</label>
+        <input type="text" id="import-video" class="form-control" placeholder="https://youtube.com/watch?v=...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">File Presentasi (PDF/PPT/PPTX) (Opsional)</label>
+        <input type="file" id="import-presentasi" class="form-control" accept=".pdf,.ppt,.pptx">
+      </div>
+
+      <div class="form-group" id="import-sertifikat-group">
+        <label class="form-label">File Sertifikat Penetapan (PDF) <span class="required" id="import-sertifikat-req">*</span></label>
+        <input type="file" id="import-sertifikat" class="form-control" accept=".pdf">
+        <span class="text-faint" style="font-size:0.75rem;">Wajib diunggah untuk status Ditetapkan (Final).</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import-arsip')">Batal</button>
+      <button class="btn btn-primary" id="btn-submit-import" onclick="submitImportArsip()">
+        Import Arsip
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Arsip Historis (Khusus Operator) -->
+<div id="modal-edit-arsip" class="modal-overlay hidden">
+  <div class="modal" style="max-width: 600px; width: 90%;">
+    <div class="modal-header">
+      <h3>Edit Arsip Historis</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-edit-arsip')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+      <input type="hidden" id="edit-proposal-id">
+      
+      <div class="form-group">
+        <label class="form-label">Nama Karya Budaya <span class="required">*</span></label>
+        <input type="text" id="edit-nama-karya" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Judul Singkat <span class="required">*</span></label>
+        <input type="text" id="edit-judul-singkat" class="form-control mono" style="text-transform:uppercase;">
+        <span class="text-faint" style="font-size:0.75rem;">Perubahan Judul Singkat akan otomatis me-rename semua berkas di Drive!</span>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Domain WBTb <span class="required">*</span></label>
+        <select id="edit-domain" class="form-control">
+          <option>Tradisi dan Ekspresi Lisan</option>
+          <option>Seni Pertunjukan</option>
+          <option>Adat Istiadat Masyarakat, Ritus, dan Perayaan-Perayaan</option>
+          <option>Pengetahuan dan Kebiasaan Perilaku Mengenai Alam dan Semesta</option>
+          <option>Kemahiran Kerajinan Tradisional</option>
+          <option>Olahraga Tradisional dan Permainan Rakyat</option>
+          <option>Kuliner Tradisional</option>
+          <option>Arsitektur Tradisional</option>
+          <option>Moda Transportasi Tradisional</option>
+          <option>Tekstil Tradisional</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Tahun Penetapan / Usulan <span class="required">*</span></label>
+        <input type="number" id="edit-tahun" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Keterangan / Nomor SK (Opsional)</label>
+        <textarea id="edit-keterangan" class="form-control" rows="2"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status Arsip <span class="required">*</span></label>
+        <select id="edit-status" class="form-control" onchange="toggleEditSertifikatRequirement(this.value)">
+          <option value="Final">Ditetapkan (Final)</option>
+          <option value="Ditangguhkan">Ditangguhkan</option>
+        </select>
+      </div>
+
+      <!-- File management section -->
+      <hr style="border:0; border-top: 1px solid var(--border); margin: 20px 0;">
+      <h4 style="margin-bottom:12px; color:var(--gold-dark);">Kelola Berkas Terunggah</h4>
+      
+      <div class="form-group">
+        <label class="form-label" style="font-weight:600;">Daftar Berkas Saat Ini:</label>
+        <div id="edit-files-list" style="border:1px solid var(--border); border-radius:6px; padding:10px; background:var(--surface-2); display:flex; flex-direction:column; gap:8px;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <h4 style="margin-bottom:12px; color:var(--info); margin-top:20px;">Unggah Berkas Baru / Tambahan</h4>
+
+      <div class="form-group">
+        <label class="form-label">Ganti Formulir Usulan (PDF/Doc/Docx)</label>
+        <input type="file" id="edit-formulir" class="form-control" accept=".pdf,.doc,.docx">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tambah File Kajian Ilmiah (PDF) (Bisa pilih banyak)</label>
+        <input type="file" id="edit-kajian" class="form-control" accept=".pdf" multiple>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tambah File Foto Dokumentasi (JPG/PNG) (Bisa pilih banyak)</label>
+        <input type="file" id="edit-foto" class="form-control" accept=".jpg,.jpeg,.png" multiple>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tautan Video Dokumentasi</label>
+        <input type="text" id="edit-video" class="form-control" placeholder="https://youtube.com/watch?v=...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ganti File Presentasi (PDF/PPT/PPTX)</label>
+        <input type="file" id="edit-presentasi" class="form-control" accept=".pdf,.ppt,.pptx">
+      </div>
+
+      <div class="form-group" id="edit-sertifikat-group">
+        <label class="form-label">Ganti/Unggah File Sertifikat Penetapan (PDF) <span class="required" id="edit-sertifikat-req">*</span></label>
+        <input type="file" id="edit-sertifikat" class="form-control" accept=".pdf">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-arsip')">Batal</button>
+      <button class="btn btn-primary" id="btn-submit-edit" onclick="submitEditArsip()">
+        Simpan Perubahan
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// ARSIP HISTORIS LOGIC
+// ════════════════════════════════════════════════
+
+// Variabel penampung berkas terhapus saat edit
+let editDeletedFileIds = [];
+
+function toggleImportSertifikatRequirement(status) {
+  const req = document.getElementById('import-sertifikat-req');
+  if (status === 'Final') {
+    req.style.display = 'inline';
+  } else {
+    req.style.display = 'none';
+  }
+}
+
+function toggleEditSertifikatRequirement(status) {
+  const req = document.getElementById('edit-sertifikat-req');
+  const fileListContainer = document.getElementById('edit-files-list');
+  const hasSertifikat = fileListContainer.innerHTML.includes('Sertifikat:');
+  
+  // Jika status Final dan belum ada sertifikat, maka wajib upload sertifikat
+  if (status === 'Final' && !hasSertifikat) {
+    req.style.display = 'inline';
+  } else {
+    req.style.display = 'none';
+  }
+}
+
+async function renderArsip() {
+  setPageTitle('Arsip Historis', 'Kumpulan WBTb yang telah berstatus Final atau Ditangguhkan');
+
+  App.data.arsipPage = App.data.arsipPage || 1;
+  App.data.arsipPageSize = 10;
+  App.data.arsipQuery = App.data.arsipQuery || "";
+  App.data.arsipStatus = App.data.arsipStatus || "";
+  
+  let actionsHtml = '';
+  if (App.user.role === 'Operator') {
+    actionsHtml = `
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-import-arsip')">
+        + Import Arsip Lama
+      </button>
+    `;
+  }
+
+  setContent(`
+    <div class="card" id="arsip-table-card">
+      <div class="card-header">
+        <h3>Daftar Arsip</h3>
+        <div id="arsip-table-actions">${actionsHtml}</div>
+      </div>
+      
+      <!-- Filter bar -->
+      <div style="display:flex;gap:10px;margin:16px 20px 16px;flex-wrap:wrap;">
+        <div class="search-wrap" style="flex:1;min-width:200px;">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="arsip-search-input" class="form-control" placeholder="Cari nama karya, judul singkat, atau ID..."
+            oninput="filterArsip(this.value)"
+            value="${App.data.arsipQuery || ''}"
+            style="padding-left:32px;height:34px;font-size:0.8rem;">
+        </div>
+        <select id="arsip-filter-status" class="form-control"
+          style="width:auto;height:34px;font-size:0.8rem;"
+          onchange="filterArsip()">
+          <option value="">Semua Status</option>
+          <option value="Final" ${App.data.arsipStatus === 'Final' ? 'selected' : ''}>Ditetapkan (Final)</option>
+          <option value="Ditangguhkan" ${App.data.arsipStatus === 'Ditangguhkan' ? 'selected' : ''}>Ditangguhkan</option>
+        </select>
+      </div>
+
+      <div id="arsip-table-body">
+        <div style="text-align:center;padding:40px;color:var(--ink-faint);">
+          <div class="spinner dark" style="margin:0 auto 12px;"></div>
+          Memuat data arsip...
+        </div>
+      </div>
+    </div>
+  `);
+
+  try {
+    const result = await gasCall('getArsipHistoris', App.user.email);
+    if (result.success) {
+      App.data.arsip = result.data || [];
+      renderArsipTableAndPagination();
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    showToast('Gagal memuat arsip: ' + err.message, 'error');
+    document.getElementById('arsip-table-body').innerHTML = `
+      <div style="padding:40px;text-align:center;color:var(--danger);">
+        Terjadi kesalahan saat mengambil data arsip: ${err.message}
+      </div>
+    `;
+  }
+}
+
+function renderArsipTableAndPagination() {
+  const container = document.getElementById('arsip-table-body');
+  if (!container) return;
+
+  const arsipList = App.data.arsip || [];
+  const q = (App.data.arsipQuery || '').toLowerCase().trim();
+  const status = App.data.arsipStatus || '';
+
+  // 1. Filter
+  const filtered = arsipList.filter(item => {
+    const searchStr = `${(item.namaKarya||'').toLowerCase()} ${(item.judulSingkat||'').toLowerCase()} ${(item.id||'').toLowerCase()}`;
+    const matchQuery = !q || searchStr.includes(q);
+    const matchStatus = !status || item.status === status;
+    return matchQuery && matchStatus;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding:40px;text-align:center;color:var(--ink-muted);">
+        <div style="font-size:2rem;margin-bottom:8px;opacity:0.5;">🔍</div>
+        Tidak ada arsip yang cocok.
+      </div>
+    `;
+    return;
+  }
+
+  // 2. Paginate
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / App.data.arsipPageSize);
+
+  if (App.data.arsipPage > totalPages) App.data.arsipPage = totalPages;
+  if (App.data.arsipPage < 1) App.data.arsipPage = 1;
+
+  const start = (App.data.arsipPage - 1) * App.data.arsipPageSize;
+  const sliced = filtered.slice(start, start + App.data.arsipPageSize);
+
+  // 3. Render Table
+  let html = `
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th width="10%">Tahun</th>
+            <th width="12%">ID Usulan</th>
+            <th width="28%">Nama Karya</th>
+            <th width="22%">Domain</th>
+            <th width="13%">Status</th>
+            <th width="15%">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  sliced.forEach(item => {
+    let statusLabel = item.status === 'Final' ? 'Ditetapkan (Final)' : item.status;
+    let badgeClass = item.status === 'Final' ? 'badge-success' : 'badge-danger';
+    
+    // Tombol Edit dan Hapus hanya tampil jika Operator dan tipe adalah historis
+    let editHapusBtn = '';
+    if (App.user.role === 'Operator' && item.entryType === 'historis') {
+      editHapusBtn = `
+        <button class="btn btn-ghost btn-sm" onclick="openEditArsipModal('${item.id}')" style="color:var(--info); padding:4px 6px;">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="confirmDeleteArsip('${item.id}', '${item.namaKarya.replace(/'/g, "\\\\'")}')" style="color:var(--danger); padding:4px 6px;">Hapus</button>
+      `;
+    }
+
+    html += `
+      <tr>
+        <td><b>${item.tahunUsulan || '—'}</b></td>
+        <td><span class="mono" style="font-size:0.85em;">${item.id}</span></td>
+        <td>
+          <div style="font-weight:600;color:var(--ink);">${item.namaKarya}</div>
+          <div class="mono" style="font-size:0.75rem;color:var(--ink-faint);">${item.judulSingkat || ''}</div>
+        </td>
+        <td><span style="font-size:0.85em;color:var(--ink-muted);">${item.domain}</span></td>
+        <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+        <td>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            ${item.folderKaryaId ? `<button onclick="bukaDetailBerkasArsip('${item.id}')" class="btn btn-ghost btn-sm" style="padding:4px 6px;">Lihat Berkas</button>` : '—'}
+            ${editHapusBtn}
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // 4. Render Pagination Controls
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml = `
+      <div class="pagination" style="justify-content:center;margin-top:16px;">
+        <button class="page-btn" onclick="gantiHalamanArsip(${App.data.arsipPage - 1})"
+          ${App.data.arsipPage === 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 || i === totalPages ||
+        (i >= App.data.arsipPage - 2 && i <= App.data.arsipPage + 2)
+      ) {
+        paginationHtml += `
+          <button class="page-btn ${i === App.data.arsipPage ? 'active' : ''}"
+            onclick="gantiHalamanArsip(${i})">${i}</button>
+        `;
+      } else if (i === App.data.arsipPage - 3 || i === App.data.arsipPage + 3) {
+        paginationHtml += `<span style="padding:0 4px;color:var(--ink-faint);">…</span>`;
+      }
+    }
+
+    paginationHtml += `
+        <button class="page-btn" onclick="gantiHalamanArsip(${App.data.arsipPage + 1})"
+          ${App.data.arsipPage === totalPages ? 'disabled' : ''}>›</button>
+      </div>
+      <div style="text-align:center;font-size:0.75rem;color:var(--ink-faint);margin-top:6px;">
+        Menampilkan ${start + 1}-${Math.min(start + App.data.arsipPageSize, totalItems)} dari ${totalItems} arsip
+      </div>
+    `;
+  }
+
+  container.innerHTML = html + paginationHtml;
+}
+
+function filterArsip(query) {
+  if (query !== undefined) {
+    App.data.arsipQuery = query;
+  } else {
+    const searchInput = document.getElementById('arsip-search-input');
+    if (searchInput) {
+      App.data.arsipQuery = searchInput.value;
+    }
+  }
+
+  const statusSelect = document.getElementById('arsip-filter-status');
+  if (statusSelect) {
+    App.data.arsipStatus = statusSelect.value;
+  }
+
+  App.data.arsipPage = 1;
+  renderArsipTableAndPagination();
+}
+
+function gantiHalamanArsip(page) {
+  App.data.arsipPage = page;
+  renderArsipTableAndPagination();
+}
+
+// Helper: Convert File to Base64 object
+function readFileAsBase64(fileInputId) {
+  return new Promise((resolve) => {
+    const input = document.getElementById(fileInputId);
+    const file = input ? input.files[0] : null;
+    if (!file) {
+      resolve(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      resolve({
+        name: file.name,
+        mimeType: file.type,
+        base64: e.target.result
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Helper: Convert Multiple Files to Base64 array
+function readFilesAsBase64(fileInputId) {
+  return new Promise((resolve) => {
+    const input = document.getElementById(fileInputId);
+    const files = input ? input.files : [];
+    if (!files || files.length === 0) {
+      resolve([]);
+      return;
+    }
+    const promises = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      promises.push(new Promise((res) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          res({
+            name: file.name,
+            mimeType: file.type,
+            base64: e.target.result
+          });
+        };
+        reader.readAsDataURL(file);
+      }));
+    }
+    Promise.all(promises).then(resolve);
+  });
+}
+
+// Submit Import Arsip
+async function submitImportArsip() {
+  const namaKarya = document.getElementById('import-nama-karya').value.trim();
+  const judulSingkat = document.getElementById('import-judul-singkat').value.trim().toUpperCase();
+  const domain = document.getElementById('import-domain').value;
+  const tahunPenetapan = document.getElementById('import-tahun').value;
+  const keterangan = document.getElementById('import-keterangan').value.trim();
+  const status = document.getElementById('import-status').value;
+  const videoUrl = document.getElementById('import-video').value.trim();
+
+  if (!namaKarya || !judulSingkat || !domain || !tahunPenetapan || !status) {
+    showToast('Harap isi semua field wajib yang bertanda (*).', 'error');
+    return;
+  }
+
+  // Validasi judulSingkat format
+  const pattern = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
+  if (!pattern.test(judulSingkat) || judulSingkat.includes(' ')) {
+    showToast('Judul singkat tidak valid. Harus UPPERCASE, hanya huruf, angka, dan tanda hubung (-). Tanpa spasi.', 'error');
+    return;
+  }
+
+  const certInput = document.getElementById('import-sertifikat');
+  if (status === 'Final' && (!certInput.files || certInput.files.length === 0)) {
+    showToast('File Sertifikat wajib diunggah untuk status Ditetapkan (Final).', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-import');
+  btn.disabled = true;
+  btn.textContent = 'Mengupload berkas dan mengimpor...';
+
+  try {
+    // Membaca berkas
+    const formulirFile = await readFileAsBase64('import-formulir');
+    const kajianFiles = await readFilesAsBase64('import-kajian');
+    const fotoFiles = await readFilesAsBase64('import-foto');
+    const presentasiFile = await readFileAsBase64('import-presentasi');
+    const sertifikatFile = await readFileAsBase64('import-sertifikat');
+
+    const form = {
+      namaKarya: namaKarya,
+      judulSingkat: judulSingkat,
+      domain: domain,
+      tahunPenetapan: tahunPenetapan,
+      keterangan: keterangan,
+      status: status,
+      videoUrl: videoUrl,
+      formulir: formulirFile,
+      kajian: kajianFiles,
+      foto: fotoFiles,
+      presentasi: presentasiFile,
+      sertifikat: sertifikatFile
+    };
+
+    const res = await gasCall('importArsipHistoris', App.user.email, form);
+    if (!res.success) throw new Error(res.message);
+
+    showToast('Berhasil mengimpor arsip historis beserta berkas!', 'success');
+    closeModal('modal-import-arsip');
+    
+    // Reset Form
+    document.getElementById('import-nama-karya').value = '';
+    document.getElementById('import-judul-singkat').value = '';
+    document.getElementById('import-domain').value = '';
+    document.getElementById('import-keterangan').value = '';
+    document.getElementById('import-video').value = '';
+    document.getElementById('import-formulir').value = '';
+    document.getElementById('import-kajian').value = '';
+    document.getElementById('import-foto').value = '';
+    document.getElementById('import-presentasi').value = '';
+    document.getElementById('import-sertifikat').value = '';
+    
+    renderArsip();
+  } catch (err) {
+    showToast('Gagal import arsip: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Import Arsip';
+  }
+}
+
+// Buka Modal Edit Arsip
+function openEditArsipModal(id) {
+  const item = App.data.arsip.find(p => p.id === id);
+  if (!item) {
+    showToast('Data arsip tidak ditemukan.', 'error');
+    return;
+  }
+
+  // Reset Deleted Files List
+  editDeletedFileIds = [];
+
+  document.getElementById('edit-proposal-id').value = item.id;
+  document.getElementById('edit-nama-karya').value = item.namaKarya || '';
+  document.getElementById('edit-judul-singkat').value = item.judulSingkat || '';
+  document.getElementById('edit-domain').value = item.domain || '';
+  document.getElementById('edit-tahun').value = item.tahunUsulan || '';
+  document.getElementById('edit-keterangan').value = item.catatanAtasan || '';
+  document.getElementById('edit-status').value = item.status || 'Final';
+  document.getElementById('edit-video').value = item.videoUrl || '';
+
+  // Reset file inputs
+  document.getElementById('edit-formulir').value = '';
+  document.getElementById('edit-kajian').value = '';
+  document.getElementById('edit-foto').value = '';
+  document.getElementById('edit-presentasi').value = '';
+  document.getElementById('edit-sertifikat').value = '';
+
+  // Render list berkas terunggah saat ini
+  renderEditFilesList(item);
+  
+  toggleEditSertifikatRequirement(item.status);
+  
+  openModal('modal-edit-arsip');
+}
+
+function renderEditFilesList(item) {
+  const container = document.getElementById('edit-files-list');
+  let html = '';
+
+  // Formulir
+  if (item.docActiveId) {
+    html += `
+      <div class="file-item-row" id="file-row-${item.docActiveId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+        <span style="font-size:0.82rem; word-break:break-all;">📄 <b>Formulir:</b> ${item.id}_FORM_v1</span>
+        <button class="btn btn-ghost btn-sm" onclick="markFileDeleted('${item.docActiveId}')" style="color:var(--danger); padding:2px 6px;">Hapus</button>
+      </div>
+    `;
+  }
+
+  // Kajian (multiple)
+  if (item.kajianFiles && item.kajianFiles.length > 0) {
+    item.kajianFiles.forEach(f => {
+      html += `
+        <div class="file-item-row" id="file-row-${f.fileId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.82rem; word-break:break-all;">📚 <b>Kajian:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="markFileDeleted('${f.fileId}')" style="color:var(--danger); padding:2px 6px;">Hapus</button>
+        </div>
+      `;
+    });
+  }
+
+  // Foto (multiple)
+  if (item.fotoFiles && item.fotoFiles.length > 0) {
+    item.fotoFiles.forEach(f => {
+      html += `
+        <div class="file-item-row" id="file-row-${f.fileId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.82rem; word-break:break-all;">🖼️ <b>Foto:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="markFileDeleted('${f.fileId}')" style="color:var(--danger); padding:2px 6px;">Hapus</button>
+        </div>
+      `;
+    });
+  }
+
+  // Presentasi
+  if (item.presentasiFiles && item.presentasiFiles.length > 0) {
+    item.presentasiFiles.forEach(f => {
+      html += `
+        <div class="file-item-row" id="file-row-${f.fileId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.82rem; word-break:break-all;">📊 <b>Presentasi:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="markFileDeleted('${f.fileId}')" style="color:var(--danger); padding:2px 6px;">Hapus</button>
+        </div>
+      `;
+    });
+  }
+
+  // Sertifikat
+  if (item.sertifikatFiles && item.sertifikatFiles.length > 0) {
+    item.sertifikatFiles.forEach(f => {
+      html += `
+        <div class="file-item-row" id="file-row-${f.fileId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.82rem; word-break:break-all;">🎗️ <b>Sertifikat:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="markFileDeleted('${f.fileId}')" style="color:var(--danger); padding:2px 6px;">Hapus</button>
+        </div>
+      `;
+    });
+  }
+
+  if (html === '') {
+    container.innerHTML = `<span style="font-size:0.82rem; color:var(--ink-muted);">Belum ada berkas terunggah di folder Drive.</span>`;
+  } else {
+    container.innerHTML = html;
+  }
+}
+
+// Mark file deleted in edit mode
+function markFileDeleted(fileId) {
+  editDeletedFileIds.push(fileId);
+  const row = document.getElementById(`file-row-${fileId}`);
+  if (row) {
+    row.style.opacity = '0.4';
+    row.style.background = '#FADBD8';
+    row.innerHTML = `<span style="font-size:0.82rem; color:var(--danger); text-decoration:line-through;">Berkas ditandai untuk dihapus</span><button class="btn btn-ghost btn-sm" onclick="restoreFileDeleted('${fileId}')" style="color:var(--success); padding:2px 6px;">Batal</button>`;
+  }
+  
+  // Re-eval sertifikat req jika sertifikat dihapus
+  const item = App.data.arsip.find(p => p.id === document.getElementById('edit-proposal-id').value);
+  if (item && item.sertifikatFiles && item.sertifikatFiles.some(f => f.fileId === fileId)) {
+    document.getElementById('edit-sertifikat-req').style.display = 'inline';
+  }
+}
+
+function restoreFileDeleted(fileId) {
+  editDeletedFileIds = editDeletedFileIds.filter(id => id !== fileId);
+  const item = App.data.arsip.find(p => p.id === document.getElementById('edit-proposal-id').value);
+  if (item) {
+    renderEditFilesList(item);
+    
+    // Kembalikan status coret list ke semula
+    editDeletedFileIds.forEach(id => {
+      const row = document.getElementById(`file-row-${id}`);
+      if (row) {
+        row.style.opacity = '0.4';
+        row.style.background = '#FADBD8';
+        row.innerHTML = `<span style="font-size:0.82rem; color:var(--danger); text-decoration:line-through;">Berkas ditandai untuk dihapus</span><button class="btn btn-ghost btn-sm" onclick="restoreFileDeleted('${id}')" style="color:var(--success); padding:2px 6px;">Batal</button>`;
+      }
+    });
+    
+    toggleEditSertifikatRequirement(document.getElementById('edit-status').value);
+  }
+}
+
+// Submit Edit Arsip
+async function submitEditArsip() {
+  const proposalId = document.getElementById('edit-proposal-id').value;
+  const namaKarya = document.getElementById('edit-nama-karya').value.trim();
+  const judulSingkat = document.getElementById('edit-judul-singkat').value.trim().toUpperCase();
+  const domain = document.getElementById('edit-domain').value;
+  const tahunPenetapan = document.getElementById('edit-tahun').value;
+  const keterangan = document.getElementById('edit-keterangan').value.trim();
+  const status = document.getElementById('edit-status').value;
+  const videoUrl = document.getElementById('edit-video').value.trim();
+
+  if (!namaKarya || !judulSingkat || !domain || !tahunPenetapan || !status) {
+    showToast('Harap isi semua field wajib yang bertanda (*).', 'error');
+    return;
+  }
+
+  // Validasi judulSingkat
+  const pattern = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
+  if (!pattern.test(judulSingkat) || judulSingkat.includes(' ')) {
+    showToast('Judul singkat tidak valid. Harus UPPERCASE, hanya huruf, angka, dan tanda hubung (-). Tanpa spasi.', 'error');
+    return;
+  }
+
+  // Validasi jika status Final, apakah ada sertifikat aktif
+  const item = App.data.arsip.find(p => p.id === proposalId);
+  const certInput = document.getElementById('edit-sertifikat');
+  const oldSertExist = item.sertifikatFiles && item.sertifikatFiles.length > 0;
+  const oldSertDeleted = item.sertifikatFiles && item.sertifikatFiles.some(f => editDeletedFileIds.includes(f.fileId));
+  const newCertUploaded = certInput.files && certInput.files.length > 0;
+
+  if (status === 'Final' && (!oldSertExist || oldSertDeleted) && !newCertUploaded) {
+    showToast('File Sertifikat wajib diunggah untuk status Ditetapkan (Final).', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-edit');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan perubahan...';
+
+  try {
+    // Membaca berkas baru
+    const formulirFile = await readFileAsBase64('edit-formulir');
+    const kajianFiles = await readFilesAsBase64('edit-kajian');
+    const fotoFiles = await readFilesAsBase64('edit-foto');
+    const presentasiFile = await readFileAsBase64('edit-presentasi');
+    const sertifikatFile = await readFileAsBase64('edit-sertifikat');
+
+    const form = {
+      namaKarya: namaKarya,
+      judulSingkat: judulSingkat,
+      domain: domain,
+      tahunPenetapan: tahunPenetapan,
+      keterangan: keterangan,
+      status: status,
+      videoUrl: videoUrl,
+      deletedFileIds: editDeletedFileIds,
+      formulir: formulirFile,
+      kajian: kajianFiles,
+      foto: fotoFiles,
+      presentasi: presentasiFile,
+      sertifikat: sertifikatFile
+    };
+
+    const res = await gasCall('editArsipHistoris', App.user.email, proposalId, form);
+    if (!res.success) throw new Error(res.message);
+
+    showToast('Berhasil mengubah data arsip historis!', 'success');
+    closeModal('modal-edit-arsip');
+    renderArsip();
+  } catch (err) {
+    showToast('Gagal menyimpan perubahan: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Simpan Perubahan';
+  }
+}
+
+// Hapus Arsip
+function confirmDeleteArsip(id, namaKarya) {
+  showKonfirmasi(
+    'Hapus Arsip Historis',
+    `Apakah Anda yakin ingin menghapus arsip historis "${namaKarya}" secara permanen? Tindakan ini akan menghapus baris data di database dan memindahkan folder karya beserta seluruh dokumennya di Google Drive ke tempat sampah (Trash).`,
+    () => { executeDeleteArsip(id); }
+  );
+}
+
+async function executeDeleteArsip(id) {
+  try {
+    showToast('Sedang menghapus arsip dari sistem...', 'info');
+    const res = await gasCall('deleteArsipHistoris', App.user.email, id);
+    if (!res.success) throw new Error(res.message);
+
+    showToast('Arsip historis berhasil dihapus secara permanen!', 'success');
+    renderArsip();
+  } catch (err) {
+    showToast('Gagal menghapus arsip: ' + err.message, 'error');
+  }
+}
+
+function bukaDetailBerkasArsip(id) {
+  const item = App.data.arsip.find(p => p.id === id);
+  if (!item) {
+    showToast('Data arsip tidak ditemukan.', 'error');
+    return;
+  }
+
+  document.getElementById('view-arsip-title').textContent = 'Detail Berkas: ' + item.namaKarya;
+  document.getElementById('view-arsip-domain').textContent = item.domain || '—';
+  document.getElementById('view-arsip-tahun').textContent = item.tahunUsulan || '—';
+  
+  const statusEl = document.getElementById('view-arsip-status');
+  statusEl.textContent = item.status === 'Final' ? 'Ditetapkan (Final)' : item.status;
+  statusEl.className = 'badge ' + (item.status === 'Final' ? 'badge-success' : 'badge-danger');
+  
+  document.getElementById('view-arsip-keterangan').textContent = item.catatanAtasan || '—';
+
+  const container = document.getElementById('view-arsip-files-list');
+  let html = '';
+
+  // 1. Formulir
+  if (item.docActiveId) {
+    html += `
+      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+        <span style="font-size:0.85rem;">📄 <b>Formulir Usulan:</b> ${item.id}_FORM_v1</span>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${item.docActiveId}/view','_blank')">Lihat ↗</button>
+      </div>
+    `;
+  }
+
+  // 2. Kajian Ilmiah (multiple)
+  if (item.kajianFiles && item.kajianFiles.length > 0) {
+    item.kajianFiles.forEach(f => {
+      html += `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.85rem;">📚 <b>Kajian Ilmiah:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        </div>
+      `;
+    });
+  }
+
+  // 3. Foto Dokumentasi (multiple)
+  if (item.fotoFiles && item.fotoFiles.length > 0) {
+    item.fotoFiles.forEach(f => {
+      html += `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.85rem;">🖼️ <b>Foto Dokumentasi:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        </div>
+      `;
+    });
+  }
+
+  // 4. Video Dokumentasi
+  if (item.videoUrl) {
+    html += `
+      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+        <span style="font-size:0.85rem; word-break:break-all;">🎥 <b>Video Dokumentasi:</b> ${item.videoUrl}</span>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('${item.videoUrl}','_blank')">Lihat ↗</button>
+      </div>
+    `;
+  }
+
+  // 5. Presentasi
+  if (item.presentasiFiles && item.presentasiFiles.length > 0) {
+    item.presentasiFiles.forEach(f => {
+      html += `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.85rem;">📊 <b>Presentasi:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        </div>
+      `;
+    });
+  }
+
+  // 6. Sertifikat
+  if (item.sertifikatFiles && item.sertifikatFiles.length > 0) {
+    item.sertifikatFiles.forEach(f => {
+      html += `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:8px 12px; border-radius:4px; border:1px solid var(--border);">
+          <span style="font-size:0.85rem;">🎗️ <b>Sertifikat Penetapan:</b> ${f.name}</span>
+          <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        </div>
+      `;
+    });
+  }
+
+  if (html === '') {
+    container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink-muted);">Tidak ada berkas yang diunggah di folder Drive.</div>`;
+  } else {
+    container.innerHTML = html;
+  }
+
+  openModal('modal-detail-berkas-arsip');
+}
+</script>

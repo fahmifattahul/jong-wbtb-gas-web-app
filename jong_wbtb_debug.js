@@ -124,3 +124,32 @@ function safeParseJSON(str, fallback) {
   if (!str) return fallback;
   try { return JSON.parse(str); } catch(e) { return fallback; }
 }
+
+function runDebugAllProposals() {
+  var DB_WBTB_LINGGA = "db_wbtb_lingga";
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DB_WBTB_LINGGA);
+  
+  if (!sheet) {
+    Logger.log("ERROR: Sheet '" + DB_WBTB_LINGGA + "' tidak ditemukan!");
+    return;
+  }
+  
+  var data = sheet.getDataRange().getValues();
+  Logger.log("=== DIAGNOSIS SELURUH DATA DATABASE ===");
+  Logger.log("Total baris (termasuk header): " + data.length);
+  if (data.length > 0) {
+    Logger.log("Headers di Sheet: " + JSON.stringify(data[0]));
+  }
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    Logger.log("Baris " + (i + 1) + " -> ID: " + row[0] + 
+               " | Nama Karya: " + row[1] + 
+               " | Status: " + row[5] + 
+               " | EntryType: " + row[4] +
+               " | Penanggung Jawab: " + row[7]);
+  }
+  Logger.log("=== AKHIR DIAGNOSIS ===");
+}
+

@@ -168,7 +168,7 @@ function getRootFolder() {
  * @param {string} namaKarya   - Nama karya budaya
  * @returns {object}           - Metadata folder yang dibuat
  */
-function initProposalWorkspace(proposalId, namaKarya) {
+function initProposalWorkspace(proposalId, namaKarya, entryType, entryStatus) {
 
   writeAuditLog("WORKSPACE_INIT_START",
     "Mulai inisialisasi workspace untuk " + proposalId + " - " + namaKarya);
@@ -178,7 +178,15 @@ function initProposalWorkspace(proposalId, namaKarya) {
 
   // 2. Folder karya budaya
   var namaFolderKarya = formatNamaFolderKarya(proposalId, namaKarya);
-  var folderKarya     = getOrCreateFolder(rootFolder, namaFolderKarya);
+  var folderKarya;
+  
+  if (entryType === "historis") {
+    var arsipRoot = getOrCreateFolder(rootFolder, FOLDER_NAMES.ARSIP_HISTORIS);
+    folderKarya = getOrCreateFolder(arsipRoot, namaFolderKarya);
+  } else {
+    folderKarya = getOrCreateFolder(rootFolder, namaFolderKarya);
+  }
+  
   var folderKaryaId   = folderKarya.getId();
 
   // 3. Buat 6 subfolder tahap permanen
@@ -186,25 +194,37 @@ function initProposalWorkspace(proposalId, namaKarya) {
   // perpindahan tahap hanya dicatat secara administratif.
   var folderIds = {};
 
-  var tahapList = [
-    { key: "PENGUMPULAN_DATA",   nama: FOLDER_NAMES.TAHAP.PENGUMPULAN_DATA,   buatJenis: true  },
-    { key: "PENGUSULAN",         nama: FOLDER_NAMES.TAHAP.PENGUSULAN,          buatJenis: true  },
-    { key: "REVISI",             nama: FOLDER_NAMES.TAHAP.REVISI,              buatJenis: false }, // subfolder Putaran dibuat dinamis
-    { key: "PENETAPAN",          nama: FOLDER_NAMES.TAHAP.PENETAPAN,           buatJenis: true  },
-    { key: "ARSIP_DITANGGUHKAN", nama: FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN, buatJenis: false }, // isi disalin manual saat penangguhan
-    { key: "FINAL",              nama: FOLDER_NAMES.TAHAP.FINAL,               buatJenis: true  }
-  ];
-
-  tahapList.forEach(function(tahap) {
-    var folderTahap = getOrCreateFolder(folderKarya, tahap.nama);
-    folderIds[tahap.key] = folderTahap.getId();
-
-    // 4. Buat subfolder jenis dokumen di dalam tahap yang relevan
-    // Juknis Bab III huruf B paragraf 3
-    if (tahap.buatJenis) {
-      buatSubfolderJenis(folderTahap, tahap.key);
+  if (entryType === "historis") {
+    // Untuk arsip historis, kita membangun struktur sesuai statusnya (FINAL atau DITANGGUHKAN)
+    if (entryStatus === "Ditangguhkan" || entryStatus === STATUS.DITANGGUHKAN) {
+      var folderTangguh = getOrCreateFolder(folderKarya, FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN);
+      folderIds["ARSIP_DITANGGUHKAN"] = folderTangguh.getId();
+      buatSubfolderJenis(folderTangguh, "ARSIP_DITANGGUHKAN");
+    } else {
+      var folderFinal = getOrCreateFolder(folderKarya, FOLDER_NAMES.TAHAP.FINAL);
+      folderIds["FINAL"] = folderFinal.getId();
+      buatSubfolderJenis(folderFinal, "FINAL");
     }
-  });
+  } else {
+    var tahapList = [
+      { key: "PENGUMPULAN_DATA",   nama: FOLDER_NAMES.TAHAP.PENGUMPULAN_DATA,   buatJenis: true  },
+      { key: "PENGUSULAN",         nama: FOLDER_NAMES.TAHAP.PENGUSULAN,          buatJenis: true  },
+      { key: "REVISI",             nama: FOLDER_NAMES.TAHAP.REVISI,              buatJenis: false }, // subfolder Putaran dibuat dinamis
+      { key: "PENETAPAN",          nama: FOLDER_NAMES.TAHAP.PENETAPAN,           buatJenis: true  },
+      { key: "ARSIP_DITANGGUHKAN", nama: FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN, buatJenis: false }, // isi disalin manual saat penangguhan
+      { key: "FINAL",              nama: FOLDER_NAMES.TAHAP.FINAL,               buatJenis: true  }
+    ];
+
+    tahapList.forEach(function(tahap) {
+      var folderTahap = getOrCreateFolder(folderKarya, tahap.nama);
+      folderIds[tahap.key] = folderTahap.getId();
+
+      // 4. Buat subfolder jenis dokumen di dalam tahap yang relevan
+      if (tahap.buatJenis) {
+        buatSubfolderJenis(folderTahap, tahap.key);
+      }
+    });
+  }
 
   writeAuditLog("WORKSPACE_INIT_SUCCESS",
     "Workspace berhasil dibuat untuk " + proposalId +

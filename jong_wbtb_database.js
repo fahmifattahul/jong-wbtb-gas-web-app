@@ -188,6 +188,10 @@ var ACTION_TYPES = {
   // Catatan Atasan
   CATATAN_ATASAN_SET: "CATATAN_ATASAN_SET",
 
+  // Evaluasi & Retensi
+  EVALUASI_KEPATUHAN: "EVALUASI_KEPATUHAN",
+  RETENSI_CHECK: "RETENSI_CHECK",
+
   // Error
   ERROR: "ERROR"
 };

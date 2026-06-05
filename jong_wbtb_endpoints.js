@@ -26,9 +26,14 @@
 
 function doGet() {
   return HtmlService
-    .createHtmlOutputFromFile('jong_wbtb_frontend')
+    .createTemplateFromFile('jong_wbtb_frontend')
+    .evaluate()
     .setTitle('JONG WBTb — Sistem Pengelolaan WBTb')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 
@@ -69,14 +74,23 @@ function getDashboardData(requesterEmail) {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (!row[COL.ID]) continue;
-      if (row[COL.ENTRY_TYPE] === ENTRY_TYPE.HISTORIS &&
-          row[COL.STATUS] === STATUS.FINAL) continue;
+
+      var isHistoris = (row[COL.ENTRY_TYPE] === ENTRY_TYPE.HISTORIS);
+      var status = row[COL.STATUS];
+
+      if (isHistoris) {
+        // Arsip historis yang berstatus Final (Ditetapkan) tetap dihitung sebagai WBTb resmi
+        if (status === STATUS.FINAL) {
+          metrics.final++;
+        }
+        continue;
+      }
 
       metrics.total++;
-      if (row[COL.STATUS] === STATUS.SEDANG_DIKERJAKAN) metrics.dikerjakan++;
-      if (row[COL.STATUS] === STATUS.DIPERBAIKI)         metrics.revisi++;
-      if (row[COL.STATUS] === STATUS.FINAL)              metrics.final++;
-      if (row[COL.STATUS] === STATUS.DITANGGUHKAN)       metrics.ditangguhkan++;
+      if (status === STATUS.SEDANG_DIKERJAKAN) metrics.dikerjakan++;
+      if (status === STATUS.DIPERBAIKI)         metrics.revisi++;
+      if (status === STATUS.FINAL)              metrics.final++;
+      if (status === STATUS.DITANGGUHKAN)       metrics.ditangguhkan++;
 
       proposals.push(buatProposalSummary(row));
     }
@@ -108,13 +122,6 @@ function getDashboardData(requesterEmail) {
       }
     }
 
-    if (role === ROLES.ANGGOTA_TIM) {
-      proposals = proposals.filter(function(p) {
-        return p.penanggungJawabEmail.toLowerCase() === requesterEmail.toLowerCase();
-      });
-      metrics = hitungMetrics(proposals);
-    }
-
     return { metrics: metrics, proposals: proposals };
   } catch (err) {
     throw new Error('getDashboardData gagal: ' + err.message);
@@ -133,13 +140,22 @@ function buatProposalSummary(row) {
     penanggungJawabEmail : row[COL.PENANGGUNG_JAWAB_EMAIL],
     penanggungJawabNama  : row[COL.PENANGGUNG_JAWAB_NAMA],
     folderKaryaId        : row[COL.FOLDER_KARYA_ID],
+    folderIds            : safeParseJSON(row[COL.FOLDER_IDS_JSON], {}),
     driveLocked          : row[COL.DRIVE_LOCKED],
     isApprovedByAtasan   : row[COL.IS_APPROVED_BY_ATASAN] === true || row[COL.IS_APPROVED_BY_ATASAN] === 'TRUE',
     isRevisiSelesai      : row[COL.IS_REVISI_SELESAI] === true || row[COL.IS_REVISI_SELESAI] === 'TRUE',
     createdAt            : row[COL.CREATED_AT]
                            ? new Date(row[COL.CREATED_AT]).toISOString() : null,
     updatedAt            : row[COL.UPDATED_AT]
-                           ? new Date(row[COL.UPDATED_AT]).toISOString()  : null
+                           ? new Date(row[COL.UPDATED_AT]).toISOString()  : null,
+    judulSingkat         : row[COL.JUDUL_SINGKAT],
+    catatanAtasan        : row[COL.CATATAN_ATASAN],
+    docActiveId          : row[COL.DOC_ACTIVE_ID],
+    kajianFiles          : safeParseJSON(row[COL.KAJIAN_FILES_JSON], []),
+    fotoFiles            : safeParseJSON(row[COL.FOTO_FILES_JSON], []),
+    videoUrl             : row[COL.VIDEO_URL] || "",
+    presentasiFiles      : safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []),
+    sertifikatFiles      : safeParseJSON(row[COL.SERTIFIKAT_FILES_JSON], [])
   };
 }
 
@@ -836,97 +852,69 @@ function submitCatatanPenilai(operatorEmail, proposalId, catatan, sumber, tangga
 }
 
 
-// ════════════════════════════════════════════════
-// 13. ARSIP HISTORIS
-// ════════════════════════════════════════════════
-
-function getArsipHistoris(requesterEmail) {
-  try {
-    requireRole(requesterEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR, ROLES.ATASAN]);
-    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
-    var data  = sheet.getDataRange().getValues();
-    var arsip = [];
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      if (!row[COL.ID]) continue;
-      if (row[COL.ENTRY_TYPE] === ENTRY_TYPE.HISTORIS) {
-        arsip.push(buatProposalSummary(row));
-      }
-    }
-    return arsip;
-  } catch (err) {
-    throw new Error('getArsipHistoris gagal: ' + err.message);
-  }
-}
-
-function createArsipHistoris(operatorEmail, data) {
-  try {
-    requireRole(operatorEmail, ROLES.OPERATOR);
-    if (!data.namaKarya || !data.judulSingkat || !data.domain || !data.tahunPenetapan) {
-      throw new Error('Semua field wajib diisi.');
-    }
-    var validasiJudul = validateJudulSingkat(data.judulSingkat);
-    if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
-
-    var proposalId  = DatabaseEngine.executeTransaction(
-      DB_NAMES.WBTB_LINGGA,
-      function(sheet) { return generateProposalId(sheet); }
-    );
-    var hasilFolder = initHistorisWorkspace(proposalId, data.namaKarya);
-
-    DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
-      var now     = new Date();
-      var rowData = new Array(TOTAL_COLS_WBTB).fill('');
-      rowData[COL.ID]                    = proposalId;
-      rowData[COL.NAMA_KARYA]            = data.namaKarya;
-      rowData[COL.DOMAIN]                = data.domain;
-      rowData[COL.TAHUN_USULAN]          = data.tahunPenetapan;
-      rowData[COL.ENTRY_TYPE]            = ENTRY_TYPE.HISTORIS;
-      rowData[COL.STATUS]                = STATUS.FINAL;
-      rowData[COL.REVISI_ROUND]          = 0;
-      rowData[COL.PENANGGUNG_JAWAB_EMAIL]= operatorEmail;
-      rowData[COL.PENANGGUNG_JAWAB_NAMA] = 'Operator (Import Historis)';
-      rowData[COL.FOLDER_KARYA_ID]       = hasilFolder.folderKaryaId;
-      rowData[COL.FOLDER_IDS_JSON]       = JSON.stringify({});
-      rowData[COL.KAJIAN_FILES_JSON]     = JSON.stringify([]);
-      rowData[COL.FOTO_FILES_JSON]       = JSON.stringify([]);
-      rowData[COL.SERTIFIKAT_FILES_JSON] = JSON.stringify([]);
-      rowData[COL.PRESENTASI_FILES_JSON] = JSON.stringify([]);
-      rowData[COL.CATATAN_PENILAI_JSON]  = JSON.stringify([]);
-      rowData[COL.DRIVE_LOCKED]          = true;
-      rowData[COL.CREATED_AT]            = now;
-      rowData[COL.UPDATED_AT]            = now;
-      rowData[COL.JUDUL_SINGKAT]         = data.judulSingkat;
-      rowData[COL.DITANGGUHKAN_AT]       = '';
-      rowData[COL.IS_APPROVED_BY_ATASAN] = true;
-      rowData[COL.IS_REVISI_SELESAI]     = false;
-      sheet.appendRow(rowData);
-    });
-
-    return {
-      proposalId    : proposalId,
-      folderKaryaId : hasilFolder.folderKaryaId,
-      folderUrl     : 'https://drive.google.com/drive/folders/' + hasilFolder.folderKaryaId
-    };
-  } catch (err) {
-    throw new Error('createArsipHistoris gagal: ' + err.message);
-  }
-}
 
 
 // ════════════════════════════════════════════════
 // 14. LOG AKTIVITAS
 // ════════════════════════════════════════════════
 
-function getLogAktivitas(requesterEmail, halaman, perHalaman) {
+function getLogAktivitas(requesterEmail, halaman, perHalaman, filterAction, filterSearch) {
   try {
     requireRole(requesterEmail, [ROLES.OPERATOR, ROLES.ATASAN]);
     var sheet  = DatabaseEngine.getSheet(DB_NAMES.ACTIVITY_LOG);
     var data   = sheet.getDataRange().getValues();
     var rows   = data.slice(1).reverse();
+
+    // ── Server-side filtering ──────────────────
+    var filteredRows = rows.filter(function(row) {
+      var actionType = (row[COL_LOG.ACTION_TYPE] || '').toString();
+      var userEmail  = (row[COL_LOG.USER_EMAIL] || '').toString().toLowerCase();
+      var proposalId = (row[COL_LOG.PROPOSAL_ID] || '').toString().toLowerCase();
+      var detail     = (row[COL_LOG.DETAIL] || '').toString().toLowerCase();
+
+      // Cocokkan Aksi (Dropdown)
+      var matchAction = true;
+      if (filterAction) {
+        if (filterAction === 'STATUS_CHANGE') {
+          matchAction = (actionType === 'STATUS_CHANGE');
+        } else if (filterAction === 'WORKSPACE_INIT') {
+          matchAction = actionType.indexOf('WORKSPACE_INIT') !== -1 || actionType.indexOf('HISTORIS_INIT') !== -1;
+        } else if (filterAction === 'DOKUMEN') {
+          matchAction = actionType.indexOf('FORMULIR') !== -1 || actionType.indexOf('KAJIAN') !== -1 || 
+                        actionType.indexOf('FOTO') !== -1 || actionType.indexOf('VIDEO') !== -1 || 
+                        actionType.indexOf('SERTIFIKAT') !== -1 || actionType.indexOf('PRESENTASI') !== -1 || 
+                        actionType.indexOf('SERTOR') !== -1;
+        } else if (filterAction === 'CATATAN') {
+          matchAction = actionType.indexOf('CATATAN') !== -1 || actionType.indexOf('REVISI') !== -1;
+        } else if (filterAction === 'AKSES') {
+          matchAction = actionType.indexOf('AKSES') !== -1;
+        } else if (filterAction === 'DRIVE') {
+          matchAction = actionType.indexOf('DRIVE') !== -1;
+        } else if (filterAction === 'HISTORIS') {
+          matchAction = actionType.indexOf('HISTORIS') !== -1 || actionType.indexOf('ARSIP') !== -1;
+        } else if (filterAction === 'EVALUASI') {
+          matchAction = actionType.indexOf('EVALUASI') !== -1 || actionType.indexOf('RETENSI') !== -1;
+        } else if (filterAction === 'ERROR') {
+          matchAction = actionType.indexOf('ERROR') !== -1;
+        }
+      }
+
+      // Cocokkan Search Query
+      var matchQuery = true;
+      if (filterSearch) {
+        var q = filterSearch.toLowerCase().trim();
+        matchQuery = userEmail.indexOf(q) !== -1 || 
+                     proposalId.indexOf(q) !== -1 || 
+                     detail.indexOf(q) !== -1 ||
+                     actionType.toLowerCase().indexOf(q) !== -1;
+      }
+
+      return matchAction && matchQuery;
+    });
+
     var limit  = perHalaman || 15;
     var page   = halaman || 1;
-    var sliced = rows.slice((page-1)*limit, page*limit);
+    var sliced = filteredRows.slice((page-1)*limit, page*limit);
 
     var logs = sliced.map(function(row) {
       return {
@@ -942,9 +930,9 @@ function getLogAktivitas(requesterEmail, halaman, perHalaman) {
 
     return {
       logs         : logs,
-      totalHalaman : Math.ceil(rows.length / limit),
+      totalHalaman : Math.max(1, Math.ceil(filteredRows.length / limit)),
       halamanAktif : page,
-      totalLog     : rows.length
+      totalLog     : filteredRows.length
     };
   } catch (err) {
     throw new Error('getLogAktivitas gagal: ' + err.message);
@@ -1075,7 +1063,7 @@ function jalankanEvaluasiKepatuhan(atasanEmail) {
       }
     }
 
-    writeAuditLog(ACTION_TYPES.ERROR,
+    writeAuditLog(ACTION_TYPES.EVALUASI_KEPATUHAN,
       'Evaluasi kepatuhan dijalankan oleh Atasan: ' + atasanEmail +
       '. Total dievaluasi: ' + hasil.length + ' folder.', null);
 
@@ -1789,4 +1777,529 @@ function checkDriveFileInfo(fileId) {
   } catch (e) {
     Logger.log("  - ERROR mengakses file: " + e.toString());
   }
+}
+
+// ════════════════════════════════════════════════
+// 12. ARSIP HISTORIS
+// ════════════════════════════════════════════════
+
+function getArsipHistoris(requesterEmail) {
+  try {
+    // Semua user (Atasan, Operator, Anggota Tim) bisa melihat arsip historis
+    var role = requireRole(requesterEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR, ROLES.ATASAN]);
+    
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var data  = sheet.getDataRange().getValues();
+    var arsip = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (!row[COL.ID]) continue;
+      
+      // Arsip historis meliputi:
+      // 1. Usulan yang berasal dari import (ENTRY_TYPE.HISTORIS)
+      // 2. Usulan normal yang sudah mencapai status FINAL atau DITANGGUHKAN
+      var isHistorisType = (row[COL.ENTRY_TYPE] === ENTRY_TYPE.HISTORIS);
+      var isFinalOrTangguh = (row[COL.STATUS] === STATUS.FINAL || row[COL.STATUS] === STATUS.DITANGGUHKAN);
+      
+      if (isHistorisType || isFinalOrTangguh) {
+        arsip.push(buatProposalSummary(row));
+      }
+    }
+    
+    // Urutkan berdasarkan tahun terbaru, lalu nama karya
+    arsip.sort(function(a, b) {
+      if (b.tahunUsulan !== a.tahunUsulan) {
+        return (parseInt(b.tahunUsulan) || 0) - (parseInt(a.tahunUsulan) || 0);
+      }
+      var nameA = a.namaKarya ? a.namaKarya.toLowerCase() : "";
+      var nameB = b.namaKarya ? b.namaKarya.toLowerCase() : "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    });
+    
+    return { success: true, data: arsip };
+  } catch (err) {
+    Logger.log("getArsipHistoris error: " + err.toString());
+    return { success: false, message: err.toString() };
+  }
+}
+
+function importArsipHistoris(requesterEmail, form) {
+  try {
+    // Hanya Operator yang boleh import arsip
+    var role = requireRole(requesterEmail, [ROLES.OPERATOR]);
+    
+    if (!form.namaKarya || !form.judulSingkat || !form.domain || !form.tahunPenetapan || !form.status) {
+      throw new Error("Nama Karya, Judul Singkat, Domain, Tahun, dan Status wajib diisi.");
+    }
+
+    var validasiJudul = validateJudulSingkat(form.judulSingkat);
+    if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
+    
+    return DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
+      var proposalId = generateProposalId(sheet);
+      
+      // 1. Buat folder arsip (struktur khusus untuk historis)
+      var folderResult = initProposalWorkspace(proposalId, form.namaKarya, ENTRY_TYPE.HISTORIS, form.status);
+      var folderIds = folderResult.folderIds;
+      var stageKey = (form.status === STATUS.DITANGGUHKAN) ? "ARSIP_DITANGGUHKAN" : "FINAL";
+      var stageFolderId = folderIds[stageKey];
+      var stageFolder = DriveApp.getFolderById(stageFolderId);
+      
+      var docActiveId = "";
+      var docHistoryJson = {};
+      var kajianFiles = [];
+      var fotoFiles = [];
+      var presentasiFiles = [];
+      var sertifikatFiles = [];
+      
+      // 2. Upload Formulir
+      if (form.formulir) {
+        var folderFormulir = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.FORMULIR_USULAN);
+        var ext = getFileExtension(form.formulir.name) || "pdf";
+        var base64Data = form.formulir.base64.indexOf(',') !== -1 ? form.formulir.base64.split(',')[1] : form.formulir.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.formulir.mimeType, "FORM_" + form.judulSingkat + "_v1." + ext);
+        var file = folderFormulir.createFile(blob);
+        docActiveId = file.getId();
+        docHistoryJson = { "v1": docActiveId };
+      }
+      
+      // 3. Upload Kajian (Multiple)
+      if (form.kajian && form.kajian.length > 0) {
+        var folderKajian = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
+        form.kajian.forEach(function(fileData, idx) {
+          var numStr = String(idx + 1).padStart(3, "0");
+          var newName = "KAJIAN_" + form.judulSingkat + "_" + numStr;
+          var ext = getFileExtension(fileData.name) || "pdf";
+          var base64Data = fileData.base64.indexOf(',') !== -1 ? fileData.base64.split(',')[1] : fileData.base64;
+          var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileData.mimeType, newName + "." + ext);
+          var file = folderKajian.createFile(blob);
+          var meta = buildFileMetadata(file.getId(), newName + "." + ext, 1, requesterEmail);
+          kajianFiles.push(meta);
+        });
+      }
+      
+      // 4. Upload Foto (Multiple)
+      if (form.foto && form.foto.length > 0) {
+        var folderFoto = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
+        form.foto.forEach(function(fileData, idx) {
+          var numStr = String(idx + 1).padStart(3, "0");
+          var newName = "FOTO_" + form.judulSingkat + "_" + numStr;
+          var ext = getFileExtension(fileData.name) || "jpg";
+          var base64Data = fileData.base64.indexOf(',') !== -1 ? fileData.base64.split(',')[1] : fileData.base64;
+          var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileData.mimeType, newName + "." + ext);
+          var file = folderFoto.createFile(blob);
+          var meta = buildFileMetadata(file.getId(), newName + "." + ext, 1, requesterEmail);
+          fotoFiles.push(meta);
+        });
+      }
+      
+      // 5. Upload Video (URL Txt)
+      if (form.videoUrl) {
+        var folderVideo = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
+        var newName = "VID_" + form.judulSingkat + "_001.txt";
+        var isiFile = [
+          "URL: " + form.videoUrl,
+          "Diunggah oleh: " + requesterEmail,
+          "Tanggal: " + Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss")
+        ].join("\n");
+        var blob = Utilities.newBlob(isiFile, "text/plain", newName);
+        folderVideo.createFile(blob);
+      }
+      
+      // 6. Upload Presentasi
+      if (form.presentasi) {
+        var folderPres = getOrCreateFolder(stageFolder, "PRESENTASI");
+        var ext = getFileExtension(form.presentasi.name) || "pdf";
+        var base64Data = form.presentasi.base64.indexOf(',') !== -1 ? form.presentasi.base64.split(',')[1] : form.presentasi.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.presentasi.mimeType, "PRESENTASI_" + form.judulSingkat + "_v1." + ext);
+        var file = folderPres.createFile(blob);
+        var meta = buildFileMetadata(file.getId(), "PRESENTASI_" + form.judulSingkat + "_v1." + ext, 1, requesterEmail);
+        presentasiFiles.push(meta);
+      }
+      
+      // 7. Upload Sertifikat (wajib jika Final)
+      if (form.status === STATUS.FINAL && !form.sertifikat) {
+        throw new Error("Sertifikat wajib diunggah untuk status Final.");
+      }
+      if (form.sertifikat) {
+        var folderSert = getOrCreateFolder(stageFolder, "SERTIFIKAT");
+        var ext = getFileExtension(form.sertifikat.name) || "pdf";
+        var base64Data = form.sertifikat.base64.indexOf(',') !== -1 ? form.sertifikat.base64.split(',')[1] : form.sertifikat.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.sertifikat.mimeType, "SERTIFIKAT_" + form.judulSingkat + "_" + form.tahunPenetapan + "." + ext);
+        var file = folderSert.createFile(blob);
+        var meta = buildFileMetadata(file.getId(), "SERTIFIKAT_" + form.judulSingkat + "_" + form.tahunPenetapan + "." + ext, 1, requesterEmail);
+        sertifikatFiles.push(meta);
+      }
+      
+      // 8. Tambah baris database
+      var newRow = new Array(TOTAL_COLS_WBTB).fill("");
+      newRow[COL.ID] = proposalId;
+      newRow[COL.NAMA_KARYA] = form.namaKarya;
+      newRow[COL.JUDUL_SINGKAT] = form.judulSingkat;
+      newRow[COL.DOMAIN] = form.domain;
+      newRow[COL.TAHUN_USULAN] = form.tahunPenetapan;
+      newRow[COL.ENTRY_TYPE] = ENTRY_TYPE.HISTORIS;
+      newRow[COL.STATUS] = form.status;
+      newRow[COL.FOLDER_KARYA_ID] = folderResult.folderKaryaId;
+      newRow[COL.FOLDER_IDS_JSON] = JSON.stringify(folderResult.folderIds);
+      
+      newRow[COL.DOC_ACTIVE_ID] = docActiveId;
+      newRow[COL.DOC_HISTORY_JSON] = JSON.stringify(docHistoryJson);
+      newRow[COL.KAJIAN_FILES_JSON] = JSON.stringify(kajianFiles);
+      newRow[COL.FOTO_FILES_JSON] = JSON.stringify(fotoFiles);
+      newRow[COL.VIDEO_URL] = form.videoUrl || "";
+      newRow[COL.PRESENTASI_FILES_JSON] = JSON.stringify(presentasiFiles);
+      newRow[COL.SERTIFIKAT_FILES_JSON] = JSON.stringify(sertifikatFiles);
+      newRow[COL.DRIVE_LOCKED] = true;
+      newRow[COL.CREATED_AT] = new Date();
+      newRow[COL.UPDATED_AT] = new Date();
+      if (form.keterangan) {
+        newRow[COL.CATATAN_ATASAN] = form.keterangan;
+      }
+      if (form.status === STATUS.DITANGGUHKAN) {
+        newRow[COL.DITANGGUHKAN_AT] = new Date();
+      }
+      
+      sheet.appendRow(newRow);
+      
+      writeAuditLog("IMPORT_HISTORIS", "Operator " + requesterEmail + " mengimpor arsip " + form.status + ": " + proposalId + " - " + form.namaKarya);
+      return { success: true, proposalId: proposalId };
+    });
+  } catch (err) {
+    Logger.log("importArsipHistoris error: " + err.toString());
+    return { success: false, message: err.toString() };
+  }
+}
+
+function editArsipHistoris(requesterEmail, proposalId, form) {
+  try {
+    var role = requireRole(requesterEmail, [ROLES.OPERATOR]);
+    
+    if (!form.namaKarya || !form.judulSingkat || !form.domain || !form.tahunPenetapan || !form.status) {
+      throw new Error("Nama Karya, Judul Singkat, Domain, Tahun, dan Status wajib diisi.");
+    }
+    
+    var validasiJudul = validateJudulSingkat(form.judulSingkat);
+    if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
+    
+    return DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
+      var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+      if (!hasil) throw new Error("Arsip tidak ditemukan.");
+      
+      var row = hasil.rowData;
+      if (row[COL.ENTRY_TYPE] !== ENTRY_TYPE.HISTORIS) {
+        throw new Error("Hanya arsip historis yang dapat diubah.");
+      }
+      
+      var oldNamaKarya = row[COL.NAMA_KARYA];
+      var oldJudulSingkat = row[COL.JUDUL_SINGKAT];
+      var oldTahun = row[COL.TAHUN_USULAN];
+      var oldStatus = row[COL.STATUS];
+      var folderKaryaId = row[COL.FOLDER_KARYA_ID];
+      
+      var folderIds = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
+      var docActiveId = row[COL.DOC_ACTIVE_ID] || "";
+      var docHistoryJson = safeParseJSON(row[COL.DOC_HISTORY_JSON], {});
+      var kajianFiles = safeParseJSON(row[COL.KAJIAN_FILES_JSON], []);
+      var fotoFiles = safeParseJSON(row[COL.FOTO_FILES_JSON], []);
+      var videoUrl = row[COL.VIDEO_URL] || "";
+      var presentasiFiles = safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []);
+      var sertifikatFiles = safeParseJSON(row[COL.SERTIFIKAT_FILES_JSON], []);
+      
+      // 1. Rename folder utama jika namaKarya berubah
+      if (form.namaKarya !== oldNamaKarya && folderKaryaId) {
+        try {
+          var folderKarya = DriveApp.getFolderById(folderKaryaId);
+          var newFolderName = formatNamaFolderKarya(proposalId, form.namaKarya);
+          folderKarya.setName(newFolderName);
+        } catch (e) {
+          Logger.log("Warning: gagal rename folder utama: " + e.toString());
+        }
+      }
+      
+      // 2. Handle Perubahan Status (Final <-> Ditangguhkan)
+      if (form.status !== oldStatus && folderKaryaId) {
+        try {
+          var folderKarya = DriveApp.getFolderById(folderKaryaId);
+          if (form.status === STATUS.DITANGGUHKAN) {
+            var finalId = folderIds["FINAL"];
+            if (finalId) {
+              DriveApp.getFolderById(finalId).setName(FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN);
+              folderIds["ARSIP_DITANGGUHKAN"] = finalId;
+              delete folderIds["FINAL"];
+            }
+          } else {
+            var tangguhId = folderIds["ARSIP_DITANGGUHKAN"];
+            if (tangguhId) {
+              DriveApp.getFolderById(tangguhId).setName(FOLDER_NAMES.TAHAP.FINAL);
+              folderIds["FINAL"] = tangguhId;
+              delete folderIds["ARSIP_DITANGGUHKAN"];
+            }
+          }
+        } catch (e) {
+          Logger.log("Warning: gagal transisi folder status: " + e.toString());
+        }
+      }
+      
+      var stageKey = (form.status === STATUS.DITANGGUHKAN) ? "ARSIP_DITANGGUHKAN" : "FINAL";
+      var stageFolderId = folderIds[stageKey];
+      var stageFolder = DriveApp.getFolderById(stageFolderId);
+      
+      // 3. Handle Deleted Files
+      if (form.deletedFileIds && form.deletedFileIds.length > 0) {
+        form.deletedFileIds.forEach(function(fid) {
+          trashDriveFileSafely(fid);
+          
+          if (docActiveId === fid) {
+            docActiveId = "";
+            docHistoryJson = {};
+          }
+          kajianFiles = kajianFiles.filter(function(f) { return f.fileId !== fid; });
+          fotoFiles = fotoFiles.filter(function(f) { return f.fileId !== fid; });
+          presentasiFiles = presentasiFiles.filter(function(f) { return f.fileId !== fid; });
+          sertifikatFiles = sertifikatFiles.filter(function(f) { return f.fileId !== fid; });
+        });
+      }
+      
+      // 4. Handle Rename Files if judulSingkat or tahunPenetapan changed
+      var judulChanged = (form.judulSingkat !== oldJudulSingkat);
+      var tahunChanged = (form.tahunPenetapan !== oldTahun);
+      
+      if ((judulChanged || tahunChanged) && folderKaryaId) {
+        // Rename Formulir
+        if (docActiveId) {
+          try {
+            var file = DriveApp.getFileById(docActiveId);
+            var ext = getFileExtension(file.getName()) || "pdf";
+            file.setName("FORM_" + form.judulSingkat + "_v1." + ext);
+          } catch(e) { Logger.log("Gagal rename Formulir: " + e.toString()); }
+        }
+        
+        // Rename Kajian
+        kajianFiles.forEach(function(f, idx) {
+          try {
+            var file = DriveApp.getFileById(f.fileId);
+            var ext = getFileExtension(file.getName()) || "pdf";
+            var newName = "KAJIAN_" + form.judulSingkat + "_" + String(idx + 1).padStart(3, "0") + "." + ext;
+            file.setName(newName);
+            f.name = newName;
+          } catch(e) { Logger.log("Gagal rename Kajian file: " + e.toString()); }
+        });
+        
+        // Rename Foto
+        fotoFiles.forEach(function(f, idx) {
+          try {
+            var file = DriveApp.getFileById(f.fileId);
+            var ext = getFileExtension(file.getName()) || "jpg";
+            var newName = "FOTO_" + form.judulSingkat + "_" + String(idx + 1).padStart(3, "0") + "." + ext;
+            file.setName(newName);
+            f.name = newName;
+          } catch(e) { Logger.log("Gagal rename Foto file: " + e.toString()); }
+        });
+        
+        // Rename Presentasi
+        presentasiFiles.forEach(function(f) {
+          try {
+            var file = DriveApp.getFileById(f.fileId);
+            var ext = getFileExtension(file.getName()) || "pdf";
+            var newName = "PRESENTASI_" + form.judulSingkat + "_v1." + ext;
+            file.setName(newName);
+            f.name = newName;
+          } catch(e) { Logger.log("Gagal rename Presentasi file: " + e.toString()); }
+        });
+        
+        // Rename Sertifikat
+        sertifikatFiles.forEach(function(f) {
+          try {
+            var file = DriveApp.getFileById(f.fileId);
+            var ext = getFileExtension(file.getName()) || "pdf";
+            var newName = "SERTIFIKAT_" + form.judulSingkat + "_" + form.tahunPenetapan + "." + ext;
+            file.setName(newName);
+            f.name = newName;
+          } catch(e) { Logger.log("Gagal rename Sertifikat file: " + e.toString()); }
+        });
+      }
+      
+      // 5. Upload New/Replacement Files
+      // Upload Formulir Baru
+      if (form.formulir) {
+        if (docActiveId) {
+          trashDriveFileSafely(docActiveId);
+        }
+        var folderFormulir = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.FORMULIR_USULAN);
+        var ext = getFileExtension(form.formulir.name) || "pdf";
+        var base64Data = form.formulir.base64.indexOf(',') !== -1 ? form.formulir.base64.split(',')[1] : form.formulir.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.formulir.mimeType, "FORM_" + form.judulSingkat + "_v1." + ext);
+        var file = folderFormulir.createFile(blob);
+        docActiveId = file.getId();
+        docHistoryJson = { "v1": docActiveId };
+      }
+      
+      // Upload Kajian Baru (Append)
+      if (form.kajian && form.kajian.length > 0) {
+        var folderKajian = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
+        var nextIdx = kajianFiles.length;
+        form.kajian.forEach(function(fileData, idx) {
+          var numStr = String(nextIdx + idx + 1).padStart(3, "0");
+          var newName = "KAJIAN_" + form.judulSingkat + "_" + numStr;
+          var ext = getFileExtension(fileData.name) || "pdf";
+          var base64Data = fileData.base64.indexOf(',') !== -1 ? fileData.base64.split(',')[1] : fileData.base64;
+          var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileData.mimeType, newName + "." + ext);
+          var file = folderKajian.createFile(blob);
+          var meta = buildFileMetadata(file.getId(), newName + "." + ext, 1, requesterEmail);
+          kajianFiles.push(meta);
+        });
+      }
+      
+      // Upload Foto Baru (Append)
+      if (form.foto && form.foto.length > 0) {
+        var folderFoto = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
+        var nextIdx = fotoFiles.length;
+        form.foto.forEach(function(fileData, idx) {
+          var numStr = String(nextIdx + idx + 1).padStart(3, "0");
+          var newName = "FOTO_" + form.judulSingkat + "_" + numStr;
+          var ext = getFileExtension(fileData.name) || "jpg";
+          var base64Data = fileData.base64.indexOf(',') !== -1 ? fileData.base64.split(',')[1] : fileData.base64;
+          var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileData.mimeType, newName + "." + ext);
+          var file = folderFoto.createFile(blob);
+          var meta = buildFileMetadata(file.getId(), newName + "." + ext, 1, requesterEmail);
+          fotoFiles.push(meta);
+        });
+      }
+      
+      // Update Video URL & File Txt
+      if (form.videoUrl !== undefined && form.videoUrl !== videoUrl) {
+        videoUrl = form.videoUrl;
+        var folderVideo = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
+        
+        // Hapus file txt lama jika ada
+        var files = folderVideo.getFiles();
+        while (files.hasNext()) {
+          var f = files.next();
+          if (f.getName().indexOf("VID_" + oldJudulSingkat) === 0 || f.getName().indexOf("VID_" + form.judulSingkat) === 0) {
+            trashDriveFileSafely(f.getId());
+          }
+        }
+        
+        if (videoUrl) {
+          var newName = "VID_" + form.judulSingkat + "_001.txt";
+          var isiFile = [
+            "URL: " + videoUrl,
+            "Diunggah oleh: " + requesterEmail,
+            "Tanggal: " + Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss")
+          ].join("\n");
+          var blob = Utilities.newBlob(isiFile, "text/plain", newName);
+          folderVideo.createFile(blob);
+        }
+      }
+      
+      // Upload Presentasi Baru
+      if (form.presentasi) {
+        presentasiFiles.forEach(function(pf) { trashDriveFileSafely(pf.fileId); });
+        presentasiFiles = [];
+        
+        var folderPres = getOrCreateFolder(stageFolder, "PRESENTASI");
+        var ext = getFileExtension(form.presentasi.name) || "pdf";
+        var base64Data = form.presentasi.base64.indexOf(',') !== -1 ? form.presentasi.base64.split(',')[1] : form.presentasi.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.presentasi.mimeType, "PRESENTASI_" + form.judulSingkat + "_v1." + ext);
+        var file = folderPres.createFile(blob);
+        var meta = buildFileMetadata(file.getId(), "PRESENTASI_" + form.judulSingkat + "_v1." + ext, 1, requesterEmail);
+        presentasiFiles.push(meta);
+      }
+      
+      // Upload Sertifikat Baru
+      if (form.sertifikat) {
+        sertifikatFiles.forEach(function(sf) { trashDriveFileSafely(sf.fileId); });
+        sertifikatFiles = [];
+        
+        var folderSert = getOrCreateFolder(stageFolder, "SERTIFIKAT");
+        var ext = getFileExtension(form.sertifikat.name) || "pdf";
+        var base64Data = form.sertifikat.base64.indexOf(',') !== -1 ? form.sertifikat.base64.split(',')[1] : form.sertifikat.base64;
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), form.sertifikat.mimeType, "SERTIFIKAT_" + form.judulSingkat + "_" + form.tahunPenetapan + "." + ext);
+        var file = folderSert.createFile(blob);
+        var meta = buildFileMetadata(file.getId(), "SERTIFIKAT_" + form.judulSingkat + "_" + form.tahunPenetapan + "." + ext, 1, requesterEmail);
+        sertifikatFiles.push(meta);
+      }
+      
+      // 6. Update spreadsheet row
+      var rIdx = hasil.rowIndex;
+      sheet.getRange(rIdx, COL.NAMA_KARYA + 1).setValue(form.namaKarya);
+      sheet.getRange(rIdx, COL.JUDUL_SINGKAT + 1).setValue(form.judulSingkat);
+      sheet.getRange(rIdx, COL.DOMAIN + 1).setValue(form.domain);
+      sheet.getRange(rIdx, COL.TAHUN_USULAN + 1).setValue(form.tahunPenetapan);
+      sheet.getRange(rIdx, COL.STATUS + 1).setValue(form.status);
+      sheet.getRange(rIdx, COL.FOLDER_IDS_JSON + 1).setValue(JSON.stringify(folderIds));
+      
+      sheet.getRange(rIdx, COL.DOC_ACTIVE_ID + 1).setValue(docActiveId);
+      sheet.getRange(rIdx, COL.DOC_HISTORY_JSON + 1).setValue(JSON.stringify(docHistoryJson));
+      sheet.getRange(rIdx, COL.KAJIAN_FILES_JSON + 1).setValue(JSON.stringify(kajianFiles));
+      sheet.getRange(rIdx, COL.FOTO_FILES_JSON + 1).setValue(JSON.stringify(fotoFiles));
+      sheet.getRange(rIdx, COL.VIDEO_URL + 1).setValue(videoUrl);
+      sheet.getRange(rIdx, COL.PRESENTASI_FILES_JSON + 1).setValue(JSON.stringify(presentasiFiles));
+      sheet.getRange(rIdx, COL.SERTIFIKAT_FILES_JSON + 1).setValue(JSON.stringify(sertifikatFiles));
+      
+      sheet.getRange(rIdx, COL.CATATAN_ATASAN + 1).setValue(form.keterangan || "");
+      sheet.getRange(rIdx, COL.UPDATED_AT + 1).setValue(new Date());
+      
+      if (form.status === STATUS.DITANGGUHKAN && oldStatus !== STATUS.DITANGGUHKAN) {
+        sheet.getRange(rIdx, COL.DITANGGUHKAN_AT + 1).setValue(new Date());
+      } else if (form.status !== STATUS.DITANGGUHKAN) {
+        sheet.getRange(rIdx, COL.DITANGGUHKAN_AT + 1).setValue("");
+      }
+      
+      writeAuditLog("EDIT_HISTORIS", "Operator " + requesterEmail + " mengubah arsip historis: " + proposalId + " - " + form.namaKarya);
+      
+      return { success: true };
+    });
+  } catch (err) {
+    Logger.log("editArsipHistoris error: " + err.toString());
+    return { success: false, message: err.toString() };
+  }
+}
+
+function deleteArsipHistoris(requesterEmail, proposalId) {
+  try {
+    var role = requireRole(requesterEmail, [ROLES.OPERATOR]);
+    
+    return DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
+      var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+      if (!hasil) throw new Error("Arsip tidak ditemukan.");
+      
+      var row = hasil.rowData;
+      if (row[COL.ENTRY_TYPE] !== ENTRY_TYPE.HISTORIS) {
+        throw new Error("Hanya arsip historis yang dapat dihapus.");
+      }
+      
+      var folderKaryaId = row[COL.FOLDER_KARYA_ID];
+      
+      // 1. Move folder utama di Google Drive ke Trash
+      if (folderKaryaId) {
+        try {
+          var folder = DriveApp.getFolderById(folderKaryaId);
+          folder.setTrashed(true);
+        } catch (e) {
+          Logger.log("Warning: gagal men-trash folder karya " + folderKaryaId + ": " + e.toString());
+        }
+      }
+      
+      // 2. Hapus baris di database
+      sheet.deleteRow(hasil.rowIndex);
+      
+      writeAuditLog("DELETE_HISTORIS", "Operator " + requesterEmail + " menghapus arsip historis: " + proposalId + " - " + row[COL.NAMA_KARYA]);
+      
+      return { success: true };
+    });
+  } catch (err) {
+    Logger.log("deleteArsipHistoris error: " + err.toString());
+    return { success: false, message: err.toString() };
+  }
+}
+
+function getFileExtension(filename) {
+  if (!filename) return "";
+  var parts = filename.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
 }
