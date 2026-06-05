@@ -391,3 +391,39 @@ function verifikasiMandiri(proposalId) {
     itemLulus  : itemLulus
   };
 }
+
+/**
+ * Memvalidasi file presentasi (PPT/PPTX/PDF).
+ *
+ * @param {object} fileMeta - { name, mimeType, base64 }
+ * @returns {{ valid: boolean, pesan: string, ukuranBytes: number }}
+ */
+function validateFilePresentasi(fileMeta) {
+  if (!fileMeta || !fileMeta.base64) {
+    return { valid: false, pesan: "Data file tidak lengkap." };
+  }
+
+  var mimeIzin = [
+    "application/pdf",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ];
+
+  if (mimeIzin.indexOf(fileMeta.mimeType) === -1) {
+    return {
+      valid: false,
+      pesan: "Format file tidak valid. Hanya PDF, PPT, atau PPTX yang diizinkan."
+    };
+  }
+
+  var ukuranBytes = hitungUkuranDariBase64(fileMeta.base64);
+  if (ukuranBytes > 20 * 1024 * 1024) {
+    return {
+      valid: false,
+      pesan: "Ukuran file presentasi '" + fileMeta.name + "' melebihi batas maksimal 20MB. " +
+             "Ukuran terdeteksi: " + Math.round(ukuranBytes / (1024 * 1024)) + "MB."
+    };
+  }
+
+  return { valid: true, pesan: "File presentasi valid.", ukuranBytes: ukuranBytes };
+}

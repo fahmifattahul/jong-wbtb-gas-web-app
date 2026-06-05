@@ -378,7 +378,15 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
       copyActiveFilesToStage(proposalId, activeStage, "ARSIP_DITANGGUHKAN", revisiRound, null, sheet);
     }
 
-    // 3. Final (dari Dilanjutkan/Penetapan)
+    // 3. Dilanjutkan (dari tahap aktif sebelumnya ke Penetapan)
+    if (keStatus === STATUS.DILANJUTKAN) {
+      var currentApproved = data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === true || 
+                            data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === 'TRUE';
+      var activeStage = getActiveStageKey(dariStatus, revisiRound, currentApproved);
+      copyActiveFilesToStage(proposalId, activeStage, "PENETAPAN", revisiRound, null, sheet);
+    }
+
+    // 4. Final (dari Dilanjutkan/Penetapan)
     if (keStatus === STATUS.FINAL && dariStatus === STATUS.DILANJUTKAN) {
       copyActiveFilesToStage(proposalId, "PENETAPAN", "FINAL", null, null, sheet);
     }

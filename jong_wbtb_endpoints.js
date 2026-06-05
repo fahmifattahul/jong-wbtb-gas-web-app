@@ -110,7 +110,7 @@ function getDashboardData(requesterEmail) {
 
     if (role === ROLES.ANGGOTA_TIM) {
       proposals = proposals.filter(function(p) {
-        return p.penanggungJawabEmail === requesterEmail;
+        return p.penanggungJawabEmail.toLowerCase() === requesterEmail.toLowerCase();
       });
       metrics = hitungMetrics(proposals);
     }
@@ -224,6 +224,7 @@ function createProposal(operatorEmail, data) {
       rowData[COL.FOTO_FILES_JSON]        = JSON.stringify([]);
       rowData[COL.VIDEO_URL]              = '';
       rowData[COL.SERTIFIKAT_FILES_JSON]  = JSON.stringify([]);
+      rowData[COL.PRESENTASI_FILES_JSON]  = JSON.stringify([]);
       rowData[COL.CATATAN_PENILAI_JSON]   = JSON.stringify([]);
       rowData[COL.DRIVE_LOCKED]           = false;
       rowData[COL.CREATED_AT]             = now;
@@ -267,7 +268,7 @@ function getProposalDetail(requesterEmail, proposalId) {
     var row = hasil.rowData;
 
     if (getUserRole(requesterEmail) === ROLES.ANGGOTA_TIM) {
-      if (row[COL.PENANGGUNG_JAWAB_EMAIL] !== requesterEmail) {
+      if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
         throw new Error('Akses ditolak: folder ini bukan tanggung jawabmu.');
       }
     }
@@ -277,6 +278,8 @@ function getProposalDetail(requesterEmail, proposalId) {
     var catatanPenilai = safeParseJSON(row[COL.CATATAN_PENILAI_JSON], []);
     var docHistory     = safeParseJSON(row[COL.DOC_HISTORY_JSON],     {});
     var folderIds      = safeParseJSON(row[COL.FOLDER_IDS_JSON],      {});
+    var presentasiFiles = safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []);
+    var sertifikatFiles = safeParseJSON(row[COL.SERTIFIKAT_FILES_JSON], []);
 
     return {
       id                   : row[COL.ID],
@@ -296,6 +299,8 @@ function getProposalDetail(requesterEmail, proposalId) {
       docHistory           : docHistory,
       kajianFiles          : kajianFiles.filter(function(f) { return f.status==='aktif'; }),
       fotoFiles            : fotoFiles.filter(function(f)   { return f.status==='aktif'; }),
+      presentasiFiles      : presentasiFiles.filter(function(f) { return f.status==='aktif'; }),
+      sertifikatFiles      : sertifikatFiles.filter(function(f) { return f.status==='aktif'; }),
       videoUrl             : row[COL.VIDEO_URL],
       catatanPenilai       : catatanPenilai,
       driveLocked          : row[COL.DRIVE_LOCKED],
@@ -616,6 +621,12 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
     var folder  = DriveApp.getFolderById(folderTahapId);
     var file    = folder.createFile(blob);
 
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingErr) {
+      Logger.log('Warning: gagal setSharing untuk kajian: ' + sharingErr.toString());
+    }
+
     // Update metadata
     var newMeta = buildFileMetadata(file.getId(), namaFileKajian + '.pdf', versi, anggotaEmail);
     kajianFiles.push(newMeta);
@@ -691,6 +702,12 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
         Utilities.base64Decode(base64Data), fileMeta.mimeType, namaFileFoto + ext);
       var folder  = DriveApp.getFolderById(folderFotoId);
       var file    = folder.createFile(blob);
+
+      try {
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (sharingErr) {
+        Logger.log('Warning: gagal setSharing untuk foto: ' + sharingErr.toString());
+      }
 
       var newMeta = buildFileMetadata(file.getId(), namaFileFoto + ext, 1, anggotaEmail);
       fotoFiles.push(newMeta);
@@ -856,6 +873,7 @@ function createArsipHistoris(operatorEmail, data) {
       rowData[COL.KAJIAN_FILES_JSON]     = JSON.stringify([]);
       rowData[COL.FOTO_FILES_JSON]       = JSON.stringify([]);
       rowData[COL.SERTIFIKAT_FILES_JSON] = JSON.stringify([]);
+      rowData[COL.PRESENTASI_FILES_JSON] = JSON.stringify([]);
       rowData[COL.CATATAN_PENILAI_JSON]  = JSON.stringify([]);
       rowData[COL.DRIVE_LOCKED]          = true;
       rowData[COL.CREATED_AT]            = now;
@@ -1418,7 +1436,7 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal \'' + proposalId + '\' tidak ditemukan.');
     
-    if (role === ROLES.ANGGOTA_TIM && hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL] !== requesterEmail) {
+    if (role === ROLES.ANGGOTA_TIM && hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     
@@ -1441,6 +1459,215 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
 }
 
 
+// ════════════════════════════════════════════════
+// 16b. PRESENTASI & SERTIFIKAT MANAGEMENT
+// ════════════════════════════════════════════════
+
+/**
+ * Upload berkas presentasi (PPT/PPTX/PDF).
+ */
+function uploadPresentasi(email, proposalId, fileMeta) {
+  try {
+    var role = requireRole(email, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
+    
+    var validasi = validateFilePresentasi(fileMeta);
+    if (!validasi.valid) throw new Error(validasi.pesan);
+
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error('Proposal tidak ditemukan.');
+
+    var row = hasil.rowData;
+    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+
+    if (row[COL.STATUS] === STATUS.FINAL || row[COL.STATUS] === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+
+    var folderIds = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
+    var presentasiFiles = safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []);
+
+    // Tentukan folder tujuan
+    var activeStage = getActiveStageKey(row[COL.STATUS], parseInt(row[COL.REVISI_ROUND] || '0', 10), row[COL.IS_APPROVED_BY_ATASAN] === true || row[COL.IS_APPROVED_BY_ATASAN] === 'TRUE');
+    var parentFolderId = folderIds[activeStage];
+    if (!parentFolderId) throw new Error('Folder ID untuk tahap aktif tidak ditemukan.');
+
+    var parentFolder = DriveApp.getFolderById(parentFolderId);
+    var folderPres = getOrCreateFolder(parentFolder, 'PRESENTASI');
+    var folderPresId = folderPres.getId();
+
+    // Arsip file lama jika diganti
+    if (fileMeta.gantiFileId) {
+      var fileLama = DriveApp.getFileById(fileMeta.gantiFileId);
+      var folderArsip = getOrCreateFolder(folderPres, FOLDER_NAMES.JENIS.ARSIP_VERSI);
+      fileLama.moveTo(folderArsip);
+      presentasiFiles = tandaiFileDiarsip(presentasiFiles, fileMeta.gantiFileId, fileMeta.gantiFileId);
+    }
+
+    // Hitung nomor urut/versi
+    var versi = fileMeta.gantiFileId
+      ? (presentasiFiles.find(function(f) { return f.fileId === fileMeta.gantiFileId; }) || {versi:0}).versi + 1
+      : 1;
+
+    // Nama file sesuai Juknis
+    var judulSingkat = row[COL.JUDUL_SINGKAT];
+    var namaFilePres = namaPresentasi(judulSingkat, versi);
+    var ext = fileMeta.mimeType === 'application/pdf' ? '.pdf' : (fileMeta.mimeType === 'application/vnd.ms-powerpoint' ? '.ppt' : '.pptx');
+
+    var base64Data = fileMeta.base64.indexOf(',') !== -1 ? fileMeta.base64.split(',')[1] : fileMeta.base64;
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileMeta.mimeType, namaFilePres + ext);
+    var file = folderPres.createFile(blob);
+
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingErr) {
+      Logger.log('Warning: gagal setSharing untuk presentasi: ' + sharingErr.toString());
+    }
+
+    var newMeta = buildFileMetadata(file.getId(), namaFilePres + ext, versi, email);
+    presentasiFiles.push(newMeta);
+    updateFileMetadata(proposalId, COL.PRESENTASI_FILES_JSON, presentasiFiles);
+
+    writeAuditLog("PRESENTASI_UPLOAD", 'Presentasi diunggah: ' + namaFilePres + ext + '. File ID: ' + file.getId(), proposalId);
+
+    return { fileId: file.getId(), namaFile: namaFilePres + ext };
+  } catch (err) {
+    throw new Error('uploadPresentasi gagal: ' + err.message);
+  }
+}
+
+/**
+ * Hapus berkas presentasi.
+ */
+function deletePresentasiFile(email, proposalId, fileId) {
+  try {
+    var role = requireRole(email, [ROLES.OPERATOR, ROLES.ANGGOTA_TIM]);
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error('Proposal tidak ditemukan.');
+
+    var row = hasil.rowData;
+    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
+
+    if (row[COL.STATUS] === STATUS.FINAL || row[COL.STATUS] === STATUS.DITANGGUHKAN) {
+      throw new Error('Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.');
+    }
+
+    var presentasiFiles = safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []);
+    var fileDitemukan = false;
+    var updatedFiles = presentasiFiles.filter(function(f) {
+      if (f.fileId === fileId) {
+        fileDitemukan = true;
+        trashDriveFileSafely(fileId);
+        if (f.arsipFileId) {
+          trashDriveFileSafely(f.arsipFileId);
+        }
+        return false;
+      }
+      return true;
+    });
+
+    if (!fileDitemukan) throw new Error('File Presentasi tidak ditemukan.');
+
+    updateFileMetadata(proposalId, COL.PRESENTASI_FILES_JSON, updatedFiles);
+    writeAuditLog("STATUS_CHANGE", 'File Presentasi (ID: ' + fileId + ') dihapus oleh ' + email, proposalId);
+    return { success: true };
+  } catch (err) {
+    throw new Error('deletePresentasiFile gagal: ' + err.message);
+  }
+}
+
+/**
+ * Upload berkas sertifikat/SK (PDF).
+ */
+function uploadSertifikat(email, proposalId, fileMeta) {
+  try {
+    requireRole(email, [ROLES.OPERATOR]);
+    
+    var validasi = validateFilePDF(fileMeta);
+    if (!validasi.valid) throw new Error(validasi.pesan);
+
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error('Proposal tidak ditemukan.');
+
+    var row = hasil.rowData;
+    var folderIds = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
+    var sertifikatFiles = safeParseJSON(row[COL.SERTIFIKAT_FILES_JSON], []);
+
+    var finalFolderId = folderIds['FINAL'];
+    if (!finalFolderId) throw new Error('Folder ID untuk tahap FINAL tidak ditemukan.');
+
+    var finalFolder = DriveApp.getFolderById(finalFolderId);
+    var folderSert = getOrCreateFolder(finalFolder, 'SERTIFIKAT');
+
+    var judulSingkat = row[COL.JUDUL_SINGKAT];
+    var tahun = row[COL.TAHUN_USULAN];
+    var namaFileSert = namaSertifikat(judulSingkat, tahun);
+
+    // Hapus sertifikat lama jika diganti (hanya simpan satu sertifikat teraktif)
+    sertifikatFiles.forEach(function(f) {
+      trashDriveFileSafely(f.fileId);
+    });
+    sertifikatFiles = [];
+
+    var base64Data = fileMeta.base64.indexOf(',') !== -1 ? fileMeta.base64.split(',')[1] : fileMeta.base64;
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), fileMeta.mimeType, namaFileSert + '.pdf');
+    var file = folderSert.createFile(blob);
+
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingErr) {
+      Logger.log('Warning: gagal setSharing untuk sertifikat: ' + sharingErr.toString());
+    }
+
+    var newMeta = buildFileMetadata(file.getId(), namaFileSert + '.pdf', 1, email);
+    sertifikatFiles.push(newMeta);
+    updateFileMetadata(proposalId, COL.SERTIFIKAT_FILES_JSON, sertifikatFiles);
+
+    writeAuditLog("SERTOR_UPLOAD", 'Sertifikat diunggah: ' + namaFileSert + '.pdf. File ID: ' + file.getId(), proposalId);
+
+    return { fileId: file.getId(), namaFile: namaFileSert + '.pdf' };
+  } catch (err) {
+    throw new Error('uploadSertifikat gagal: ' + err.message);
+  }
+}
+
+/**
+ * Hapus berkas sertifikat.
+ */
+function deleteSertifikatFile(email, proposalId, fileId) {
+  try {
+    requireRole(email, [ROLES.OPERATOR]);
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error('Proposal tidak ditemukan.');
+
+    var sertifikatFiles = safeParseJSON(hasil.rowData[COL.SERTIFIKAT_FILES_JSON], []);
+    var fileDitemukan = false;
+    var updatedFiles = sertifikatFiles.filter(function(f) {
+      if (f.fileId === fileId) {
+        fileDitemukan = true;
+        trashDriveFileSafely(fileId);
+        return false;
+      }
+      return true;
+    });
+
+    if (!fileDitemukan) throw new Error('File Sertifikat tidak ditemukan.');
+
+    updateFileMetadata(proposalId, COL.SERTIFIKAT_FILES_JSON, updatedFiles);
+    writeAuditLog("STATUS_CHANGE", 'File Sertifikat (ID: ' + fileId + ') dihapus oleh ' + email, proposalId);
+    return { success: true };
+  } catch (err) {
+    throw new Error('deleteSertifikatFile gagal: ' + err.message);
+  }
+}
+
 
 // ════════════════════════════════════════════════
 // 17. HELPER UTILITIES
@@ -1449,4 +1676,99 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
 function safeParseJSON(str, fallback) {
   if (!str) return fallback;
   try { return JSON.parse(str); } catch(e) { return fallback; }
+}
+
+// ─────────────────────────────────────────────
+// 18. DIAGNOSTIC UTILITIES FOR DEVELOPER
+// ─────────────────────────────────────────────
+
+function runDebugProposal() {
+  // Ganti "WBTB-001" dengan ID proposal yang sedang bermasalah jika perlu
+  debugProposalFiles("WBTB-001");
+}
+
+function debugProposalFiles(proposalId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(DB_NAMES.WBTB_LINGGA);
+    var data = sheet.getDataRange().getValues();
+    var rowIndex = -1;
+    var rowData = null;
+    
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][COL.ID]).toUpperCase() === String(proposalId).toUpperCase()) {
+        rowIndex = i + 1;
+        rowData = data[i];
+        break;
+      }
+    }
+    
+    if (rowIndex === -1) {
+      Logger.log("Proposal ID '" + proposalId + "' tidak ditemukan.");
+      return;
+    }
+    
+    Logger.log("=== DIAGNOSIS PROPOSAL '" + proposalId + "' ===");
+    Logger.log("Row Index: " + rowIndex);
+    Logger.log("Status: " + rowData[COL.STATUS]);
+    Logger.log("Judul Singkat: " + rowData[COL.JUDUL_SINGKAT]);
+    
+    var kajianJson = rowData[COL.KAJIAN_FILES_JSON];
+    var presJson = rowData[COL.PRESENTASI_FILES_JSON];
+    var sertJson = rowData[COL.SERTIFIKAT_FILES_JSON];
+    
+    Logger.log("KAJIAN_FILES_JSON: " + kajianJson);
+    Logger.log("PRESENTASI_FILES_JSON: " + presJson);
+    Logger.log("SERTIFIKAT_FILES_JSON: " + sertJson);
+    
+    var listKajian = safeParseJSON(kajianJson, []);
+    var listPres = safeParseJSON(presJson, []);
+    var listSert = safeParseJSON(sertJson, []);
+    
+    Logger.log("--- Detail Kajian Ilmiah di Drive ---");
+    listKajian.forEach(function(f, idx) {
+      Logger.log("Kajian [" + idx + "]: fileId=" + f.fileId + ", name=" + f.name + ", status=" + f.status);
+      checkDriveFileInfo(f.fileId);
+    });
+    
+    Logger.log("--- Detail Berkas Presentasi di Drive ---");
+    listPres.forEach(function(f, idx) {
+      Logger.log("Presentasi [" + idx + "]: fileId=" + f.fileId + ", name=" + f.name + ", status=" + f.status);
+      checkDriveFileInfo(f.fileId);
+    });
+
+    Logger.log("--- Detail Sertifikat di Drive ---");
+    listSert.forEach(function(f, idx) {
+      Logger.log("Sertifikat [" + idx + "]: fileId=" + f.fileId + ", name=" + f.name + ", status=" + f.status);
+      checkDriveFileInfo(f.fileId);
+    });
+    
+  } catch (err) {
+    Logger.log("Error diagnosis: " + err.toString());
+  }
+}
+
+function checkDriveFileInfo(fileId) {
+  if (!fileId) {
+    Logger.log("  - ERROR: File ID kosong");
+    return;
+  }
+  try {
+    var file = DriveApp.getFileById(fileId);
+    Logger.log("  - File ditemukan!");
+    Logger.log("  - Nama di Drive: " + file.getName());
+    Logger.log("  - Ukuran: " + file.getSize() + " bytes");
+    Logger.log("  - MIME Type: " + file.getMimeType());
+    Logger.log("  - Access: " + file.getSharingAccess().toString());
+    Logger.log("  - Permission: " + file.getSharingPermission().toString());
+    Logger.log("  - Owner: " + file.getOwner().getEmail());
+    
+    var parents = file.getParents();
+    while (parents.hasNext()) {
+      var p = parents.next();
+      Logger.log("  - Folder Induk: " + p.getName() + " (ID: " + p.getId() + ")");
+    }
+  } catch (e) {
+    Logger.log("  - ERROR mengakses file: " + e.toString());
+  }
 }

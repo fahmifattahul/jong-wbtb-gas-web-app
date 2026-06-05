@@ -202,7 +202,7 @@ function initProposalWorkspace(proposalId, namaKarya) {
     // 4. Buat subfolder jenis dokumen di dalam tahap yang relevan
     // Juknis Bab III huruf B paragraf 3
     if (tahap.buatJenis) {
-      buatSubfolderJenis(folderTahap);
+      buatSubfolderJenis(folderTahap, tahap.key);
     }
   });
 
@@ -226,8 +226,9 @@ function initProposalWorkspace(proposalId, namaKarya) {
  * Juknis Bab VI huruf C: dilarang menimpa versi lama — wajib dipindah ke arsip versi.
  *
  * @param {Folder} folderTahap - Google Drive Folder object subfolder tahap
+ * @param {string} [stageKey]  - Key tahap aktif
  */
-function buatSubfolderJenis(folderTahap) {
+function buatSubfolderJenis(folderTahap, stageKey) {
   var jenisYangButuhArsipVersi = [
     FOLDER_NAMES.JENIS.FORMULIR_USULAN,
     FOLDER_NAMES.JENIS.KAJIAN_ILMIAH,
@@ -247,6 +248,17 @@ function buatSubfolderJenis(folderTahap) {
   jenisTanpaArsipVersi.forEach(function(namaJenis) {
     getOrCreateFolder(folderTahap, namaJenis);
   });
+
+  // Tambahkan folder Presentasi untuk Penetapan & Final (Juknis Bab III B)
+  if (stageKey === "PENETAPAN" || stageKey === "FINAL") {
+    var folderPres = getOrCreateFolder(folderTahap, "PRESENTASI");
+    getOrCreateFolder(folderPres, FOLDER_NAMES.JENIS.ARSIP_VERSI);
+  }
+
+  // Tambahkan folder Sertifikat untuk Final (Juknis Bab III B)
+  if (stageKey === "FINAL") {
+    getOrCreateFolder(folderTahap, "SERTIFIKAT");
+  }
 }
 
 
@@ -375,6 +387,7 @@ function initHistorisWorkspace(proposalId, namaKarya) {
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
+  getOrCreateFolder(folderKarya, "PRESENTASI");
   getOrCreateFolder(folderKarya, "SERTIFIKAT"); // wajib — syarat import historis
 
   writeAuditLog("HISTORIS_INIT_SUCCESS",
@@ -543,7 +556,6 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
   try {
     kajianFiles = JSON.parse(row[COL.KAJIAN_FILES_JSON] || "[]");
   } catch(e) {}
-  
   var destKajianFolder = getTypeFolder(destFolder, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
   for (var i = 0; i < kajianFiles.length; i++) {
     var fileEntry = kajianFiles[i];
@@ -551,6 +563,9 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
       try {
         var fileObj = DriveApp.getFileById(fileEntry.fileId);
         var copiedFile = fileObj.makeCopy(fileObj.getName(), destKajianFolder);
+        try {
+          copiedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch(e) {}
         fileEntry.fileId = copiedFile.getId();
       } catch (errKajian) {
         Logger.log("Gagal menyalin kajian: " + fileEntry.name + " (" + errKajian.toString() + ")");
@@ -572,6 +587,9 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
       try {
         var fileObj = DriveApp.getFileById(fileEntry.fileId);
         var copiedFile = fileObj.makeCopy(fileObj.getName(), destFotoFolder);
+        try {
+          copiedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch(e) {}
         fileEntry.fileId = copiedFile.getId();
       } catch (errFoto) {
         Logger.log("Gagal menyalin foto: " + fileEntry.name + " (" + errFoto.toString() + ")");
@@ -596,6 +614,40 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
     throw new Error("Gagal menyalin berkas Video URL ke folder tahap berikutnya: " + errVideo.message);
   }
 
+  // 4b. Salin file Presentasi (jika ada pada tahap Penetapan ke Final)
+  var presentasiFiles = [];
+  try {
+    presentasiFiles = JSON.parse(row[COL.PRESENTASI_FILES_JSON] || "[]");
+  } catch(e) {}
+
+  if (sourceStageKey === "PENETAPAN" && destStageKey === "FINAL") {
+    // Pastikan folder SERTIFIKAT dibuat di destFolder jika belum ada (berguna untuk usulan lama)
+    getOrCreateFolder(destFolder, "SERTIFIKAT");
+
+    try {
+      var destPresFolder   = getOrCreateFolder(destFolder, "PRESENTASI");
+      for (var i = 0; i < presentasiFiles.length; i++) {
+        var fileEntry = presentasiFiles[i];
+        if (fileEntry.status === "aktif" && fileEntry.fileId) {
+          try {
+            var fileObj = DriveApp.getFileById(fileEntry.fileId);
+            var copiedFile = fileObj.makeCopy(fileObj.getName(), destPresFolder);
+            try {
+              copiedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            } catch(e) {}
+            fileEntry.fileId = copiedFile.getId();
+          } catch(errPresCopy) {
+            Logger.log("Gagal menyalin file Presentasi: " + fileEntry.name + " (" + errPresCopy.toString() + ")");
+            throw new Error("Gagal menyalin berkas Presentasi '" + fileEntry.name + "' ke folder tahap berikutnya: " + errPresCopy.message);
+          }
+        }
+      }
+    } catch (errPres) {
+      Logger.log("Gagal menyalin file Presentasi: " + errPres.toString());
+      throw new Error("Gagal menyalin berkas Presentasi ke folder tahap berikutnya: " + errPres.message);
+    }
+  }
+
   // Helper untuk melakukan update database
   var updateDB = function(targetSheet) {
     var hasilTx = DatabaseEngine.findRow(targetSheet, COL.ID, proposalId);
@@ -606,6 +658,7 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
     targetSheet.getRange(rowIdx, COL.DOC_HISTORY_JSON + 1).setValue(JSON.stringify(docHistory));
     targetSheet.getRange(rowIdx, COL.KAJIAN_FILES_JSON + 1).setValue(JSON.stringify(kajianFiles));
     targetSheet.getRange(rowIdx, COL.FOTO_FILES_JSON + 1).setValue(JSON.stringify(fotoFiles));
+    targetSheet.getRange(rowIdx, COL.PRESENTASI_FILES_JSON + 1).setValue(JSON.stringify(presentasiFiles));
     targetSheet.getRange(rowIdx, COL.UPDATED_AT + 1).setValue(new Date());
   };
 

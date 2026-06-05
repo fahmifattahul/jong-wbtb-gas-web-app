@@ -127,11 +127,14 @@ var COL = {
   IS_APPROVED_BY_ATASAN: 24, // Boolean (TRUE jika sudah di-ACC Atasan)
 
   // ── Status Revisi Anggota ───────────────────────────
-  IS_REVISI_SELESAI: 25 // Boolean (TRUE jika Anggota menyatakan selesai revisi)
+  IS_REVISI_SELESAI: 25, // Boolean (TRUE jika Anggota menyatakan selesai revisi)
+
+  // ── File Presentasi (Juknis Bab III B) ───────────────
+  PRESENTASI_FILES_JSON: 26 // String (JSON) | File presentasi usulan (PPT/PDF).
 };
 
-// Total kolom: 26
-var TOTAL_COLS_WBTB = 26;
+// Total kolom: 27
+var TOTAL_COLS_WBTB = 27;
 
 
 // ─────────────────────────────────────────────
@@ -222,7 +225,8 @@ var HEADERS_WBTB = [
   "judul_singkat",
   "ditangguhkan_at",
   "is_approved_by_atasan",
-  "is_revisi_selesai"
+  "is_revisi_selesai",
+  "presentasi_files_json"
 ];
 
 var HEADERS_LOG = [
@@ -306,8 +310,9 @@ var DatabaseEngine = {
    */
   findRow: function (sheet, colIndex, value) {
     var data = sheet.getDataRange().getValues();
+    var valLower = String(value).toLowerCase();
     for (var i = 1; i < data.length; i++) { // skip header row (i=0)
-      if (String(data[i][colIndex]) === String(value)) {
+      if (String(data[i][colIndex]).toLowerCase() === valLower) {
         return { rowIndex: i + 1, rowData: data[i] }; // rowIndex 1-based
       }
     }

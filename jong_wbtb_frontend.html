@@ -1120,6 +1120,18 @@ async function renderWorkspace() {
           </div>
         </div>
 
+        <!-- Catatan Perbaikan Atasan (tampil jika dikembalikan oleh Atasan) -->
+        <div id="ws-catatan-atasan-card" class="hidden">
+          <div class="alert alert-gold">
+            <div style="flex:1;">
+              <div style="font-weight:500;margin-bottom:6px;">
+                ⚠️ Catatan Perbaikan dari Atasan
+              </div>
+              <div id="ws-catatan-atasan-isi" style="white-space:pre-line;line-height:1.7;font-size:0.85rem;"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Catatan Penilai Eksternal (tampil jika ada putaran revisi) -->
         <div id="ws-catatan-penilai-card" class="hidden">
           <div class="alert alert-gold">
@@ -1140,6 +1152,8 @@ async function renderWorkspace() {
             <button class="ws-tab" data-tab="kajian" onclick="switchWsTab('kajian')">Kajian Ilmiah</button>
             <button class="ws-tab" data-tab="foto" onclick="switchWsTab('foto')">Foto</button>
             <button class="ws-tab" data-tab="video" onclick="switchWsTab('video')">Video</button>
+            <button class="ws-tab hidden" id="ws-tab-btn-presentasi" data-tab="presentasi" onclick="switchWsTab('presentasi')">Presentasi</button>
+            <button class="ws-tab hidden" id="ws-tab-btn-sertifikat" data-tab="sertifikat" onclick="switchWsTab('sertifikat')">Sertifikat</button>
           </div>
 
           <!-- Tab: Formulir -->
@@ -1232,6 +1246,50 @@ async function renderWorkspace() {
                   placeholder="contoh: Video prosesi adat versi revisi">
               </div>
               <button class="btn btn-primary btn-sm" onclick="simpanVideoUrl()">Simpan URL Video</button>
+            </div>
+          </div>
+
+          <!-- Tab: Presentasi -->
+          <div id="ws-tab-presentasi" class="ws-tab-content hidden">
+            <div id="ws-presentasi-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+            <div id="ws-upload-presentasi-wrap">
+              <div class="divider"></div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  📊 Unggah Presentasi (PDF/PPT/PPTX, maks. 20MB)
+                  <input type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" id="input-presentasi-file" class="hidden"
+                    onchange="handlePresentasiUpload(this)">
+                </label>
+                <span class="text-faint" style="font-size:0.75rem;">Format: PRES_JUDUL-SINGKAT_vN.ext</span>
+              </div>
+              <div id="ws-presentasi-upload-progress" class="hidden" style="margin-top:8px;">
+                <div class="alert alert-info">
+                  <div class="spinner" style="border-color:rgba(36,113,163,0.2);border-top-color:var(--info);"></div>
+                  <span id="ws-presentasi-upload-status">Mengupload...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Sertifikat -->
+          <div id="ws-tab-sertifikat" class="ws-tab-content hidden">
+            <div id="ws-sertifikat-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+            <div id="ws-upload-sertifikat-wrap">
+              <div class="divider"></div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  📜 Unggah Sertifikat / SK (PDF, maks. 15MB)
+                  <input type="file" accept=".pdf" id="input-sertifikat-file" class="hidden"
+                    onchange="handleSertifikatUpload(this)">
+                </label>
+                <span class="text-faint" style="font-size:0.75rem;">Format: SERTIFIKAT_JUDUL-SINGKAT_TAHUN.pdf</span>
+              </div>
+              <div id="ws-sertifikat-upload-progress" class="hidden" style="margin-top:8px;">
+                <div class="alert alert-info">
+                  <div class="spinner" style="border-color:rgba(36,113,163,0.2);border-top-color:var(--info);"></div>
+                  <span id="ws-sertifikat-upload-status">Mengupload...</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1401,6 +1459,17 @@ function renderWsDetail(p) {
     putaranBadge.classList.remove('hidden');
   }
 
+  // Catatan Perbaikan Atasan — Tampilkan jika status Sedang Dikerjakan dan ada catatan
+  const catatanAtasanCard = document.getElementById('ws-catatan-atasan-card');
+  if (catatanAtasanCard) {
+    if (p.status === 'Sedang Dikerjakan' && p.catatanAtasan) {
+      catatanAtasanCard.classList.remove('hidden');
+      document.getElementById('ws-catatan-atasan-isi').textContent = p.catatanAtasan;
+    } else {
+      catatanAtasanCard.classList.add('hidden');
+    }
+  }
+
   // Catatan Penilai Eksternal — Sembunyikan jika tidak dalam status Diperbaiki (Revisi Aktif)
   const catatanCard = document.getElementById('ws-catatan-penilai-card');
   catatanCard.classList.add('hidden');
@@ -1433,6 +1502,29 @@ function renderWsDetail(p) {
 
   // Video
   renderWsVideo(p);
+
+  // Default ke tab formulir untuk mencegah tab sisa tersimpan di state UI
+  switchWsTab('formulir');
+
+  // Atur visibilitas tab Presentasi & Sertifikat
+  const tabPresBtn = document.getElementById('ws-tab-btn-presentasi');
+  const tabSertBtn = document.getElementById('ws-tab-btn-sertifikat');
+  
+  if (p.status === 'Dilanjutkan' || p.status === 'Final') {
+    tabPresBtn.classList.remove('hidden');
+  } else {
+    tabPresBtn.classList.add('hidden');
+  }
+  
+  if (p.status === 'Final') {
+    tabSertBtn.classList.remove('hidden');
+  } else {
+    tabSertBtn.classList.add('hidden');
+  }
+
+  // Render konten tab baru
+  renderWsPresentasiList(p);
+  renderWsSertifikatList(p);
 }
 
 function renderWsAksiButtons(p) {
@@ -1493,6 +1585,30 @@ function renderWsAksiButtons(p) {
         </span>
       `;
     }
+  }
+
+  // Aksi Operator untuk status Persetujuan Internal yang sudah di-ACC
+  if (status === 'Persetujuan Internal' && p.isApprovedByAtasan === true && App.user.role === 'Operator') {
+    html += `
+      <button class="btn btn-gold btn-sm"
+        onclick="navigasiKeCatatanPenilai('${p.id}')">
+        + Entry Catatan Penilai
+      </button>
+      <button class="btn btn-ghost btn-sm"
+        onclick="konfirmasiUbahStatusOperator('${p.id}','Dilanjutkan')">
+        Tandai Dilanjutkan
+      </button>
+    `;
+  }
+
+  // Tandai Final — jika status Dilanjutkan, tidak locked, dan user adalah Operator
+  if (status === 'Dilanjutkan' && !locked && App.user.role === 'Operator') {
+    html += `
+      <button class="btn btn-primary btn-sm"
+        onclick="konfirmasiUbahStatusOperator('${p.id}', 'Final')">
+        Tandai Final (Lolos Penetapan)
+      </button>
+    `;
   }
 
   // Hapus Usulan — jika status Sedang Dikerjakan atau Diperbaiki, tidak locked, DAN user adalah Operator
@@ -1583,8 +1699,7 @@ function renderWsKajianList(p) {
           <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
           <div class="text-faint" style="font-size:0.72rem;">v${f.versi} · ${f.uploadedBy}</div>
         </div>
-        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank"
-          class="btn btn-ghost btn-sm">Lihat ↗</a>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
         ${isWorkspaceEditable(p)
           ? `
             <button class="btn btn-ghost btn-sm" onclick="konfirmasiGantiKajian('${f.fileId}','${f.name}')">Ganti</button>
@@ -1610,7 +1725,7 @@ function renderWsFotoGrid(p) {
   } else {
     grid.innerHTML = p.fotoFiles.map(f => `
       <div class="foto-thumb">
-        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank">
+        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank" rel="noopener noreferrer">
           <img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w200"
             onerror="this.src=''" alt="${f.name}">
         </a>
@@ -1670,6 +1785,196 @@ function renderWsVideo(p) {
   if (saveBtn) {
     saveBtn.textContent = p.videoUrl ? 'Ganti URL Video' : 'Simpan URL Video';
   }
+}
+
+function isPresentasiEditable(p) {
+  if (!p) return false;
+  if (p.status !== 'Dilanjutkan' || p.driveLocked) return false;
+  return App.user.role === 'Operator' || (App.user.role === 'Anggota Tim' && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase());
+}
+
+function isSertifikatEditable(p) {
+  if (!p) return false;
+  return p.status === 'Final' && App.user.role === 'Operator';
+}
+
+function renderWsPresentasiList(p) {
+  const list = document.getElementById('ws-presentasi-list');
+  const uploadWrap = document.getElementById('ws-upload-presentasi-wrap');
+  const editable = isPresentasiEditable(p);
+
+  if (!p.presentasiFiles || p.presentasiFiles.length === 0) {
+    list.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada berkas presentasi diunggah.</div>`;
+  } else {
+    list.innerHTML = p.presentasiFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📊</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">v${f.versi} · ${f.uploadedBy}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        ${editable
+          ? `
+            <button class="btn btn-ghost btn-sm" onclick="konfirmasiGantiPresentasi('${f.fileId}','${f.name}')">Ganti</button>
+            <button class="btn btn-danger btn-sm" onclick="konfirmasiHapusPresentasi('${p.id}','${f.fileId}','${f.name}')">Hapus</button>
+          `
+          : ''}
+      </div>
+    `).join('');
+  }
+
+  uploadWrap.style.display = editable ? '' : 'none';
+}
+
+function renderWsSertifikatList(p) {
+  const list = document.getElementById('ws-sertifikat-list');
+  const uploadWrap = document.getElementById('ws-upload-sertifikat-wrap');
+  const editable = isSertifikatEditable(p);
+
+  if (!p.sertifikatFiles || p.sertifikatFiles.length === 0) {
+    list.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada sertifikat penetapan diunggah.</div>`;
+  } else {
+    list.innerHTML = p.sertifikatFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📜</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">Diunggah oleh: ${f.uploadedBy}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+        ${editable
+          ? `
+            <button class="btn btn-danger btn-sm" onclick="konfirmasiHapusSertifikat('${p.id}','${f.fileId}','${f.name}')">Hapus</button>
+          `
+          : ''}
+      </div>
+    `).join('');
+  }
+
+  uploadWrap.style.display = editable ? '' : 'none';
+}
+
+let gantiPresentasiFileId = null;
+
+function konfirmasiGantiPresentasi(fileId, fileName) {
+  gantiPresentasiFileId = fileId;
+  document.getElementById('input-presentasi-file').click();
+}
+
+async function handlePresentasiUpload(input) {
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  const p = App.data.wsProposal;
+
+  const progress = document.getElementById('ws-presentasi-upload-progress');
+  const status   = document.getElementById('ws-presentasi-upload-status');
+
+  progress.classList.remove('hidden');
+  status.textContent = 'Membaca file...';
+
+  try {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      status.textContent = 'Mengupload ke Google Drive...';
+      const fileMeta = {
+        name: file.name,
+        mimeType: file.type,
+        base64: e.target.result,
+        gantiFileId: gantiPresentasiFileId
+      };
+      
+      try {
+        await gasCall('uploadPresentasi', App.user.email, p.id, fileMeta);
+        showToast('Berkas presentasi berhasil diunggah.', 'success');
+        bukaWsProposal(p.id);
+      } catch (uploadErr) {
+        showToast('Upload gagal: ' + uploadErr.message, 'error');
+      } finally {
+        progress.classList.add('hidden');
+        input.value = '';
+        gantiPresentasiFileId = null;
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch (err) {
+    showToast('Gagal membaca file: ' + err.message, 'error');
+    progress.classList.add('hidden');
+    input.value = '';
+    gantiPresentasiFileId = null;
+  }
+}
+
+async function handleSertifikatUpload(input) {
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  const p = App.data.wsProposal;
+
+  const progress = document.getElementById('ws-sertifikat-upload-progress');
+  const status   = document.getElementById('ws-sertifikat-upload-status');
+
+  progress.classList.remove('hidden');
+  status.textContent = 'Membaca file...';
+
+  try {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      status.textContent = 'Mengupload ke Google Drive...';
+      const fileMeta = {
+        name: file.name,
+        mimeType: file.type,
+        base64: e.target.result
+      };
+      
+      try {
+        await gasCall('uploadSertifikat', App.user.email, p.id, fileMeta);
+        showToast('Sertifikat berhasil diunggah.', 'success');
+        bukaWsProposal(p.id);
+      } catch (uploadErr) {
+        showToast('Upload gagal: ' + uploadErr.message, 'error');
+      } finally {
+        progress.classList.add('hidden');
+        input.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch (err) {
+    showToast('Gagal membaca file: ' + err.message, 'error');
+    progress.classList.add('hidden');
+    input.value = '';
+  }
+}
+
+function konfirmasiHapusPresentasi(proposalId, fileId, fileName) {
+  showKonfirmasi(
+    'Hapus Berkas Presentasi',
+    `Apakah Anda yakin ingin menghapus berkas presentasi "${fileName}"? Tindakan ini akan menghapusnya secara permanen dari Google Drive dan database.`,
+    async () => {
+      try {
+        await gasCall('deletePresentasiFile', App.user.email, proposalId, fileId);
+        showToast('Berkas presentasi berhasil dihapus.', 'success');
+        bukaWsProposal(proposalId);
+      } catch (err) {
+        showToast('Gagal menghapus berkas: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+function konfirmasiHapusSertifikat(proposalId, fileId, fileName) {
+  showKonfirmasi(
+    'Hapus Sertifikat',
+    `Apakah Anda yakin ingin menghapus sertifikat "${fileName}"? Tindakan ini akan menghapusnya secara permanen dari Google Drive dan database.`,
+    async () => {
+      try {
+        await gasCall('deleteSertifikatFile', App.user.email, proposalId, fileId);
+        showToast('Sertifikat berhasil dihapus.', 'success');
+        bukaWsProposal(proposalId);
+      } catch (err) {
+        showToast('Gagal menghapus sertifikat: ' + err.message, 'error');
+      }
+    }
+  );
 }
 
 // ── Tab switching ─────────────────────────────
@@ -2327,6 +2632,16 @@ function tampilModalDetailOperator(p) {
       <button class="btn btn-ghost btn-sm"
         onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Sedang Dikerjakan')">
         Tandai Selesai Revisi
+      </button>
+    `;
+  }
+
+  // Tandai Final — jika status Dilanjutkan dan user adalah Operator
+  if (p.status === 'Dilanjutkan' && App.user.role === 'Operator') {
+    aksiHtml += `
+      <button class="btn btn-primary btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Final')">
+        Tandai Final (Lolos Penetapan)
       </button>
     `;
   }
@@ -3300,6 +3615,8 @@ async function renderVerifikasi() {
             <button class="ws-tab" data-tab="ver-kajian" onclick="switchWsTab('ver-kajian')">Kajian Ilmiah</button>
             <button class="ws-tab" data-tab="ver-foto" onclick="switchWsTab('ver-foto')">Foto</button>
             <button class="ws-tab" data-tab="ver-video" onclick="switchWsTab('ver-video')">Video</button>
+            <button class="ws-tab hidden" id="ver-tab-btn-presentasi" data-tab="ver-presentasi" onclick="switchWsTab('ver-presentasi')">Presentasi</button>
+            <button class="ws-tab hidden" id="ver-tab-btn-sertifikat" data-tab="ver-sertifikat" onclick="switchWsTab('ver-sertifikat')">Sertifikat</button>
           </div>
 
           <!-- Formulir -->
@@ -3333,6 +3650,16 @@ async function renderVerifikasi() {
           <!-- Video -->
           <div id="ws-tab-ver-video" class="ws-tab-content hidden">
             <div id="ver-video-wrap"></div>
+          </div>
+
+          <!-- Presentasi -->
+          <div id="ws-tab-ver-presentasi" class="ws-tab-content hidden">
+            <div id="ver-presentasi-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Sertifikat -->
+          <div id="ws-tab-ver-sertifikat" class="ws-tab-content hidden">
+            <div id="ver-sertifikat-list" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
         </div>
 
@@ -3559,8 +3886,7 @@ function renderVerDetail(p) {
             text-overflow:ellipsis;">${f.name}</div>
           <div class="text-faint" style="font-size:0.72rem;">v${f.versi}</div>
         </div>
-        <a href="https://drive.google.com/file/d/${f.fileId}/view"
-          target="_blank" class="btn btn-ghost btn-sm">Lihat ↗</a>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
       </div>
     `).join('');
   }
@@ -3572,7 +3898,7 @@ function renderVerDetail(p) {
   } else {
     fotoGrid.innerHTML = p.fotoFiles.map(f => `
       <div class="foto-thumb">
-        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank">
+        <a href="https://drive.google.com/file/d/${f.fileId}/view" target="_blank" rel="noopener noreferrer">
           <img src="https://drive.google.com/thumbnail?id=${f.fileId}&sz=w200"
             onerror="this.src=''" alt="${f.name}">
         </a>
@@ -3598,6 +3924,56 @@ function renderVerDetail(p) {
     `;
   } else {
     videoWrap.innerHTML = `<div class="text-faint" style="font-size:0.85rem;">Belum ada URL video.</div>`;
+  }
+
+  // Atur visibilitas tab Presentasi & Sertifikat untuk Atasan
+  const tabPresBtn = document.getElementById('ver-tab-btn-presentasi');
+  const tabSertBtn = document.getElementById('ver-tab-btn-sertifikat');
+  
+  if (p.status === 'Dilanjutkan' || p.status === 'Final') {
+    tabPresBtn.classList.remove('hidden');
+  } else {
+    tabPresBtn.classList.add('hidden');
+  }
+  
+  if (p.status === 'Final') {
+    tabSertBtn.classList.remove('hidden');
+  } else {
+    tabSertBtn.classList.add('hidden');
+  }
+
+  // Render list Presentasi untuk Atasan (Read-Only)
+  const presList = document.getElementById('ver-presentasi-list');
+  if (!p.presentasiFiles || p.presentasiFiles.length === 0) {
+    presList.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada berkas presentasi diunggah.</div>`;
+  } else {
+    presList.innerHTML = p.presentasiFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📊</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">v${f.versi} · ${f.uploadedBy}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+      </div>
+    `).join('');
+  }
+
+  // Render list Sertifikat untuk Atasan (Read-Only)
+  const sertList = document.getElementById('ver-sertifikat-list');
+  if (!p.sertifikatFiles || p.sertifikatFiles.length === 0) {
+    sertList.innerHTML = `<div class="text-faint" style="font-size:0.85rem;padding:8px 0;">Belum ada sertifikat penetapan diunggah.</div>`;
+  } else {
+    sertList.innerHTML = p.sertifikatFiles.map(f => `
+      <div class="file-item">
+        <span style="font-size:1.2rem;">📜</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mono" style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div class="text-faint" style="font-size:0.72rem;">Diunggah oleh: ${f.uploadedBy}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('https://drive.google.com/file/d/${f.fileId}/view','_blank')">Lihat ↗</button>
+      </div>
+    `).join('');
   }
 
   // Reset keputusan

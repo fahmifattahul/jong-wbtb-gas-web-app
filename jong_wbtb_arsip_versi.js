@@ -79,18 +79,7 @@ function arsipFormulirVersi(proposalId, folderJenisId, docActiveId, versiLama, a
   var fileAktif       = DriveApp.getFileById(docActiveId);
   var namaFileAktif   = fileAktif.getName();
 
-  // 1. Pindahkan file lama ke ARSIP-VERSI (move, bukan copy)
-  fileAktif.moveTo(folderArsip);
-
-  var arsipFileId = fileAktif.getId(); // ID tetap sama setelah dipindah
-
-  writeAuditLog(
-    ACTION_TYPES.ARSIP_VERSI_PINDAH,
-    "Formulir v" + versiLama + " dipindah ke ARSIP-VERSI. File ID: " + arsipFileId,
-    proposalId
-  );
-
-  // 2. Buat salinan sebagai versi baru di FORMULIR-USULAN/
+  // 1. Buat salinan sebagai versi baru di FORMULIR-USULAN/
   // Nama versi baru: ganti suffix _vN dengan _v(N+1)
   var namaVersiLamaPattern = new RegExp("_v" + versiLama + "$");
   var namaFileBaru = namaFileAktif.replace(namaVersiLamaPattern, "_v" + versiBaru);
@@ -101,12 +90,21 @@ function arsipFormulirVersi(proposalId, folderJenisId, docActiveId, versiLama, a
   writeAuditLog(
     ACTION_TYPES.FORMULIR_VERSI_BARU,
     "Formulir v" + versiBaru + " dibuat. File ID: " + newDocId +
-    ". Salinan dari v" + versiLama + " (ID: " + arsipFileId + ").",
+    ". Salinan dari v" + versiLama + " (ID: " + docActiveId + ").",
+    proposalId
+  );
+
+  // 2. Pindahkan file lama ke ARSIP-VERSI (move, bukan copy)
+  fileAktif.moveTo(folderArsip);
+
+  writeAuditLog(
+    ACTION_TYPES.ARSIP_VERSI_PINDAH,
+    "Formulir v" + versiLama + " dipindah ke ARSIP-VERSI. File ID: " + docActiveId,
     proposalId
   );
 
   return {
-    arsipFileId : arsipFileId,
+    arsipFileId : docActiveId,
     newDocId    : newDocId,
     versiLama   : versiLama,
     versiBaru   : versiBaru
