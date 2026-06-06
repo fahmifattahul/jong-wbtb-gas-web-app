@@ -295,13 +295,26 @@ async function renderArsip() {
             value="${App.data.arsipQuery || ''}"
             style="padding-left:32px;height:34px;font-size:0.8rem;">
         </div>
-        <select id="arsip-filter-status" class="form-control"
-          style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
-          onchange="filterArsip()">
+        <select id="arsip-filter-status" class="hidden">
           <option value="">Semua Status</option>
-          <option value="Final" ${App.data.arsipStatus === 'Final' ? 'selected' : ''}>Ditetapkan (Final)</option>
-          <option value="Ditangguhkan" ${App.data.arsipStatus === 'Ditangguhkan' ? 'selected' : ''}>Ditangguhkan</option>
+          <option value="Final">Ditetapkan (Final)</option>
+          <option value="Ditangguhkan">Ditangguhkan</option>
         </select>
+
+        <!-- Custom Dropdown UI -->
+        <div class="custom-dropdown" style="position:relative; display:inline-block; min-width:180px;">
+          <button type="button" class="form-control custom-dropdown-trigger" 
+            style="height:34px; padding:0 12px; display:flex; justify-content:space-between; align-items:center; background:#FFF; border:3px solid #000 !important; border-radius:8px; cursor:pointer; font-size:0.8rem;"
+            onclick="toggleCustomDropdown('arsip-filter-status-menu', event)">
+            <span class="selected-text">${App.data.arsipStatus === 'Final' ? 'Ditetapkan (Final)' : (App.data.arsipStatus === 'Ditangguhkan' ? 'Ditangguhkan' : 'Semua Status')}</span>
+            <span style="font-size:0.6rem; margin-left:8px;">▼</span>
+          </button>
+          <div id="arsip-filter-status-menu" class="custom-dropdown-menu hidden">
+            <div class="dropdown-item" onclick="selectCustomDropdownOption('arsip-filter-status', '', 'Semua Status', 'arsip-filter-status-menu', 'filterArsip')">Semua Status</div>
+            <div class="dropdown-item" onclick="selectCustomDropdownOption('arsip-filter-status', 'Final', 'Ditetapkan (Final)', 'arsip-filter-status-menu', 'filterArsip')">Ditetapkan (Final)</div>
+            <div class="dropdown-item" onclick="selectCustomDropdownOption('arsip-filter-status', 'Ditangguhkan', 'Ditangguhkan', 'arsip-filter-status-menu', 'filterArsip')">Ditangguhkan</div>
+          </div>
+        </div>
       </div>
 
       <div id="arsip-table-body">

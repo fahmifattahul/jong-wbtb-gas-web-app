@@ -474,6 +474,37 @@
     margin-top: 6px; 
     font-weight: 600;
   }
+  /* Custom Dropdown styling */
+  .custom-dropdown-menu {
+    position: absolute;
+    top: 38px;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border: 3px solid #000000 !important;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
+    overflow: hidden;
+    z-index: 1000;
+  }
+  .custom-dropdown-menu .dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: #000000;
+    transition: all 0.1s;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E0E0E0;
+    text-align: left;
+  }
+  .custom-dropdown-menu .dropdown-item:last-child {
+    border-bottom: none;
+  }
+  .custom-dropdown-menu .dropdown-item:hover {
+    background: var(--cyan-700) !important;
+    color: #FFFFFF !important;
+  }
 
   /* ── Table (Raw Brutalist Grid) ─────────────────── */
   .table-wrap { 
@@ -2705,17 +2736,34 @@ async function renderSemuaUsulan() {
               value="${App.data.semuaQuery || ''}"
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
-          <select id="filter-status" class="form-control"
-            style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
-            onchange="filterSemuaUsulan()">
+          <select id="filter-status" class="hidden">
             <option value="">Semua Status</option>
-            <option ${App.data.semuaStatus === 'Sedang Dikerjakan' ? 'selected' : ''}>Sedang Dikerjakan</option>
-            <option ${App.data.semuaStatus === 'Persetujuan Internal' ? 'selected' : ''}>Persetujuan Internal</option>
-            <option ${App.data.semuaStatus === 'Diperbaiki' ? 'selected' : ''}>Diperbaiki</option>
-            <option ${App.data.semuaStatus === 'Dilanjutkan' ? 'selected' : ''}>Dilanjutkan</option>
-            <option ${App.data.semuaStatus === 'Ditangguhkan' ? 'selected' : ''}>Ditangguhkan</option>
-            <option ${App.data.semuaStatus === 'Final' ? 'selected' : ''}>Final</option>
+            <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
+            <option value="Persetujuan Internal">Persetujuan Internal</option>
+            <option value="Diperbaiki">Diperbaiki</option>
+            <option value="Dilanjutkan">Dilanjutkan</option>
+            <option value="Ditangguhkan">Ditangguhkan</option>
+            <option value="Final">Final</option>
           </select>
+
+          <!-- Custom Dropdown UI -->
+          <div class="custom-dropdown" style="position:relative; display:inline-block; min-width:180px;">
+            <button type="button" class="form-control custom-dropdown-trigger" 
+              style="height:34px; padding:0 12px; display:flex; justify-content:space-between; align-items:center; background:#FFF; border:3px solid #000 !important; border-radius:8px; cursor:pointer; font-size:0.8rem;"
+              onclick="toggleCustomDropdown('filter-status-menu', event)">
+              <span class="selected-text">${App.data.semuaStatus || 'Semua Status'}</span>
+              <span style="font-size:0.6rem; margin-left:8px;">▼</span>
+            </button>
+            <div id="filter-status-menu" class="custom-dropdown-menu hidden">
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', '', 'Semua Status', 'filter-status-menu', 'filterSemuaUsulan')">Semua Status</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Sedang Dikerjakan', 'Sedang Dikerjakan', 'filter-status-menu', 'filterSemuaUsulan')">Sedang Dikerjakan</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Persetujuan Internal', 'Persetujuan Internal', 'filter-status-menu', 'filterSemuaUsulan')">Persetujuan Internal</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Diperbaiki', 'Diperbaiki', 'filter-status-menu', 'filterSemuaUsulan')">Diperbaiki</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Dilanjutkan', 'Dilanjutkan', 'filter-status-menu', 'filterSemuaUsulan')">Dilanjutkan</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Ditangguhkan', 'Ditangguhkan', 'filter-status-menu', 'filterSemuaUsulan')">Ditangguhkan</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('filter-status', 'Final', 'Final', 'filter-status-menu', 'filterSemuaUsulan')">Final</div>
+            </div>
+          </div>
         </div>
 
         <div id="semua-usulan-body">
@@ -4767,9 +4815,7 @@ async function renderLogAktivitas() {
               oninput="filterLogDebounced(this.value)"
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
-          <select id="log-filter-action" class="form-control"
-            style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
-            onchange="filterLog()">
+          <select id="log-filter-action" class="hidden">
             <option value="">Semua Aksi</option>
             <option value="STATUS_CHANGE">Perubahan Status</option>
             <option value="WORKSPACE_INIT">Workspace & Inisialisasi</option>
@@ -4781,6 +4827,28 @@ async function renderLogAktivitas() {
             <option value="EVALUASI">Evaluasi & Retensi</option>
             <option value="ERROR">Error Sistem</option>
           </select>
+
+          <!-- Custom Dropdown UI -->
+          <div class="custom-dropdown" style="position:relative; display:inline-block; min-width:180px;">
+            <button type="button" class="form-control custom-dropdown-trigger" 
+              style="height:34px; padding:0 12px; display:flex; justify-content:space-between; align-items:center; background:#FFF; border:3px solid #000 !important; border-radius:8px; cursor:pointer; font-size:0.8rem;"
+              onclick="toggleCustomDropdown('log-filter-action-menu', event)">
+              <span class="selected-text">Semua Aksi</span>
+              <span style="font-size:0.6rem; margin-left:8px;">▼</span>
+            </button>
+            <div id="log-filter-action-menu" class="custom-dropdown-menu hidden">
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', '', 'Semua Aksi', 'log-filter-action-menu', 'filterLog')">Semua Aksi</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'STATUS_CHANGE', 'Perubahan Status', 'log-filter-action-menu', 'filterLog')">Perubahan Status</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'WORKSPACE_INIT', 'Workspace & Inisialisasi', 'log-filter-action-menu', 'filterLog')">Workspace & Inisialisasi</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'DOKUMEN', 'Unggah Dokumen', 'log-filter-action-menu', 'filterLog')">Unggah Dokumen</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'CATATAN', 'Catatan & Revisi', 'log-filter-action-menu', 'filterLog')">Catatan & Revisi</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'AKSES', 'Kelola Akses', 'log-filter-action-menu', 'filterLog')">Kelola Akses</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'DRIVE', 'Drive Access', 'log-filter-action-menu', 'filterLog')">Drive Access</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'HISTORIS', 'Arsip Historis', 'log-filter-action-menu', 'filterLog')">Arsip Historis</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'EVALUASI', 'Evaluasi & Retensi', 'log-filter-action-menu', 'filterLog')">Evaluasi & Retensi</div>
+              <div class="dropdown-item" onclick="selectCustomDropdownOption('log-filter-action', 'ERROR', 'Error Sistem', 'log-filter-action-menu', 'filterLog')">Error Sistem</div>
+            </div>
+          </div>
         </div>
 
         <div id="log-body">
@@ -5151,6 +5219,43 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
+
+// Custom Dropdown UI Helpers
+function toggleCustomDropdown(menuId, event) {
+  if (event) event.stopPropagation();
+  // Close all other dropdown menus first
+  document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+    if (menu.id !== menuId) menu.classList.add('hidden');
+  });
+  const menu = document.getElementById(menuId);
+  if (menu) {
+    menu.classList.toggle('hidden');
+  }
+}
+
+function selectCustomDropdownOption(selectId, value, text, menuId, filterFunc) {
+  const select = document.getElementById(selectId);
+  if (select) {
+    select.value = value;
+    // Update trigger button text
+    const triggerBtn = select.parentElement.querySelector('.custom-dropdown-trigger span.selected-text');
+    if (triggerBtn) triggerBtn.textContent = text;
+  }
+  const menu = document.getElementById(menuId);
+  if (menu) menu.classList.add('hidden');
+  
+  // Call filter function
+  if (filterFunc && typeof window[filterFunc] === 'function') {
+    window[filterFunc]();
+  }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function() {
+  document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+    menu.classList.add('hidden');
+  });
+});
 
 // ════════════════════════════════════════════════
 // BOOT
