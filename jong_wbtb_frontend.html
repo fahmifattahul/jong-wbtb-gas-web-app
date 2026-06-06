@@ -2706,7 +2706,7 @@ async function renderSemuaUsulan() {
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
           <select id="filter-status" class="form-control"
-            style="width:auto;height:34px;font-size:0.8rem;"
+            style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
             onchange="filterSemuaUsulan()">
             <option value="">Semua Status</option>
             <option ${App.data.semuaStatus === 'Sedang Dikerjakan' ? 'selected' : ''}>Sedang Dikerjakan</option>
@@ -4768,7 +4768,7 @@ async function renderLogAktivitas() {
               style="padding-left:32px;height:34px;font-size:0.8rem;">
           </div>
           <select id="log-filter-action" class="form-control"
-            style="width:auto;height:34px;font-size:0.8rem;"
+            style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
             onchange="filterLog()">
             <option value="">Semua Aksi</option>
             <option value="STATUS_CHANGE">Perubahan Status</option>

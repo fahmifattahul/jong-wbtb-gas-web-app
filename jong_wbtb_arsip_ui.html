@@ -296,7 +296,7 @@ async function renderArsip() {
             style="padding-left:32px;height:34px;font-size:0.8rem;">
         </div>
         <select id="arsip-filter-status" class="form-control"
-          style="width:auto;height:34px;font-size:0.8rem;"
+          style="width:auto;min-width:180px;height:34px;padding-top:0;padding-bottom:0;font-size:0.8rem;"
           onchange="filterArsip()">
           <option value="">Semua Status</option>
           <option value="Final" ${App.data.arsipStatus === 'Final' ? 'selected' : ''}>Ditetapkan (Final)</option>

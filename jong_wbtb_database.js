@@ -294,6 +294,17 @@ var DatabaseEngine = {
       var sheet = this.getSheet(sheetName);
       var result = transactionCallback(sheet);
       SpreadsheetApp.flush();
+
+      // Auto-invalidation cache dashboard data saat sheet db_wbtb_lingga berubah
+      if (sheetName === DB_NAMES.WBTB_LINGGA) {
+        try {
+          var cache = CacheService.getScriptCache();
+          cache.remove("dashboard_data");
+        } catch (cacheErr) {
+          Logger.log("Failed to clear dashboard cache: " + cacheErr.toString());
+        }
+      }
+
       return result;
     } catch (e) {
       writeAuditLog("ERROR", "Transaction error di sheet '" + sheetName + "': " + e.toString());

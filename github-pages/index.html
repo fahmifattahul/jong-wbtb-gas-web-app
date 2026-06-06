@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- SEO & Social -->
+  <title>JONG WBTb — Sistem Pengelolaan Warisan Budaya Takbenda</title>
+  <meta name="description" content="Sistem Pengelolaan Dokumen Digital Warisan Budaya Takbenda Kabupaten Lingga. Dibangun sesuai Juknis Tata Kelola Dokumen Digital WBTb 2026 Revisi 2.">
+  <meta name="theme-color" content="#227772">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- PWA-like behavior -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JONG WBTb">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Favicon (emoji fallback) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+
+  <!-- Same fonts as the main app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset ───────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Work Sans', sans-serif;
+      background: #227772;
+    }
+
+    /* ── Iframe (Full Page) ──────────────────── */
+    #app-frame {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 1;
+    }
+
+    #app-frame.loaded {
+      opacity: 1;
+    }
+
+    /* ── Loading Screen ─────────────────────── */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #227772;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      gap: 24px;
+    }
+
+    #loading-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Accent bar - Triwarna Melayu */
+    .accent-stripe {
+      width: 200px;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #cc0000 0%, #fcc603 50%, #38c7bd 100%);
+      margin-bottom: 8px;
+      border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    .load-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      color: #fcc603;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .load-sub {
+      font-family: 'Work Sans', sans-serif;
+      font-size: clamp(0.65rem, 2vw, 0.78rem);
+      color: rgba(255, 255, 255, 0.85);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Brutalist spinner */
+    .brutalist-spinner {
+      width: 28px;
+      height: 28px;
+      border: 4px solid rgba(255, 255, 255, 0.25);
+      border-top: 4px solid #fcc603;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .load-status {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Error State ────────────────────────── */
+    #error-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #227772;
+      gap: 20px;
+      padding: 32px;
+    }
+
+    #error-screen.visible {
+      display: flex;
+    }
+
+    .error-box {
+      background: #fff;
+      border: 4px solid #000;
+      border-radius: 8px;
+      box-shadow: 6px 6px 0px #000;
+      padding: 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+    }
+
+    .error-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      color: #000;
+      margin-bottom: 8px;
+    }
+
+    .error-msg {
+      font-size: 0.85rem;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border: 3px solid #000;
+      background: #227772;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: 4px 4px 0px #000;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .btn-retry:hover {
+      background: #fcc603;
+      color: #000;
+    }
+
+    .btn-retry:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #000;
+    }
+
+    /* ── Footer watermark ───────────────────── */
+    .watermark {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      z-index: 5;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .watermark.hidden {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="accent-stripe"></div>
+    <div class="load-title">JONG WBTb</div>
+    <div class="load-sub">
+      Sistem Pengelolaan Warisan Budaya Takbenda<br>
+      Kabupaten Lingga
+    </div>
+    <div class="brutalist-spinner"></div>
+    <div class="load-status" id="load-status">Menghubungkan ke server...</div>
+  </div>
+
+  <!-- Error Screen -->
+  <div id="error-screen">
+    <div class="error-box">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Gagal Memuat Aplikasi</div>
+      <div class="error-msg">
+        Server sedang tidak merespons. Ini bisa terjadi jika koneksi internet terputus
+        atau server Google Apps Script sedang mengalami gangguan sementara.
+      </div>
+      <button class="btn-retry" onclick="retryLoad()">
+        ↻ Coba Lagi
+      </button>
+    </div>
+  </div>
+
+  <!-- Watermark (disappears after load) -->
+  <div class="watermark" id="watermark">Dinas Kebudayaan Kab. Lingga</div>
+
+  <!-- App iframe -->
+  <iframe
+    id="app-frame"
+    src="https://script.google.com/macros/s/AKfycbz0int5JMW3IWPwEl1039Lq-8pJc8aW4iKiHYieoykza8gVeOuEE2p1sG4krQfAE89W/exec"
+    allow="clipboard-write"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+    title="JONG WBTb — Sistem Pengelolaan WBTb"
+  ></iframe>
+
+  <script>
+    const iframe = document.getElementById('app-frame');
+    const loadingScreen = document.getElementById('loading-screen');
+    const errorScreen = document.getElementById('error-screen');
+    const loadStatus = document.getElementById('load-status');
+    const watermark = document.getElementById('watermark');
+
+    let loadTimeout;
+    let statusInterval;
+
+    // Simulated status messages while loading
+    const statusMessages = [
+      'Menghubungkan ke server...',
+      'Memuat antarmuka...',
+      'Menyiapkan data...',
+      'Hampir selesai...'
+    ];
+
+    function startStatusCycle() {
+      let idx = 0;
+      statusInterval = setInterval(() => {
+        idx = Math.min(idx + 1, statusMessages.length - 1);
+        loadStatus.textContent = statusMessages[idx];
+      }, 3000);
+    }
+
+    function onFrameLoaded() {
+      clearTimeout(loadTimeout);
+      clearInterval(statusInterval);
+
+      loadStatus.textContent = 'Siap!';
+
+      // Short delay to let GAS app render its own loading
+      setTimeout(() => {
+        iframe.classList.add('loaded');
+        loadingScreen.classList.add('hidden');
+        watermark.classList.add('hidden');
+      }, 600);
+    }
+
+    function onFrameError() {
+      clearTimeout(loadTimeout);
+      clearInterval(statusInterval);
+      loadingScreen.classList.add('hidden');
+      errorScreen.classList.add('visible');
+    }
+
+    function retryLoad() {
+      errorScreen.classList.remove('visible');
+      loadingScreen.classList.remove('hidden');
+      iframe.classList.remove('loaded');
+      loadStatus.textContent = statusMessages[0];
+
+      // Force reload iframe
+      const src = iframe.src;
+      iframe.src = '';
+      setTimeout(() => {
+        iframe.src = src;
+        startLoadTimer();
+        startStatusCycle();
+      }, 100);
+    }
+
+    function startLoadTimer() {
+      // Timeout after 30 seconds
+      loadTimeout = setTimeout(() => {
+        onFrameError();
+      }, 30000);
+    }
+
+    // Events
+    iframe.addEventListener('load', onFrameLoaded);
+    iframe.addEventListener('error', onFrameError);
+
+    // Start
+    startLoadTimer();
+    startStatusCycle();
+  </script>
+
+</body>
+</html>

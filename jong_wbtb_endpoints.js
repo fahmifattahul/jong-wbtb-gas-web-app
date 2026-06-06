@@ -38,6 +38,81 @@ function include(filename) {
 
 
 // ════════════════════════════════════════════════
+// 0. DATA CACHE LAYER
+// Mengurangi Sheet read untuk endpoint yang sering dipanggil.
+// Cache otomatis expire setelah 30 detik.
+// ════════════════════════════════════════════════
+
+var DATA_CACHE_TTL = 30; // 30 detik
+
+/**
+ * Membaca data dari cache. Return null jika tidak ada atau expired.
+ * @param {string} key - Cache key
+ * @returns {*|null} - Data yang di-cache, atau null
+ */
+function getCachedData(key) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var raw = cache.get(key);
+    if (raw !== null) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    Logger.log('getCachedData error: ' + e.toString());
+  }
+  return null;
+}
+
+/**
+ * Menyimpan data ke cache.
+ * @param {string} key  - Cache key
+ * @param {*}      data - Data yang akan di-cache (harus JSON-serializable)
+ * @param {number} [ttl] - Time-to-live dalam detik (default: DATA_CACHE_TTL)
+ */
+function setCachedData(key, data, ttl) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var json = JSON.stringify(data);
+    // CacheService max value 100KB — jika lebih besar, skip cache
+    if (json.length < 100000) {
+      cache.put(key, json, ttl || DATA_CACHE_TTL);
+    }
+  } catch (e) {
+    Logger.log('setCachedData error: ' + e.toString());
+  }
+}
+
+/**
+ * Menghapus cache tertentu. Dipanggil setelah operasi tulis.
+ * @param {string|string[]} keys - Cache key atau array of keys
+ */
+function invalidateCache(keys) {
+  try {
+    var cache = CacheService.getScriptCache();
+    if (Array.isArray(keys)) {
+      cache.removeAll(keys);
+    } else {
+      cache.remove(keys);
+    }
+  } catch (e) {
+    Logger.log('invalidateCache error: ' + e.toString());
+  }
+}
+
+/**
+ * Menghapus semua cache data terkait proposal.
+ * Dipanggil setelah setiap operasi tulis (create, update, upload, delete).
+ */
+function invalidateProposalCaches(proposalId) {
+  var keys = ['dashboard_data'];
+  if (proposalId) {
+    keys.push('proposal_' + proposalId);
+  }
+  invalidateCache(keys);
+}
+
+
+// ════════════════════════════════════════════════
 // 1. AUTH & USER
 // ════════════════════════════════════════════════
 
@@ -65,6 +140,13 @@ function getDashboardData(requesterEmail) {
   try {
     var role = requireRole(requesterEmail,
       [ROLES.ANGGOTA_TIM, ROLES.OPERATOR, ROLES.ATASAN]);
+
+    // Cache-first: cek apakah data dashboard sudah ada di cache
+    var cacheKey = 'dashboard_data';
+    var cached = getCachedData(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     var sheet     = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var data      = sheet.getDataRange().getValues();
@@ -122,7 +204,9 @@ function getDashboardData(requesterEmail) {
       }
     }
 
-    return { metrics: metrics, proposals: proposals };
+    var result = { metrics: metrics, proposals: proposals };
+    setCachedData(cacheKey, result);
+    return result;
   } catch (err) {
     throw new Error('getDashboardData gagal: ' + err.message);
   }
@@ -256,6 +340,7 @@ function createProposal(operatorEmail, data) {
       'Proposal baru: ' + proposalId + ' — ' + data.namaKarya +
       '. PJ: ' + pjNama + '. Operator: ' + operatorEmail, proposalId);
 
+    invalidateProposalCaches(proposalId);
     return {
       proposalId    : proposalId,
       namaKarya     : data.namaKarya,
@@ -343,6 +428,7 @@ function updateProposalStatus(requesterEmail, proposalId, keStatus) {
     if (keStatus === STATUS.FINAL || keStatus === STATUS.DITANGGUHKAN) {
       kunciFolderDrive(proposalId, requesterEmail);
     }
+    invalidateProposalCaches(proposalId);
     return hasil;
   } catch (err) {
     throw new Error('updateProposalStatus gagal: ' + err.message);
@@ -368,6 +454,7 @@ function kembalikanKeAnggota(atasanEmail, proposalId, catatan) {
     writeAuditLog(ACTION_TYPES.CATATAN_ATASAN_SET,
       'Catatan internal Atasan disimpan untuk ' + proposalId +
       '. Dikembalikan oleh: ' + atasanEmail, proposalId);
+    invalidateProposalCaches(proposalId);
     return changeStatus(proposalId, STATUS.SEDANG_DIKERJAKAN,
       ROLES.ATASAN, atasanEmail, null);
   } catch (err) {
@@ -705,6 +792,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
       'Kajian diunggah: ' + namaFileKajian + '. File ID: ' + file.getId(),
       proposalId);
 
+    invalidateProposalCaches(proposalId);
     return { fileId: file.getId(), namaFile: namaFileKajian };
   } catch (err) {
     throw new Error('uploadKajian gagal: ' + err.message);
@@ -801,6 +889,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     writeAuditLog(ACTION_TYPES.FOTO_UPLOAD,
       payload.files.length + ' foto diunggah untuk ' + proposalId, proposalId);
 
+    invalidateProposalCaches(proposalId);
     return hasilUpload;
   } catch (err) {
     throw new Error('uploadFoto gagal: ' + err.message);
