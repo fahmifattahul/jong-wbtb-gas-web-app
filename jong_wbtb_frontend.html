@@ -1713,37 +1713,36 @@ function renderWsFolderList(proposals) {
         ${(App.user.role === 'Anggota Tim' || App.user.role === 'Operator') ? 'Belum ada folder usulan yang ditugaskan kepadamu.' : 'Belum ada folder usulan aktif.'}
       </div>
     `;
-    return;
+  } else {
+    wrap.innerHTML = filtered.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:12px 16px;border:1px solid var(--border);border-radius:6px;
+        cursor:pointer;transition:background 0.1s;"
+        onmouseover="this.style.background='var(--surface-2)'"
+        onmouseout="this.style.background=''"
+        onclick="bukaWsProposal('${p.id}')">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
+            <span class="badge status-${statusClass(p.status)}">${p.status}</span>
+            ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
+              ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
+              : ''
+            }
+            ${p.revisiRound > 0
+              ? '<span class="badge badge-neutral">P' + String(p.revisiRound).padStart(2,'0') + '</span>'
+              : ''}
+          </div>
+          <div style="font-weight:500;">${p.namaKarya}</div>
+          <div class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</div>
+        </div>
+        <span style="color:var(--ink-faint);">→</span>
+      </div>
+    `).join('');
   }
 
-  wrap.innerHTML = filtered.map(p => `
-    <div style="display:flex;align-items:center;justify-content:space-between;
-      padding:12px 16px;border:1px solid var(--border);border-radius:6px;
-      cursor:pointer;transition:background 0.1s;"
-      onmouseover="this.style.background='var(--surface-2)'"
-      onmouseout="this.style.background=''"
-      onclick="bukaWsProposal('${p.id}')">
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-          <span class="mono text-muted" style="font-size:0.78rem;">${p.id}</span>
-          <span class="badge status-${statusClass(p.status)}">${p.status}</span>
-          ${p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true
-            ? '<span class="badge badge-success" style="margin-left:4px;font-size:0.7rem;padding:2px 6px;background-color:var(--emerald);color:white;font-weight:600;">ACC</span>'
-            : ''
-          }
-          ${p.revisiRound > 0
-            ? '<span class="badge badge-neutral">P' + String(p.revisiRound).padStart(2,'0') + '</span>'
-            : ''}
-        </div>
-        <div style="font-weight:500;">${p.namaKarya}</div>
-        <div class="text-muted" style="font-size:0.78rem;">${shortenDomain(p.domain)}</div>
-      </div>
-      <span style="color:var(--ink-faint);">→</span>
-    </div>
-  `).join('');
-
-  // Auto-buka jika hanya satu folder
-  if (filtered.length === 1) {
+  // Auto-buka jika hanya satu folder (hanya jika tidak sedang membuka spesifik proposal)
+  if (!App.data.activeProposalId && filtered.length === 1) {
     bukaWsProposal(filtered[0].id);
   }
 
