@@ -1550,7 +1550,7 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
  */
 function uploadPresentasi(email, proposalId, fileMeta) {
   try {
-    var role = requireRole(email, [ROLES.OPERATOR]);
+    var role = requireRole(email, [ROLES.OPERATOR, ROLES.ANGGOTA_TIM]);
     
     var validasi = validateFilePresentasi(fileMeta);
     if (!validasi.valid) throw new Error(validasi.pesan);
@@ -1625,7 +1625,7 @@ function uploadPresentasi(email, proposalId, fileMeta) {
  */
 function deletePresentasiFile(email, proposalId, fileId) {
   try {
-    var role = requireRole(email, [ROLES.OPERATOR]);
+    var role = requireRole(email, [ROLES.OPERATOR, ROLES.ANGGOTA_TIM]);
     var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
