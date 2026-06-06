@@ -1140,7 +1140,7 @@ function jalankanEvaluasiKepatuhan(atasanEmail) {
     }
 
     writeAuditLog(ACTION_TYPES.EVALUASI_KEPATUHAN,
-      'Evaluasi kepatuhan dijalankan oleh Atasan: ' + atasanEmail +
+      'Evaluasi kelengkapan progres dijalankan oleh Atasan: ' + atasanEmail +
       '. Total dievaluasi: ' + hasil.length + ' folder.', null);
 
     return hasil;
