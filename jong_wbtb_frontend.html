@@ -2124,7 +2124,7 @@ function renderWsVideo(p) {
 function isPresentasiEditable(p) {
   if (!p) return false;
   if (p.status !== 'Dilanjutkan' || p.driveLocked) return false;
-  return (App.user.role === 'Operator' || App.user.role === 'Anggota Tim') && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase();
+  return App.user.role === 'Operator' || (App.user.role === 'Anggota Tim' && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase());
 }
 
 function isSertifikatEditable(p) {
@@ -2693,7 +2693,7 @@ function statusClass(status) {
 
 function isWorkspaceEditable(p) {
   if (!p) return false;
-  if (App.user.role === 'Anggota Tim' || App.user.role === 'Operator') {
+  if (App.user.role === 'Anggota Tim') {
     if ((p.penanggungJawabEmail || '').toLowerCase() !== App.user.email.toLowerCase()) {
       return false;
     }

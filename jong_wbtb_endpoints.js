@@ -38,81 +38,6 @@ function include(filename) {
 
 
 // ════════════════════════════════════════════════
-// 0. DATA CACHE LAYER
-// Mengurangi Sheet read untuk endpoint yang sering dipanggil.
-// Cache otomatis expire setelah 30 detik.
-// ════════════════════════════════════════════════
-
-var DATA_CACHE_TTL = 30; // 30 detik
-
-/**
- * Membaca data dari cache. Return null jika tidak ada atau expired.
- * @param {string} key - Cache key
- * @returns {*|null} - Data yang di-cache, atau null
- */
-function getCachedData(key) {
-  try {
-    var cache = CacheService.getScriptCache();
-    var raw = cache.get(key);
-    if (raw !== null) {
-      return JSON.parse(raw);
-    }
-  } catch (e) {
-    Logger.log('getCachedData error: ' + e.toString());
-  }
-  return null;
-}
-
-/**
- * Menyimpan data ke cache.
- * @param {string} key  - Cache key
- * @param {*}      data - Data yang akan di-cache (harus JSON-serializable)
- * @param {number} [ttl] - Time-to-live dalam detik (default: DATA_CACHE_TTL)
- */
-function setCachedData(key, data, ttl) {
-  try {
-    var cache = CacheService.getScriptCache();
-    var json = JSON.stringify(data);
-    // CacheService max value 100KB — jika lebih besar, skip cache
-    if (json.length < 100000) {
-      cache.put(key, json, ttl || DATA_CACHE_TTL);
-    }
-  } catch (e) {
-    Logger.log('setCachedData error: ' + e.toString());
-  }
-}
-
-/**
- * Menghapus cache tertentu. Dipanggil setelah operasi tulis.
- * @param {string|string[]} keys - Cache key atau array of keys
- */
-function invalidateCache(keys) {
-  try {
-    var cache = CacheService.getScriptCache();
-    if (Array.isArray(keys)) {
-      cache.removeAll(keys);
-    } else {
-      cache.remove(keys);
-    }
-  } catch (e) {
-    Logger.log('invalidateCache error: ' + e.toString());
-  }
-}
-
-/**
- * Menghapus semua cache data terkait proposal.
- * Dipanggil setelah setiap operasi tulis (create, update, upload, delete).
- */
-function invalidateProposalCaches(proposalId) {
-  var keys = ['dashboard_data'];
-  if (proposalId) {
-    keys.push('proposal_' + proposalId);
-  }
-  invalidateCache(keys);
-}
-
-
-// ════════════════════════════════════════════════
 // 1. AUTH & USER
 // ════════════════════════════════════════════════
 
@@ -141,11 +66,10 @@ function getDashboardData(requesterEmail) {
     var role = requireRole(requesterEmail,
       [ROLES.ANGGOTA_TIM, ROLES.OPERATOR, ROLES.ATASAN]);
 
-    // Cache-first: cek apakah data dashboard sudah ada di cache
-    var cacheKey = 'dashboard_data';
-    var cached = getCachedData(cacheKey);
+    var cache = CacheService.getScriptCache();
+    var cached = cache.get("dashboard_data");
     if (cached) {
-      return cached;
+      return JSON.parse(cached);
     }
 
     var sheet     = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
@@ -205,7 +129,14 @@ function getDashboardData(requesterEmail) {
     }
 
     var result = { metrics: metrics, proposals: proposals };
-    setCachedData(cacheKey, result);
+    
+    // Save to cache for 30 seconds
+    try {
+      cache.put("dashboard_data", JSON.stringify(result), 30);
+    } catch(cacheErr) {
+      Logger.log("Gagal menulis cache dashboard_data: " + cacheErr.toString());
+    }
+
     return result;
   } catch (err) {
     throw new Error('getDashboardData gagal: ' + err.message);
@@ -340,7 +271,6 @@ function createProposal(operatorEmail, data) {
       'Proposal baru: ' + proposalId + ' — ' + data.namaKarya +
       '. PJ: ' + pjNama + '. Operator: ' + operatorEmail, proposalId);
 
-    invalidateProposalCaches(proposalId);
     return {
       proposalId    : proposalId,
       namaKarya     : data.namaKarya,
@@ -428,7 +358,6 @@ function updateProposalStatus(requesterEmail, proposalId, keStatus) {
     if (keStatus === STATUS.FINAL || keStatus === STATUS.DITANGGUHKAN) {
       kunciFolderDrive(proposalId, requesterEmail);
     }
-    invalidateProposalCaches(proposalId);
     return hasil;
   } catch (err) {
     throw new Error('updateProposalStatus gagal: ' + err.message);
@@ -454,7 +383,6 @@ function kembalikanKeAnggota(atasanEmail, proposalId, catatan) {
     writeAuditLog(ACTION_TYPES.CATATAN_ATASAN_SET,
       'Catatan internal Atasan disimpan untuk ' + proposalId +
       '. Dikembalikan oleh: ' + atasanEmail, proposalId);
-    invalidateProposalCaches(proposalId);
     return changeStatus(proposalId, STATUS.SEDANG_DIKERJAKAN,
       ROLES.ATASAN, atasanEmail, null);
   } catch (err) {
@@ -570,7 +498,7 @@ function buatFormulirProposal(anggotaEmail, proposalId) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -636,7 +564,7 @@ function naikVersiFormulir(anggotaEmail, proposalId) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -715,7 +643,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -792,7 +720,6 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
       'Kajian diunggah: ' + namaFileKajian + '. File ID: ' + file.getId(),
       proposalId);
 
-    invalidateProposalCaches(proposalId);
     return { fileId: file.getId(), namaFile: namaFileKajian };
   } catch (err) {
     throw new Error('uploadKajian gagal: ' + err.message);
@@ -828,7 +755,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -889,7 +816,6 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     writeAuditLog(ACTION_TYPES.FOTO_UPLOAD,
       payload.files.length + ' foto diunggah untuk ' + proposalId, proposalId);
 
-    invalidateProposalCaches(proposalId);
     return hasilUpload;
   } catch (err) {
     throw new Error('uploadFoto gagal: ' + err.message);
@@ -917,7 +843,7 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -1359,10 +1285,6 @@ function deleteActiveFormulir(operatorEmail, proposalId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var docActiveId = row[COL.DOC_ACTIVE_ID];
-    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
-    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
-      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
-    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1416,10 +1338,6 @@ function deleteKajianFile(operatorEmail, proposalId, fileId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var kajianFiles = safeParseJSON(row[COL.KAJIAN_FILES_JSON], []);
-    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
-    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
-      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
-    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1473,10 +1391,6 @@ function deleteFotoFile(operatorEmail, proposalId, fileId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var fotoFiles = safeParseJSON(row[COL.FOTO_FILES_JSON], []);
-    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
-    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
-      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
-    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1604,7 +1518,7 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal \'' + proposalId + '\' tidak ditemukan.');
     
-    if (hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     
@@ -1636,7 +1550,7 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
  */
 function uploadPresentasi(email, proposalId, fileMeta) {
   try {
-    var role = requireRole(email, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
+    var role = requireRole(email, [ROLES.OPERATOR]);
     
     var validasi = validateFilePresentasi(fileMeta);
     if (!validasi.valid) throw new Error(validasi.pesan);
@@ -1646,7 +1560,7 @@ function uploadPresentasi(email, proposalId, fileMeta) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row = hasil.rowData;
-    if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
 
@@ -1711,13 +1625,13 @@ function uploadPresentasi(email, proposalId, fileMeta) {
  */
 function deletePresentasiFile(email, proposalId, fileId) {
   try {
-    var role = requireRole(email, [ROLES.OPERATOR, ROLES.ANGGOTA_TIM]);
+    var role = requireRole(email, [ROLES.OPERATOR]);
     var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row = hasil.rowData;
-    if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
 

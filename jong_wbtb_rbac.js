@@ -417,3 +417,10 @@ function getAllActiveUsers(requesterEmail) {
 
   return result;
 }
+
+function clearCache() {
+  CacheService.getScriptCache().removeAll([
+    'user_role_natbkdisbudlingga@gmail.com'
+  ]);
+  Logger.log('Cache cleared');
+}

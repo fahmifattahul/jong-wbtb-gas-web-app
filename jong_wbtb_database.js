@@ -448,8 +448,25 @@ function initializeDatabase() {
  * @returns {string}    - ID baru (contoh: "WBTB-001")
  */
 function generateProposalId(sheet) {
-  var lastRow = sheet.getLastRow();
-  var nextNum = lastRow; // row 1 = header, row 2 = data pertama → ID ke-1
+  var data = sheet.getDataRange().getValues();
+  var maxNum = 0;
+  
+  // Asumsi header di baris ke-0, data mulai dari baris ke-1
+  for (var i = 1; i < data.length; i++) {
+    var idStr = String(data[i][COL.ID]); // Kolom ID adalah index 0 (COL.ID)
+    if (idStr) {
+      // Mencocokkan format WBTB-XXX atau WBTB-HXXX
+      var match = idStr.match(/WBTB-(?:H)?(\d+)/i);
+      if (match) {
+        var num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+  }
+  
+  var nextNum = maxNum + 1;
   var padLen = nextNum >= 1000 ? 4 : 3;
   return "WBTB-" + String(nextNum).padStart(padLen, "0");
 }
