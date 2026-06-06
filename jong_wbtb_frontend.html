@@ -26,6 +26,9 @@
     /* Strong Cyan (Hijau Lumut) */
     --cyan-50:        #ebf9f8;
     --cyan-100:       #d7f4f2;
+    --cyan-200:       #afe9e5;
+    --cyan-300:       #88ddd8;
+    --cyan-400:       #60d2cb;
     --cyan-500:       #38c7bd;
     --cyan-700:       #227772;
     --cyan-900:       #0b2826;
@@ -116,7 +119,12 @@
   #sidebar-logo {
     padding: 24px 20px;
     border-bottom: 2px solid #000000;
-    background: transparent;
+    background: var(--emerald); /* Menggunakan warna hijau dari button (#227772) */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   #sidebar-logo .logo-title {
@@ -124,19 +132,23 @@
     font-size: 1.4rem;
     font-weight: normal;
     text-transform: uppercase;
-    color: #000000; /* Judul logo hitam */
+    color: var(--gold); /* Judul logo warna emas Melayu */
     letter-spacing: 0.02em;
     line-height: 1;
+    text-align: center;
+    width: 100%;
   }
 
   #sidebar-logo .logo-sub {
     font-size: 0.7rem;
-    color: #555555; /* Subtitle logo abu-abu gelap */
+    color: #FFFFFF; /* Subtitle logo putih rata tengah */
     margin-top: 6px;
     line-height: 1.4;
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.04em;
+    text-align: center;
+    width: 100%;
   }
 
   #sidebar-nav {
@@ -172,9 +184,9 @@
     text-decoration: none;
   }
 
-  /* Inversi Hover & Active Emas Melayu */
+  /* Hover & Active State (Softer Matching Green) */
   .nav-item:hover {
-    background: var(--gold-light);
+    background: var(--cyan-100); /* Hijau cyan sangat lembut */
     color: #000000;
     font-weight: 700;
     border-top: 2px solid #000000;
@@ -182,7 +194,7 @@
   }
 
   .nav-item.active {
-    background: var(--gold);
+    background: var(--cyan-300); /* Hijau aktif yang lebih lembut namun tetap matching */
     color: #000000;
     font-weight: 800;
     border-top: 2px solid #000000;
@@ -209,7 +221,7 @@
   #user-avatar {
     width: 36px;
     height: 36px;
-    background: var(--gold);
+    background: var(--cyan-500);
     color: #000000;
     display: flex;
     align-items: center;
@@ -645,7 +657,7 @@
     box-shadow: 2px 2px 0px #000000;
   }
   .page-btn:hover { background: #000000; color: #FFFFFF; }
-  .page-btn.active { background: var(--gold); color: #000000; }
+  .page-btn.active { background: var(--cyan-500); color: #000000; }
   .page-btn:active:not(:disabled) {
     transform: translate(1px, 1px) !important;
     box-shadow: 1px 1px 0px #000000 !important;
