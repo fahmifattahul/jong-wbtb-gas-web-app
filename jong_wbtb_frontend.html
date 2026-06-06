@@ -39,7 +39,7 @@
     --blue-500:       #0d8bf2;
     --blue-800:       #053861;
 
-    /* Semantics mapping to new palette */
+
     --gold:           var(--mustard-500);
     --gold-dark:      var(--mustard-700);
     --gold-light:     var(--mustard-50);
@@ -71,7 +71,7 @@
     font-family: 'Work Sans', sans-serif;
     font-size: 14px;
     color: var(--ink);
-    background: #F4F6F8; /* Latar belakang solid off-white */
+
     min-height: 100vh;
     position: relative;
   }
@@ -107,7 +107,7 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     width: 240px;
-    background: #FFFFFF; /* Latar belakang putih bersih */
+
     color: var(--ink);
     display: flex;
     flex-direction: column;
@@ -141,7 +141,7 @@
 
   #sidebar-logo .logo-sub {
     font-size: 0.7rem;
-    color: #FFFFFF; /* Subtitle logo putih rata tengah */
+
     margin-top: 6px;
     line-height: 1.4;
     text-transform: uppercase;
@@ -163,7 +163,7 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #666666; /* Label kategori lebih kontras */
+
     padding: 16px 20px 6px;
   }
 
@@ -173,7 +173,7 @@
     gap: 12px;
     padding: 12px 20px;
     cursor: pointer;
-    color: #333333; /* Teks menu abu-abu gelap */
+
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -184,7 +184,7 @@
     text-decoration: none;
   }
 
-  /* Hover & Active State (Softer Matching Green) */
+
   .nav-item:hover {
     background: var(--cyan-100); /* Hijau cyan sangat lembut */
     color: #000000;
@@ -209,7 +209,7 @@
   #sidebar-footer {
     padding: 20px;
     border-top: 2px solid #000000;
-    background: #F8F9FA; /* Abu-abu sangat terang */
+
   }
 
   #user-info {
@@ -237,7 +237,7 @@
   #user-name { 
     font-size: 0.85rem; 
     font-weight: 700; 
-    color: #000000; /* Nama user gelap */
+
     white-space: nowrap; 
     overflow: hidden; 
     text-overflow: ellipsis; 
@@ -251,7 +251,7 @@
     margin-top: 2px; 
   }
 
-  /* Main content */
+
   #main {
     margin-left: 240px;
     min-height: 100vh;
@@ -261,7 +261,7 @@
 
   #topbar {
     background: #FFFFFF;
-    border-bottom: 2px solid #000000; /* Tipiskan border topbar */
+
     padding: 16px 24px;
     display: flex;
     align-items: center;
@@ -332,7 +332,7 @@
   .badge-info      { background: var(--info-light); color: var(--info); border-color: var(--info) !important; }
   .badge-neutral   { background: #F0F0F0; color: #000000; border-color: #000000 !important; }
 
-  /* Status badge mapping */
+
   .status-sedang-dikerjakan   { background: var(--info-light); color: var(--info); border-color: var(--info) !important; }
   .status-persetujuan-internal{ background: var(--gold-light); color: var(--gold-dark); border-color: var(--gold) !important; }
   .status-diperbaiki          { background: var(--danger-light); color: var(--danger); border-color: var(--danger) !important; }
@@ -577,7 +577,7 @@
     background: #F0F0F0;
   }
 
-  /* Loading spinner (Solid Block Spin) */
+
   .spinner {
     width: 20px;
     height: 20px;
@@ -592,7 +592,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Loading screen */
+
   #loading-screen {
     position: fixed;
     inset: 0;
@@ -620,7 +620,7 @@
     letter-spacing: 0.05em;
   }
 
-  /* Access denied screen */
+
   #access-denied {
     display: flex;
     flex-direction: column;
@@ -631,7 +631,7 @@
     padding: 40px;
   }
 
-  /* Pagination */
+
   .pagination {
     display: flex;
     align-items: center;
@@ -671,7 +671,7 @@
     transform: none !important;
   }
 
-  /* Metric card (Stat boxes) */
+
   .metric-card {
     background: #FFFFFF;
     border: 2px solid #000000;
@@ -703,7 +703,7 @@
     font-weight: 500;
   }
 
-  /* Brutalist Top Accent Block (Triwarna Melayu) */
+
   .accent-bar {
     height: 8px;
     background: linear-gradient(90deg, var(--danger) 0%, var(--gold) 50%, var(--emerald) 100%);
@@ -711,7 +711,7 @@
     margin-bottom: 24px;
   }
 
-  /* Search input */
+
   .search-wrap { position: relative; }
   .search-wrap input { padding-left: 36px; }
   .search-icon {
@@ -724,7 +724,7 @@
     font-size: 0.9rem;
   }
 
-  /* Toast notification */
+
   #toast-container {
     position: fixed;
     bottom: 24px;
@@ -754,7 +754,7 @@
   .toast.error   { background: #FFFFFF; color: #000000; border-left: 8px solid var(--danger) !important; }
   .toast.info    { background: #FFFFFF; color: #000000; border-left: 8px solid var(--info) !important; }
 
-  /* Utility */
+
   .hidden { display: none !important; }
   .text-muted { color: #555555 !important; }
   .text-faint { color: #888888 !important; }
@@ -774,7 +774,7 @@
     .grid-2 { grid-template-columns: 1fr; }
   }
 
-  /* Workspace Tabs & Items (Neobrutalist Tabs) */
+
   .ws-tab {
     padding: 12px 20px;
     font-family: 'Space Mono', monospace;
@@ -837,7 +837,7 @@
 <!-- ── App Shell ─────────────────────────────────── -->
 <div id="app" class="hidden">
 
-  <!-- Sidebar -->
+  
   <nav id="sidebar">
     <div id="sidebar-logo">
       <div class="logo-title">JONG WBTb</div>
@@ -845,7 +845,7 @@
     </div>
 
     <div id="sidebar-nav">
-      <!-- Nav dirender dinamis berdasarkan role -->
+      
     </div>
 
     <div id="sidebar-footer">
@@ -859,7 +859,7 @@
     </div>
   </nav>
 
-  <!-- Main -->
+  
   <div id="main">
     <div id="topbar">
       <div>
@@ -872,7 +872,7 @@
     </div>
 
     <div id="content">
-      <!-- Konten halaman dirender di sini -->
+      
     </div>
   </div>
 </div>
@@ -900,7 +900,7 @@
 
 <!-- ── Modals ────────────────────────────────────── -->
 
-<!-- Modal: Buat Usulan Baru -->
+
 <div id="modal-usulan-baru" class="modal-overlay hidden">
   <div class="modal">
     <div class="modal-header">
@@ -951,7 +951,7 @@
   </div>
 </div>
 
-<!-- Modal: Konfirmasi Generic -->
+
 <div id="modal-konfirmasi" class="modal-overlay hidden">
   <div class="modal" style="max-width:400px;">
     <div class="modal-header">
@@ -1130,24 +1130,20 @@ const ROLE_LABEL = {
 
 async function init() {
   try {
-    // Ambil data user dari GAS
     const result = await gasCall('getActiveUserInfo');
 
     if (!result || !result.role) {
-      // Tidak terdaftar atau akses dicabut
       showAccessDenied(result ? result.email : '—');
       return;
     }
 
     App.user = result;
 
-    // Setup UI
     setupSidebar();
     setupUserInfo();
     hideLoading();
     showApp();
 
-    // Render halaman default
     navigateTo('dashboard');
 
   } catch (err) {
@@ -1191,12 +1187,10 @@ function setupUserInfo() {
 function navigateTo(pageId) {
   App.currentPage = pageId;
 
-  // Update nav active state
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-' + pageId);
   if (navEl) navEl.classList.add('active');
 
-  // Render page
   const pages = {
     'dashboard'      : renderDashboard,
     'workspace'      : renderWorkspace,
@@ -1253,7 +1247,6 @@ async function renderDashboard() {
   try {
     const data = await gasCall('getDashboardData', App.user.email);
     renderMetrics(data.metrics);
-    // Filter only active proposals (status is NOT Final and NOT Ditangguhkan)
     const activeProposals = (data.proposals || []).filter(p => p.status !== 'Final' && p.status !== 'Ditangguhkan');
     renderDashboardTable(activeProposals);
   } catch (err) {
@@ -1333,7 +1326,6 @@ function renderDashboardTable(proposals) {
     </div>
   `;
 
-  // Simpan data untuk filter
   App.data.proposals = filtered;
 }
 
@@ -1425,7 +1417,7 @@ async function renderWorkspace() {
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="accent-bar"></div>
 
-      <!-- Pilih folder jika lebih dari satu -->
+      
       <div class="card" id="ws-pilih-folder">
         <div class="card-header">
           <h3>Folder Usulan</h3>
@@ -1438,10 +1430,10 @@ async function renderWorkspace() {
         </div>
       </div>
 
-      <!-- Detail folder aktif -->
+      
       <div id="ws-detail" class="hidden">
 
-        <!-- Header proposal -->
+        
         <div class="card" id="ws-header-card">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
             <div>
@@ -1458,12 +1450,12 @@ async function renderWorkspace() {
               </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;" id="ws-aksi-buttons">
-              <!-- Tombol aksi dirender dinamis berdasarkan status -->
+              
             </div>
           </div>
         </div>
 
-        <!-- Catatan Perbaikan Atasan (tampil jika dikembalikan oleh Atasan) -->
+        
         <div id="ws-catatan-atasan-card" class="hidden">
           <div class="alert alert-gold">
             <div style="flex:1;">
@@ -1475,7 +1467,7 @@ async function renderWorkspace() {
           </div>
         </div>
 
-        <!-- Catatan Penilai Eksternal (tampil jika ada putaran revisi) -->
+        
         <div id="ws-catatan-penilai-card" class="hidden">
           <div class="alert alert-gold">
             <div style="flex:1;">
@@ -1488,7 +1480,7 @@ async function renderWorkspace() {
           </div>
         </div>
 
-        <!-- Tabs konten -->
+        
         <div class="card">
           <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
             <button class="ws-tab active" data-tab="formulir" onclick="switchWsTab('formulir')">Formulir</button>
@@ -1499,7 +1491,7 @@ async function renderWorkspace() {
             <button class="ws-tab hidden" id="ws-tab-btn-sertifikat" data-tab="sertifikat" onclick="switchWsTab('sertifikat')">Sertifikat</button>
           </div>
 
-          <!-- Tab: Formulir -->
+          
           <div id="ws-tab-formulir" class="ws-tab-content">
             <div id="ws-formulir-wrap">
               <div id="ws-no-formulir" class="hidden" style="text-align:center;padding:32px;color:var(--ink-faint);">
@@ -1528,7 +1520,7 @@ async function renderWorkspace() {
             </div>
           </div>
 
-          <!-- Tab: Kajian Ilmiah -->
+          
           <div id="ws-tab-kajian" class="ws-tab-content hidden">
             <div id="ws-kajian-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
             <div id="ws-upload-kajian-wrap">
@@ -1550,7 +1542,7 @@ async function renderWorkspace() {
             </div>
           </div>
 
-          <!-- Tab: Foto -->
+          
           <div id="ws-tab-foto" class="ws-tab-content hidden">
             <div id="ws-foto-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px;"></div>
             <div id="ws-upload-foto-wrap">
@@ -1572,7 +1564,7 @@ async function renderWorkspace() {
             </div>
           </div>
 
-          <!-- Tab: Video -->
+          
           <div id="ws-tab-video" class="ws-tab-content hidden">
             <div id="ws-video-current" style="margin-bottom:16px;"></div>
             <div id="ws-video-divider" class="divider"></div>
@@ -1592,7 +1584,7 @@ async function renderWorkspace() {
             </div>
           </div>
 
-          <!-- Tab: Presentasi -->
+          
           <div id="ws-tab-presentasi" class="ws-tab-content hidden">
             <div id="ws-presentasi-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
             <div id="ws-upload-presentasi-wrap">
@@ -1614,7 +1606,7 @@ async function renderWorkspace() {
             </div>
           </div>
 
-          <!-- Tab: Sertifikat -->
+          
           <div id="ws-tab-sertifikat" class="ws-tab-content hidden">
             <div id="ws-sertifikat-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
             <div id="ws-upload-sertifikat-wrap">
@@ -1637,7 +1629,7 @@ async function renderWorkspace() {
           </div>
         </div>
 
-        <!-- Verifikasi Mandiri (tampil saat akan kirim ke Atasan) -->
+        
         <div id="ws-verifikasi-card" class="hidden">
           <div class="card">
             <div class="card-header">
@@ -1660,7 +1652,6 @@ async function renderWorkspace() {
 
 
 
-  // Load data
   try {
     const data = await gasCall('getDashboardData', App.user.email);
     renderWsFolderList(data.proposals);
@@ -1711,12 +1702,10 @@ function renderWsFolderList(proposals) {
     </div>
   `).join('');
 
-  // Auto-buka jika hanya satu folder
   if (filtered.length === 1) {
     bukaWsProposal(filtered[0].id);
   }
 
-  // Atau jika ada activeProposalId dari navigasi
   if (App.data.activeProposalId) {
     bukaWsProposal(App.data.activeProposalId);
     App.data.activeProposalId = null;
@@ -1738,7 +1727,6 @@ async function bukaWsProposal(proposalId) {
 }
 
 function renderWsDetail(p) {
-  // Header
   document.getElementById('ws-proposal-id').textContent  = p.id;
   document.getElementById('ws-nama-karya').textContent   = p.namaKarya;
   document.getElementById('ws-domain').textContent       = p.domain;
@@ -1774,7 +1762,6 @@ function renderWsDetail(p) {
     }
   }
 
-  // Catatan Penilai Eksternal — Sembunyikan jika tidak dalam status Diperbaiki (Revisi Aktif)
   const catatanCard = document.getElementById('ws-catatan-penilai-card');
   catatanCard.classList.add('hidden');
 
@@ -1792,25 +1779,18 @@ function renderWsDetail(p) {
     }
   }
 
-  // Tombol aksi
   renderWsAksiButtons(p);
 
-  // Formulir
   renderWsFormulir(p);
 
-  // Kajian
   renderWsKajianList(p);
 
-  // Foto
   renderWsFotoGrid(p);
 
-  // Video
   renderWsVideo(p);
 
-  // Default ke tab formulir untuk mencegah tab sisa tersimpan di state UI
   switchWsTab('formulir');
 
-  // Atur visibilitas tab Presentasi & Sertifikat
   const tabPresBtn = document.getElementById('ws-tab-btn-presentasi');
   const tabSertBtn = document.getElementById('ws-tab-btn-sertifikat');
   
@@ -1826,7 +1806,6 @@ function renderWsDetail(p) {
     tabSertBtn.classList.add('hidden');
   }
 
-  // Render konten tab baru
   renderWsPresentasiList(p);
   renderWsSertifikatList(p);
 }
@@ -1838,7 +1817,6 @@ function renderWsAksiButtons(p) {
 
   let html = '';
 
-  // Tombol kembali ke daftar folder
   html += `<button class="btn btn-ghost btn-sm" onclick="kembaliKeDaftarFolder()">← Kembali</button>`;
 
   // Kirim ke Atasan — hanya jika Sedang Dikerjakan, tidak locked, dan oleh Operator atau Penanggung Jawab
@@ -1961,12 +1939,10 @@ function renderWsFormulir(p) {
   noFormulir.classList.add('hidden');
   iframeWrap.classList.remove('hidden');
 
-  // Versi aktif
   const versiKeys   = Object.keys(p.docHistory || {});
   const versiAktif  = versiKeys.length;
   versiBadge.textContent = 'Versi ' + versiAktif;
 
-  // Iframe mode: edit jika workspace bisa diedit, preview jika read-only
   const mode = editable ? 'edit' : 'preview';
   iframe.src = 'https://docs.google.com/document/d/' + p.docActiveId + '/' + mode + '?embedded=true';
   link.href  = 'https://docs.google.com/document/d/' + p.docActiveId + '/' + mode;
@@ -2078,13 +2054,11 @@ function renderWsVideo(p) {
     document.getElementById('input-video-url').value = '';
   }
 
-  // Tampilkan/sembunyikan form input video berdasarkan status editabilitas
   const div = document.getElementById('ws-video-divider');
   const form = document.getElementById('ws-video-form');
   if (div) div.style.display = editable ? '' : 'none';
   if (form) form.style.display = editable ? '' : 'none';
 
-  // Ubah teks tombol simpan jika video sudah terisi
   const saveBtn = document.querySelector('#ws-tab-video button[onclick="simpanVideoUrl()"]');
   if (saveBtn) {
     saveBtn.textContent = p.videoUrl ? 'Ganti URL Video' : 'Simpan URL Video';
@@ -2305,7 +2279,7 @@ async function buatFormulirBaru() {
   try {
     await gasCall('buatFormulirProposal', App.user.email, p.id);
     showToast('Formulir berhasil dibuat.', 'success');
-    bukaWsProposal(p.id); // refresh
+    bukaWsProposal(p.id);
   } catch (err) {
     showToast('Gagal membuat formulir: ' + err.message, 'error');
   }
@@ -2349,7 +2323,7 @@ async function eksekusiHapusFormulir() {
   try {
     await gasCall('deleteActiveFormulir', App.user.email, p.id);
     showToast('Formulir berhasil dihapus.', 'success');
-    bukaWsProposal(p.id); // refresh
+    bukaWsProposal(p.id);
   } catch (err) {
     showToast('Gagal menghapus formulir: ' + err.message, 'error');
   } finally {
@@ -2370,7 +2344,7 @@ async function eksekusiHapusKajian(proposalId, fileId) {
   try {
     await gasCall('deleteKajianFile', App.user.email, proposalId, fileId);
     showToast('File kajian berhasil dihapus.', 'success');
-    bukaWsProposal(proposalId); // refresh
+    bukaWsProposal(proposalId);
   } catch (err) {
     showToast('Gagal menghapus kajian: ' + err.message, 'error');
   } finally {
@@ -2391,7 +2365,7 @@ async function eksekusiHapusFoto(proposalId, fileId) {
   try {
     await gasCall('deleteFotoFile', App.user.email, proposalId, fileId);
     showToast('Foto berhasil dihapus.', 'success');
-    bukaWsProposal(proposalId); // refresh
+    bukaWsProposal(proposalId);
   } catch (err) {
     showToast('Gagal menghapus foto: ' + err.message, 'error');
   } finally {
@@ -2412,7 +2386,7 @@ async function eksekusiHapusVideo(proposalId) {
   try {
     await gasCall('deleteVideoUrl', App.user.email, proposalId);
     showToast('Video URL berhasil dihapus.', 'success');
-    bukaWsProposal(proposalId); // refresh
+    bukaWsProposal(proposalId);
   } catch (err) {
     showToast('Gagal menghapus video: ' + err.message, 'error');
   } finally {
@@ -2439,7 +2413,6 @@ async function handleKajianUpload(input) {
   const progress = document.getElementById('ws-kajian-upload-progress');
   const status   = document.getElementById('ws-kajian-upload-status');
 
-  // Validasi client-side
   if (file.type !== 'application/pdf') {
     showToast('Hanya file PDF yang diizinkan.', 'error');
     return;
@@ -2493,14 +2466,12 @@ async function handleFotoUpload(input) {
   const progress = document.getElementById('ws-foto-upload-progress');
   const status   = document.getElementById('ws-foto-upload-status');
 
-  // Validasi total payload
   const totalSize = files.reduce((acc, f) => acc + f.size, 0);
   if (totalSize > 30 * 1024 * 1024) {
     showToast('Total ukuran foto melebihi 30MB. Upload bertahap.', 'error');
     return;
   }
 
-  // Validasi per file
   for (const f of files) {
     if (!['image/jpeg','image/png'].includes(f.type)) {
       showToast(`${f.name}: hanya JPG/PNG yang diizinkan.`, 'error');
@@ -2632,7 +2603,6 @@ async function eksekusiHapusUsulan(proposalId) {
     await gasCall('deleteProposal', App.user.email, proposalId);
     showToast('Usulan berhasil dihapus.', 'success');
     
-    // Alihkan tampilan kembali ke daftar usulan
     if (App.user.role === 'Operator') {
       closeModal('modal-detail-operator');
       renderSemuaUsulan();
@@ -2696,7 +2666,7 @@ async function renderSemuaUsulan() {
           ` : ''}
         </div>
 
-        <!-- Filter bar -->
+        
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="search-wrap" style="flex:1;min-width:200px;">
             <span class="search-icon">🔍</span>
@@ -2909,7 +2879,6 @@ function bukaDetailDariOperator(proposalId) {
 
 async function bukaModalDetailOperator(proposalId) {
   // Untuk Operator, detail dibuka sebagai modal ringkas
-  // dengan link ke Drive dan opsi entry catatan penilai
   try {
     const p = await gasCall('getProposalDetail', App.user.email, proposalId);
     tampilModalDetailOperator(p);
@@ -2980,7 +2949,6 @@ function tampilModalDetailOperator(p) {
     }
   }
 
-  // Aksi
   let aksiHtml = '';
 
   if (p.folderKaryaId && App.user.role === 'Operator') {
@@ -3030,7 +2998,6 @@ function tampilModalDetailOperator(p) {
     `;
   }
 
-  // Hapus Usulan — jika status Sedang Dikerjakan atau Diperbaiki
   if (p.status === 'Sedang Dikerjakan' || p.status === 'Diperbaiki') {
     aksiHtml += `
       <button class="btn btn-danger btn-sm"
@@ -3112,7 +3079,7 @@ async function renderCatatanPenilai() {
         </div>
       </div>
 
-      <!-- Pilih proposal -->
+      
       <div class="card" id="cp-pilih-card">
         <div class="card-header">
           <h3>Pilih Folder Usulan</h3>
@@ -3125,7 +3092,7 @@ async function renderCatatanPenilai() {
         </div>
       </div>
 
-      <!-- Form entry catatan -->
+      
       <div id="cp-form-card" class="card hidden">
         <div class="card-header">
           <div>
@@ -3139,7 +3106,7 @@ async function renderCatatanPenilai() {
           </button>
         </div>
 
-        <!-- Riwayat putaran sebelumnya -->
+        
         <div id="cp-riwayat" class="hidden" style="margin-bottom:20px;">
           <div style="font-size:0.8rem;font-weight:500;color:var(--ink-muted);
             margin-bottom:8px;">Riwayat Putaran Revisi Sebelumnya</div>
@@ -3148,7 +3115,7 @@ async function renderCatatanPenilai() {
           <div class="divider"></div>
         </div>
 
-        <!-- Form -->
+        
         <div class="form-group">
           <label class="form-label">
             Sumber Catatan <span class="required">*</span>
@@ -3183,7 +3150,7 @@ async function renderCatatanPenilai() {
           </div>
         </div>
 
-        <!-- Preview putaran yang akan dibuka -->
+        
         <div id="cp-preview-putaran" class="alert alert-info" style="margin-bottom:16px;">
           <div>
             <div style="font-weight:500;margin-bottom:2px;">Putaran yang akan dibuka</div>
@@ -3202,7 +3169,6 @@ async function renderCatatanPenilai() {
     </div>
   `);
 
-  // Load proposals yang bisa dientry catatan penilai
   try {
     const data = await gasCall('getDashboardData', App.user.email);
 
@@ -3213,7 +3179,6 @@ async function renderCatatanPenilai() {
 
     renderCpPilihList(eligible);
 
-    // Auto-buka jika dari navigasi
     if (App.data.catatanPenilaiProposalId) {
       bukaFormCatatanPenilai(App.data.catatanPenilaiProposalId);
       App.data.catatanPenilaiProposalId = null;
@@ -3286,22 +3251,18 @@ async function bukaFormCatatanPenilai(proposalId) {
 
     App.data.cpProposal = p;
 
-    // Label
     document.getElementById('cp-proposal-label').textContent =
       p.id + ' — ' + p.namaKarya;
 
-    // Preview putaran yang akan dibuka
     const putaranBaru = (p.revisiRound || 0) + 1;
     document.getElementById('cp-putaran-label').textContent =
       'P' + String(putaranBaru).padStart(2,'0') +
       ' — Subfolder baru akan dibuat di 03_REVISI/P' +
       String(putaranBaru).padStart(2,'0') + '/';
 
-    // Set tanggal default hari ini
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('cp-tanggal').value = today;
 
-    // Riwayat putaran sebelumnya
     if (p.catatanPenilai && p.catatanPenilai.length > 0) {
       const riwayatDiv  = document.getElementById('cp-riwayat');
       const riwayatList = document.getElementById('cp-riwayat-list');
@@ -3333,7 +3294,6 @@ function tutupFormCatatanPenilai() {
   App.data.cpProposal   = null;
   App.data.cpProposalId = null;
 
-  // Reset form
   document.getElementById('cp-sumber').value  = '';
   document.getElementById('cp-catatan').value = '';
   document.getElementById('cp-riwayat').classList.add('hidden');
@@ -3375,7 +3335,7 @@ async function submitCatatanPenilaiForm() {
     );
 
     tutupFormCatatanPenilai();
-    renderCatatanPenilai(); // refresh
+    renderCatatanPenilai();
 
   } catch (err) {
     showToast('Gagal submit catatan: ' + err.message, 'error');
@@ -3405,7 +3365,7 @@ async function renderKelolaAkses() {
         </div>
       </div>
 
-      <!-- Pengguna Aktif -->
+      
       <div class="card">
         <div class="card-header">
           <h3>Pengguna Aktif</h3>
@@ -3421,7 +3381,7 @@ async function renderKelolaAkses() {
         </div>
       </div>
 
-      <!-- Riwayat Akses Dicabut -->
+      
       <div class="card">
         <div class="card-header">
           <h3>Riwayat Akses Dicabut</h3>
@@ -3430,7 +3390,7 @@ async function renderKelolaAkses() {
       </div>
     </div>
 
-    <!-- Modal Tambah User -->
+    
     <div id="modal-tambah-user" class="modal-overlay hidden">
       <div class="modal">
         <div class="modal-header">
@@ -3486,7 +3446,7 @@ async function renderKelolaAkses() {
       </div>
     </div>
 
-    <!-- Modal Cabut Akses -->
+    
     <div id="modal-cabut-user" class="modal-overlay hidden">
       <div class="modal" style="max-width:420px;">
         <div class="modal-header">
@@ -3705,7 +3665,7 @@ async function renderVerifikasi() {
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="accent-bar"></div>
 
-      <!-- Daftar usulan menunggu verifikasi -->
+      
       <div class="card" id="ver-daftar-card">
         <div class="card-header">
           <h3>Menunggu Verifikasi</h3>
@@ -3719,10 +3679,10 @@ async function renderVerifikasi() {
         </div>
       </div>
 
-      <!-- Detail verifikasi -->
+      
       <div id="ver-detail" class="hidden">
 
-        <!-- Header -->
+        
         <div class="card">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;
             gap:16px;flex-wrap:wrap;">
@@ -3745,7 +3705,7 @@ async function renderVerifikasi() {
           </div>
         </div>
 
-        <!-- Tabs dokumen -->
+        
         <div class="card">
           <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
             <button class="ws-tab active" data-tab="ver-formulir" onclick="switchWsTab('ver-formulir')">Formulir</button>
@@ -3756,7 +3716,7 @@ async function renderVerifikasi() {
             <button class="ws-tab hidden" id="ver-tab-btn-sertifikat" data-tab="ver-sertifikat" onclick="switchWsTab('ver-sertifikat')">Sertifikat</button>
           </div>
 
-          <!-- Formulir -->
+          
           <div id="ws-tab-ver-formulir" class="ws-tab-content">
             <div id="ver-formulir-wrap">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -3775,42 +3735,42 @@ async function renderVerifikasi() {
             </div>
           </div>
 
-          <!-- Kajian -->
+          
           <div id="ws-tab-ver-kajian" class="ws-tab-content hidden">
             <div id="ver-kajian-list" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
 
-          <!-- Foto -->
+          
           <div id="ws-tab-ver-foto" class="ws-tab-content hidden">
             <div id="ver-foto-grid"
               style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
             </div>
           </div>
 
-          <!-- Video -->
+          
           <div id="ws-tab-ver-video" class="ws-tab-content hidden">
             <div id="ver-video-wrap"></div>
           </div>
 
-          <!-- Presentasi -->
+          
           <div id="ws-tab-ver-presentasi" class="ws-tab-content hidden">
             <div id="ver-presentasi-list" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
 
-          <!-- Sertifikat -->
+          
           <div id="ws-tab-ver-sertifikat" class="ws-tab-content hidden">
             <div id="ver-sertifikat-list" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
         </div>
 
-        <!-- Panel Keputusan Atasan -->
+        
         <div class="card" id="ver-keputusan-card">
           <div class="card-header">
             <h3>Keputusan Verifikasi</h3>
             <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
           </div>
 
-          <!-- Pilih keputusan -->
+          
           <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
             <button class="btn btn-primary" id="btn-ver-acc" onclick="pilihKeputusan('acc')">
               ✓ Setujui (ACC)
@@ -3825,7 +3785,7 @@ async function renderVerifikasi() {
             </button>
           </div>
 
-          <!-- Form ACC -->
+          
           <div id="ver-form-acc" class="hidden">
             <div class="alert alert-success">
               <div>
@@ -3845,7 +3805,7 @@ async function renderVerifikasi() {
             </div>
           </div>
 
-          <!-- Form Kembalikan -->
+          
           <div id="ver-form-kembalikan" class="hidden">
             <div class="alert alert-gold" style="margin-bottom:16px;">
               <div style="font-size:0.85rem;">
@@ -3874,7 +3834,7 @@ async function renderVerifikasi() {
             </div>
           </div>
 
-          <!-- Form Tangguhkan -->
+          
           <div id="ver-form-tangguhkan" class="hidden">
             <div class="alert alert-danger" style="margin-bottom:16px;">
               <div style="font-size:0.85rem;">
@@ -3905,11 +3865,9 @@ async function renderVerifikasi() {
     </div>
   `);
 
-  // Load data
   try {
     const data = await gasCall('getDashboardData', App.user.email);
 
-    // Filter hanya yang menunggu verifikasi
     const menunggu = (data.proposals || []).filter(p =>
       p.status === 'Persetujuan Internal' ||
       p.status === 'Dilanjutkan'
@@ -3917,7 +3875,6 @@ async function renderVerifikasi() {
 
     renderVerDaftarList(menunggu);
 
-    // Auto-buka jika dari navigasi detail
     if (App.data.activeProposalId) {
       bukaVerProposal(App.data.activeProposalId);
       App.data.activeProposalId = null;
@@ -4029,7 +3986,6 @@ function renderVerDetail(p) {
       'https://docs.google.com/document/d/' + p.docActiveId + '/preview';
   }
 
-  // Kajian
   const kajianList = document.getElementById('ver-kajian-list');
   if (!p.kajianFiles || p.kajianFiles.length === 0) {
     kajianList.innerHTML = `<div class="text-faint" style="font-size:0.85rem;">Belum ada kajian.</div>`;
@@ -4047,7 +4003,6 @@ function renderVerDetail(p) {
     `).join('');
   }
 
-  // Foto
   const fotoGrid = document.getElementById('ver-foto-grid');
   if (!p.fotoFiles || p.fotoFiles.length === 0) {
     fotoGrid.innerHTML = `<div class="text-faint" style="font-size:0.85rem;grid-column:1/-1;">Belum ada foto.</div>`;
@@ -4063,7 +4018,6 @@ function renderVerDetail(p) {
     `).join('');
   }
 
-  // Video
   const videoWrap = document.getElementById('ver-video-wrap');
   if (p.videoUrl) {
     videoWrap.innerHTML = `
@@ -4132,10 +4086,8 @@ function renderVerDetail(p) {
     `).join('');
   }
 
-  // Reset keputusan
   batalKeputusan();
 
-  // Sembunyikan panel keputusan jika sudah tidak bisa diputuskan,
   // atau tampilkan banner sukses jika usulan sudah di-ACC Atasan (Persetujuan Internal dan isApprovedByAtasan === true)
   const card = document.getElementById('ver-keputusan-card');
   const statusTidakBisaDiputuskan = [
@@ -4179,7 +4131,7 @@ function renderVerDetail(p) {
         </button>
       </div>
       
-      <!-- Form ACC -->
+      
       <div id="ver-form-acc" class="hidden">
         <div class="alert alert-success">
           <div>
@@ -4199,7 +4151,7 @@ function renderVerDetail(p) {
         </div>
       </div>
 
-      <!-- Form Kembalikan -->
+      
       <div id="ver-form-kembalikan" class="hidden">
         <div class="alert alert-gold" style="margin-bottom:16px;">
           <div style="font-size:0.85rem;">
@@ -4228,7 +4180,7 @@ function renderVerDetail(p) {
         </div>
       </div>
 
-      <!-- Form Tangguhkan -->
+      
       <div id="ver-form-tangguhkan" class="hidden">
         <div class="alert alert-danger" style="margin-bottom:16px;">
           <div style="font-size:0.85rem;">
@@ -4288,7 +4240,7 @@ async function eksekusiACC() {
     await gasCall('updateProposalStatus', App.user.email, p.id, 'Persetujuan Internal');
     showToast('Usulan ' + p.id + ' disetujui. Status: Persetujuan Internal.', 'success');
     kembaliKeDaftarVerifikasi();
-    renderVerifikasi(); // refresh
+    renderVerifikasi();
   } catch (err) {
     showToast('Gagal ACC: ' + err.message, 'error');
   }
@@ -4356,7 +4308,7 @@ async function renderAdministrasi() {
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="accent-bar"></div>
 
-      <!-- Penetapan Operator -->
+      
       <div class="card">
         <div class="card-header">
           <h3>Penetapan Operator</h3>
@@ -4397,7 +4349,7 @@ async function renderAdministrasi() {
         </div>
       </div>
 
-      <!-- Perintah Akses Tertulis -->
+      
       <div class="card">
         <div class="card-header">
           <h3>Terbitkan Perintah Akses Tertulis</h3>
@@ -4461,7 +4413,7 @@ async function renderAdministrasi() {
         </button>
       </div>
 
-      <!-- Evaluasi Kepatuhan -->
+      
       <div class="card">
         <div class="card-header">
           <h3>Evaluasi Kepatuhan Bulanan</h3>
@@ -4571,7 +4523,6 @@ async function loadAdminData() {
 }
 
 async function submitPenetapanOperator() {
-  // Deteksi mode: dropdown (normal) atau input manual (bootstrap)
   const selectEl    = document.getElementById('admin-op-select');
   const emailManual = document.getElementById('admin-op-email-manual');
   const namaManual  = document.getElementById('admin-op-nama-manual');
@@ -4579,13 +4530,11 @@ async function submitPenetapanOperator() {
   let email = '', nama = '';
 
   if (selectEl) {
-    // Mode normal
     email = selectEl.value;
     nama  = selectEl.options[selectEl.selectedIndex]
       ? selectEl.options[selectEl.selectedIndex].getAttribute('data-nama')
       : '';
   } else if (emailManual && namaManual) {
-    // Mode bootstrap
     email = emailManual.value.trim();
     nama  = namaManual.value.trim();
   }
@@ -4656,7 +4605,6 @@ async function submitPerintahAkses() {
       'success'
     );
 
-    // Reset form
     ['admin-akses-tindakan','admin-akses-role'].forEach(id => {
       document.getElementById(id).value = '';
     });
@@ -4758,7 +4706,7 @@ async function renderLogAktivitas() {
           <span id="log-total-badge" class="badge badge-neutral">Memuat...</span>
         </div>
 
-        <!-- Filter -->
+        
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
           <div class="search-wrap" style="flex:1;min-width:200px;">
             <span class="search-icon">🔍</span>
@@ -5038,13 +4986,11 @@ async function submitUsulanBaru() {
   const domain         = document.getElementById('input-domain').value;
   const pjEmail        = document.getElementById('input-penanggung-jawab').value;
 
-  // Validasi frontend
   if (!namaKarya || !judulSingkat || !domain || !pjEmail) {
     showToast('Semua field wajib diisi.', 'error');
     return;
   }
 
-  // Validasi judul singkat
   const polaNama = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
   if (!polaNama.test(judulSingkat) || judulSingkat.includes('--')) {
     const errEl = document.getElementById('error-judul-singkat');
@@ -5065,7 +5011,7 @@ async function submitUsulanBaru() {
 
     closeModal('modal-usulan-baru');
     showToast('Usulan ' + result.proposalId + ' berhasil dibuat.', 'success');
-    renderDashboard(); // refresh
+    renderDashboard();
   } catch (err) {
     showToast('Gagal membuat usulan: ' + err.message, 'error');
   } finally {
@@ -5075,7 +5021,6 @@ async function submitUsulanBaru() {
 }
 
 function bukaDetailUsulan(proposalId) {
-  // Navigasi ke workspace dengan context proposalId
   App.data.activeProposalId = proposalId;
   navigateTo(App.user.role === 'Atasan' ? 'verifikasi' : 'workspace');
 }

@@ -25,7 +25,6 @@ var STATUS = {
   FINAL               : "Final"
 };
 
-// Entry type — membedakan usulan baru vs import arsip historis
 var ENTRY_TYPE = {
   NORMAL   : "normal",
   HISTORIS : "historis"
@@ -47,14 +46,6 @@ var ROLES = {
 // ─────────────────────────────────────────────
 // 3. TRANSITION MATRIX
 //
-// Format setiap entri:
-// {
-//   dari      : STATUS asal (atau null untuk entry point)
-//   ke        : STATUS tujuan
-//   aktor     : ROLES yang berwenang mengeksekusi perubahan ini
-//   syarat    : string deskripsi syarat yang harus terpenuhi (dari Juknis)
-//   entry_type: opsional — hanya diset jika transisi terbatas pada entry type tertentu
-// }
 //
 // Referensi Juknis: Bab VIII huruf D & E, Bab VI huruf D, Bab IX huruf B
 // ─────────────────────────────────────────────
@@ -73,7 +64,6 @@ var TRANSITIONS = [
   // ── ENTRY POINT 2: Import arsip historis ─────────────────────────────────
   // Juknis Bab IX huruf B: WBTb yang telah ditetapkan sebelum berlakunya
   // Juknis dicatat dalam Arsip Historis. Sertifikat penetapan wajib ada.
-  // Formulir, kajian, dan multimedia opsional (sering hilang di dokumen lama).
   {
     dari      : null,
     ke        : STATUS.FINAL,
@@ -127,7 +117,6 @@ var TRANSITIONS = [
     syarat: "Atasan mengembalikan dokumen usulan ke Anggota Tim untuk diperbaiki secara internal."
   },
 
-  // Persetujuan Internal → Dilanjutkan
   // Juknis Bab VIII D: keputusan lulus penilaian eksternal diterima Atasan.
   {
     dari  : STATUS.PERSETUJUAN_INTERNAL,
@@ -137,9 +126,7 @@ var TRANSITIONS = [
             "secara resmi oleh Atasan dan terdokumentasi."
   },
 
-  // Persetujuan Internal → Diperbaiki
   // Juknis Bab VI huruf D: Catatan Penilai Eksternal diterima & didokumentasi Operator.
-  // PENTING: Putaran Revisi HANYA dibuka atas dasar Catatan Penilai Eksternal yang sah.
   // Bukan atas keputusan Atasan internal.
   {
     dari  : STATUS.PERSETUJUAN_INTERNAL,
@@ -150,7 +137,6 @@ var TRANSITIONS = [
             "Tanpa Catatan Penilai Eksternal yang sah, transisi ini tidak boleh dieksekusi."
   },
 
-  // Diperbaiki → Sedang Dikerjakan
   // Setelah Anggota Tim menyelesaikan revisi berdasarkan Catatan Penilai Eksternal,
   // Operator mengembalikan ke Sedang Dikerjakan untuk proses verifikasi ulang Atasan.
   {
@@ -161,8 +147,6 @@ var TRANSITIONS = [
             "Catatan Penilai Eksternal. Dokumen siap diverifikasi ulang oleh Atasan."
   },
 
-  // Dilanjutkan → Final
-  // Juknis Bab VIII D: dokumen penetapan resmi Kementerian tersedia & terdokumentasi.
   {
     dari  : STATUS.DILANJUTKAN,
     ke    : STATUS.FINAL,
@@ -228,17 +212,12 @@ var TRANSITIONS = [
     syarat: "Keputusan penangguhan dari penilai eksternal (Provinsi/Kementerian) disetujui Atasan pada tahap penetapan."
   }
 
-  // CATATAN: Status FINAL bersifat terminal — tidak ada transisi keluar dari Final.
-  // Status DITANGGUHKAN bersifat terminal — tidak ada transisi keluar dari Ditangguhkan.
-  // Juknis Bab IX huruf C: WBTb yang pernah ditangguhkan dan diusulkan kembali
-  // diperlakukan sebagai pengusulan BARU (entry point dari null → SEDANG_DIKERJAKAN).
 ];
 
 
 // ─────────────────────────────────────────────
 // 4. FUNGSI VALIDASI TRANSISI
 //
-// Gunakan ini di setiap titik perubahan status.
 // Lempar error jika transisi tidak valid —
 // jangan biarkan status berubah diam-diam.
 // ─────────────────────────────────────────────
@@ -319,11 +298,10 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
     var targetRowIndex = -1;
     var dariStatus = null;
 
-    // Cari baris berdasarkan proposalId
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === proposalId) {
-        targetRowIndex = i + 1; // 1-based index Google Sheets
-        dariStatus     = data[i][COL.STATUS]; // kolom status
+        targetRowIndex = i + 1;
+        dariStatus     = data[i][COL.STATUS];
         break;
       }
     }
@@ -342,13 +320,11 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
       }
     }
 
-    // Validasi transisi
     var hasil = validateTransisi(dariStatus, keStatus, aktorRole, entryType || null);
     if (!hasil.valid) {
       throw new Error(hasil.pesan);
     }
 
-    // Eksekusi perubahan status
     sheet.getRange(targetRowIndex, COL.STATUS + 1).setValue(keStatus);
 	
     if (keStatus === STATUS.DITANGGUHKAN) {
@@ -368,7 +344,6 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
     }
     sheet.getRange(targetRowIndex, COL.IS_APPROVED_BY_ATASAN + 1).setValue(nextApprovedByAtasan);
 
-    // Salin berkas fisik jika terjadi transisi tahap penting
     var revisiRound = parseInt(data[targetRowIndex - 1][COL.REVISI_ROUND] || "0", 10);
     
     // 1. Atasan ACC (Persetujuan Internal -> Persetujuan Internal oleh Atasan)
@@ -399,7 +374,6 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
       copyActiveFilesToStage(proposalId, "PENETAPAN", "FINAL", null, null, sheet);
     }
 	
-    // Tulis audit log
     writeAuditLog(
       "STATUS_CHANGE",
       "Proposal " + proposalId + " berubah dari '" + dariStatus + "' ke '" + keStatus + "' " +

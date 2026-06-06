@@ -54,8 +54,6 @@ function getArsipVersiFolder(folderJenisId) {
 // ─────────────────────────────────────────────
 // 2. ARSIP VERSI: FORMULIR USULAN
 //
-// Formulir = satu file aktif Google Docs.
-// Saat naik versi: file lama dipindah ke ARSIP-VERSI,
 // file baru (salinan) dibuat di FORMULIR-USULAN/.
 // Juknis Bab VI huruf C.
 // ─────────────────────────────────────────────
@@ -80,7 +78,6 @@ function arsipFormulirVersi(proposalId, folderJenisId, docActiveId, versiLama, a
   var namaFileAktif   = fileAktif.getName();
 
   // 1. Buat salinan sebagai versi baru di FORMULIR-USULAN/
-  // Nama versi baru: ganti suffix _vN dengan _v(N+1)
   var namaVersiLamaPattern = new RegExp("_v" + versiLama + "$");
   var namaFileBaru = namaFileAktif.replace(namaVersiLamaPattern, "_v" + versiBaru);
 
@@ -115,8 +112,6 @@ function arsipFormulirVersi(proposalId, folderJenisId, docActiveId, versiLama, a
 // ─────────────────────────────────────────────
 // 3. ARSIP VERSI: KAJIAN ILMIAH
 //
-// Kajian = multi-file PDF.
-// Arsip per-file yang diganti — file yang tidak
 // berubah tetap di tempat.
 // User eksplisit pilih fileId lama yang diganti.
 // ─────────────────────────────────────────────
@@ -138,7 +133,6 @@ function arsipKajianFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
   var fileLama      = DriveApp.getFileById(fileIdLama);
   var namaFile      = fileLama.getName();
 
-  // Pindahkan file lama ke ARSIP-VERSI
   fileLama.moveTo(folderArsip);
 
   writeAuditLog(
@@ -157,8 +151,6 @@ function arsipKajianFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
 // ─────────────────────────────────────────────
 // 4. ARSIP VERSI: FOTO DOKUMENTASI
 //
-// Foto = multi-file JPG/PNG.
-// Arsip per-file yang diganti — file yang tidak
 // berubah tetap di tempat.
 // User eksplisit pilih fileId lama yang diganti.
 // ─────────────────────────────────────────────
@@ -180,7 +172,6 @@ function arsipFotoFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
   var fileLama      = DriveApp.getFileById(fileIdLama);
   var namaFile      = fileLama.getName();
 
-  // Pindahkan file lama ke ARSIP-VERSI
   fileLama.moveTo(folderArsip);
 
   writeAuditLog(
@@ -199,8 +190,6 @@ function arsipFotoFile(proposalId, folderJenisId, fileIdLama, aktorEmail) {
 // ─────────────────────────────────────────────
 // 5. ARSIP VERSI: VIDEO (URL)
 //
-// Video = file .txt berisi URL eksternal.
-// Saat URL diganti: file .txt lama dipindah ke
 // ARSIP-VERSI, file .txt baru dibuat.
 // Juknis Bab IV huruf C & Bab VI huruf C.
 // ─────────────────────────────────────────────
@@ -295,7 +284,6 @@ function updateFileMetadata(proposalId, colIndex, nilaiJson) {
       throw new Error("Proposal ID '" + proposalId + "' tidak ditemukan.");
     }
 
-    // colIndex adalah 0-based, getRange butuh 1-based
     sheet.getRange(hasil.rowIndex, colIndex + 1).setValue(JSON.stringify(nilaiJson));
     sheet.getRange(hasil.rowIndex, COL.UPDATED_AT + 1).setValue(new Date());
   });
@@ -317,7 +305,7 @@ function buildFileMetadata(fileId, nama, versi, uploadedBy) {
     fileId      : fileId,
     name        : nama,
     versi       : versi,
-    status      : "aktif",       // "aktif" atau "diarsip"
+    status      : "aktif",
     uploadedAt  : new Date().toISOString(),
     uploadedBy  : uploadedBy,
     arsipFileId : null           // diisi saat file ini diarsipkan

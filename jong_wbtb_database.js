@@ -78,7 +78,6 @@ var COL = {
   // ── Catatan ───────────────────────────────
   // Juknis Bab VIII huruf G: catatan format poin bernomor dari Atasan.
   // Ini catatan internal Atasan — BUKAN Catatan Penilai Eksternal.
-  // Catatan Penilai Eksternal disimpan sebagai file di subfolder CATATAN/PXX/.
   CATATAN_ATASAN: 9,   // String  |    | Catatan perbaikan internal dari Atasan (Kabid NATBK).
 
   // ── Google Drive References ────────────────
@@ -104,8 +103,6 @@ var COL = {
   // ── Catatan Penilai Eksternal ──────────────
   // Juknis Bab VI huruf D: Putaran Revisi hanya bisa dibuka setelah
   // Catatan Penilai Eksternal diterima dan terdokumentasi Operator.
-  // File Catatan Penilai disimpan di Drive (subfolder CATATAN/PXX/).
-  // Di sini hanya metadata untuk tracking.
   CATATAN_PENILAI_JSON: 18,  // String (JSON) | Array metadata Catatan Penilai Eksternal.
   //               | Format: [{ putaran, fileId, diterimaTanggal, didokumentasiOleh }]
 
@@ -133,7 +130,6 @@ var COL = {
   PRESENTASI_FILES_JSON: 26 // String (JSON) | File presentasi usulan (PPT/PDF).
 };
 
-// Total kolom: 27
 var TOTAL_COLS_WBTB = 27;
 
 
@@ -158,28 +154,23 @@ var TOTAL_COLS_LOG = 6;
 
 // Kode aksi standar untuk kolom ACTION_TYPE
 var ACTION_TYPES = {
-  // Workspace
   WORKSPACE_INIT_START: "WORKSPACE_INIT_START",
   WORKSPACE_INIT_SUCCESS: "WORKSPACE_INIT_SUCCESS",
   HISTORIS_INIT_START: "HISTORIS_INIT_START",
   HISTORIS_INIT_SUCCESS: "HISTORIS_INIT_SUCCESS",
 
-  // Status
   STATUS_CHANGE: "STATUS_CHANGE",
 
-  // Putaran Revisi
   PUTARAN_REVISI_CREATED: "PUTARAN_REVISI_CREATED",
   CATATAN_PENILAI_UPLOAD: "CATATAN_PENILAI_UPLOAD",
 
-  // Dokumen
   FORMULIR_VERSI_BARU: "FORMULIR_VERSI_BARU",
   KAJIAN_UPLOAD: "KAJIAN_UPLOAD",
   FOTO_UPLOAD: "FOTO_UPLOAD",
   VIDEO_URL_SET: "VIDEO_URL_SET",
   SERTIFIKAT_UPLOAD: "SERTIFIKAT_UPLOAD",
-  ARSIP_VERSI_PINDAH: "ARSIP_VERSI_PINDAH",  // file lama dipindah ke ARSIP-VERSI sebelum ditimpa
+  ARSIP_VERSI_PINDAH: "ARSIP_VERSI_PINDAH",
 
-  // Akses
   DRIVE_ACCESS_FROZEN: "DRIVE_ACCESS_FROZEN",
   DRIVE_ACCESS_UNFROZEN: "DRIVE_ACCESS_UNFROZEN",
   AKSES_DITAMBAH: "AKSES_DITAMBAH",
@@ -188,7 +179,6 @@ var ACTION_TYPES = {
   // Catatan Atasan
   CATATAN_ATASAN_SET: "CATATAN_ATASAN_SET",
 
-  // Evaluasi & Retensi
   EVALUASI_KEPATUHAN: "EVALUASI_KEPATUHAN",
   RETENSI_CHECK: "RETENSI_CHECK",
 
@@ -315,9 +305,9 @@ var DatabaseEngine = {
   findRow: function (sheet, colIndex, value) {
     var data = sheet.getDataRange().getValues();
     var valLower = String(value).toLowerCase();
-    for (var i = 1; i < data.length; i++) { // skip header row (i=0)
+    for (var i = 1; i < data.length; i++) {
       if (String(data[i][colIndex]).toLowerCase() === valLower) {
-        return { rowIndex: i + 1, rowData: data[i] }; // rowIndex 1-based
+        return { rowIndex: i + 1, rowData: data[i] };
       }
     }
     return null;
@@ -340,7 +330,7 @@ var DatabaseEngine = {
 function writeAuditLog(actionType, detail, proposalId) {
   try {
     var userEmail = Session.getActiveUser().getEmail() || "system@jong-wbtb";
-    var userRole = getUserRole(userEmail); // lihat fungsi RBAC
+    var userRole = getUserRole(userEmail);
 
     DatabaseEngine.executeTransaction(DB_NAMES.ACTIVITY_LOG, function (sheet) {
       sheet.appendRow([
@@ -354,7 +344,6 @@ function writeAuditLog(actionType, detail, proposalId) {
     });
   } catch (e) {
     // Log error tidak boleh throw — jangan sampai audit log failure
-    // menggagalkan operasi utama yang sedang berjalan.
     Logger.log("AUDIT LOG FAILED: " + e.toString());
   }
 }
@@ -377,20 +366,17 @@ function writeAuditLog(actionType, detail, proposalId) {
 function initializeDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Inisialisasi db_wbtb_lingga
   var sheetWbtb = ss.getSheetByName(DB_NAMES.WBTB_LINGGA);
   if (!sheetWbtb) {
     sheetWbtb = ss.insertSheet(DB_NAMES.WBTB_LINGGA);
     sheetWbtb.appendRow(HEADERS_WBTB);
     sheetWbtb.setFrozenRows(1);
-    // Format header row
     sheetWbtb.getRange(1, 1, 1, TOTAL_COLS_WBTB)
       .setFontWeight("bold")
       .setBackground("#E8F0FE");
     Logger.log("Sheet '" + DB_NAMES.WBTB_LINGGA + "' berhasil dibuat.");
   } else {
     Logger.log("Sheet '" + DB_NAMES.WBTB_LINGGA + "' sudah ada — dilewati.");
-    // Auto-migrasi multi-kolom yang dinamis
     var lastCol = sheetWbtb.getLastColumn();
     if (lastCol < TOTAL_COLS_WBTB) {
       for (var c = lastCol + 1; c <= TOTAL_COLS_WBTB; c++) {
@@ -403,7 +389,6 @@ function initializeDatabase() {
     }
   }
 
-  // Inisialisasi db_activity_log
   var sheetLog = ss.getSheetByName(DB_NAMES.ACTIVITY_LOG);
   if (!sheetLog) {
     sheetLog = ss.insertSheet(DB_NAMES.ACTIVITY_LOG);
@@ -438,7 +423,7 @@ function initializeDatabase() {
  */
 function generateProposalId(sheet) {
   var lastRow = sheet.getLastRow();
-  var nextNum = lastRow; // row 1 = header, row 2 = data pertama → ID ke-1
+  var nextNum = lastRow;
   var padLen = nextNum >= 1000 ? 4 : 3;
   return "WBTB-" + String(nextNum).padStart(padLen, "0");
 }

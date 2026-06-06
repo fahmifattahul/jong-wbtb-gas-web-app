@@ -21,11 +21,8 @@
 
 var FOLDER_NAMES = {
 
-  // Folder root terpusat — satu per tahun periode pengusulan
   ROOT: "WBTB_LINGGA_2026",
 
-  // 6 subfolder tahap permanen per Folder Usulan
-  // Juknis Bab III huruf B
   TAHAP: {
     PENGUMPULAN_DATA    : "01_PENGUMPULAN-DATA",
     PENGUSULAN          : "02_PENGUSULAN",
@@ -35,19 +32,15 @@ var FOLDER_NAMES = {
     FINAL               : "06_FINAL"
   },
 
-  // Subfolder jenis dokumen di dalam setiap subfolder tahap
-  // Juknis Bab III huruf B paragraf 3
   JENIS: {
     FORMULIR_USULAN     : "FORMULIR-USULAN",
     KAJIAN_ILMIAH       : "KAJIAN-ILMIAH",
     FOTO_DOKUMENTASI    : "FOTO-DOKUMENTASI",
-    VIDEO_DOKUMENTASI   : "VIDEO-DOKUMENTASI",  // berisi file .txt tautan eksternal
+    VIDEO_DOKUMENTASI   : "VIDEO-DOKUMENTASI",
     CATATAN             : "CATATAN",
-    ARSIP_VERSI         : "ARSIP-VERSI"          // tempat versi lama sebelum ditimpa
+    ARSIP_VERSI         : "ARSIP-VERSI"
   },
 
-  // Subfolder khusus Arsip Historis — terpisah dari pengusulan aktif
-  // Juknis Bab IX huruf B
   ARSIP_HISTORIS: "ARSIP-HISTORIS"
 };
 
@@ -71,8 +64,8 @@ function formatNamaFolderKarya(proposalId, namaKarya) {
   var namaFormatted = namaKarya
     .toUpperCase()
     .trim()
-    .replace(/[^A-Z0-9\s]/g, "")   // hapus karakter non-alfanumerik kecuali spasi
-    .replace(/\s+/g, "-");          // spasi → tanda hubung
+    .replace(/[^A-Z0-9\s]/g, "")
+    .replace(/\s+/g, "-");
   return proposalId + "_" + namaFormatted;
 }
 
@@ -190,12 +183,9 @@ function initProposalWorkspace(proposalId, namaKarya, entryType, entryStatus) {
   var folderKaryaId   = folderKarya.getId();
 
   // 3. Buat 6 subfolder tahap permanen
-  // Juknis Bab III huruf B: subfolder tahap tidak dipindahkan secara fisik;
-  // perpindahan tahap hanya dicatat secara administratif.
   var folderIds = {};
 
   if (entryType === "historis") {
-    // Untuk arsip historis, kita membangun struktur sesuai statusnya (FINAL atau DITANGGUHKAN)
     if (entryStatus === "Ditangguhkan" || entryStatus === STATUS.DITANGGUHKAN) {
       var folderTangguh = getOrCreateFolder(folderKarya, FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN);
       folderIds["ARSIP_DITANGGUHKAN"] = folderTangguh.getId();
@@ -209,9 +199,9 @@ function initProposalWorkspace(proposalId, namaKarya, entryType, entryStatus) {
     var tahapList = [
       { key: "PENGUMPULAN_DATA",   nama: FOLDER_NAMES.TAHAP.PENGUMPULAN_DATA,   buatJenis: true  },
       { key: "PENGUSULAN",         nama: FOLDER_NAMES.TAHAP.PENGUSULAN,          buatJenis: true  },
-      { key: "REVISI",             nama: FOLDER_NAMES.TAHAP.REVISI,              buatJenis: false }, // subfolder Putaran dibuat dinamis
+      { key: "REVISI",             nama: FOLDER_NAMES.TAHAP.REVISI,              buatJenis: false },
       { key: "PENETAPAN",          nama: FOLDER_NAMES.TAHAP.PENETAPAN,           buatJenis: true  },
-      { key: "ARSIP_DITANGGUHKAN", nama: FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN, buatJenis: false }, // isi disalin manual saat penangguhan
+      { key: "ARSIP_DITANGGUHKAN", nama: FOLDER_NAMES.TAHAP.ARSIP_DITANGGUHKAN, buatJenis: false },
       { key: "FINAL",              nama: FOLDER_NAMES.TAHAP.FINAL,               buatJenis: true  }
     ];
 
@@ -253,7 +243,7 @@ function buatSubfolderJenis(folderTahap, stageKey) {
     FOLDER_NAMES.JENIS.FORMULIR_USULAN,
     FOLDER_NAMES.JENIS.KAJIAN_ILMIAH,
     FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI,
-    FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI  // Dipindah ke sini agar subfolder ARSIP-VERSI dibuat
+    FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI
   ];
 
   var jenisTanpaArsipVersi = [
@@ -269,13 +259,11 @@ function buatSubfolderJenis(folderTahap, stageKey) {
     getOrCreateFolder(folderTahap, namaJenis);
   });
 
-  // Tambahkan folder Presentasi untuk Penetapan & Final (Juknis Bab III B)
   if (stageKey === "PENETAPAN" || stageKey === "FINAL") {
     var folderPres = getOrCreateFolder(folderTahap, "PRESENTASI");
     getOrCreateFolder(folderPres, FOLDER_NAMES.JENIS.ARSIP_VERSI);
   }
 
-  // Tambahkan folder Sertifikat untuk Final (Juknis Bab III B)
   if (stageKey === "FINAL") {
     getOrCreateFolder(folderTahap, "SERTIFIKAT");
   }
@@ -285,7 +273,6 @@ function buatSubfolderJenis(folderTahap, stageKey) {
 // ─────────────────────────────────────────────
 // 6. BUAT SUBFOLDER PUTARAN REVISI
 //
-// Dipanggil HANYA saat Catatan Penilai Eksternal
 // diterima dan terdokumentasi (status → DIPERBAIKI).
 // Juknis Bab VI huruf D & Bab III huruf B.
 // ─────────────────────────────────────────────
@@ -327,7 +314,6 @@ function createPutaranRevisiFolder(folderKaryaId, nomorPutaran) {
 
   var folderRevisi  = iterRevisi.next();
 
-  // Cek apakah putaran ini sudah pernah dibuat (idempotent)
   var iterPutaran = folderRevisi.getFoldersByName(namaPutaran);
   if (iterPutaran.hasNext()) {
     throw new Error(
@@ -339,8 +325,6 @@ function createPutaranRevisiFolder(folderKaryaId, nomorPutaran) {
 
   var folderPutaran = folderRevisi.createFolder(namaPutaran);
 
-  // Buat subfolder jenis dokumen di dalam putaran
-  // Juknis Bab VI huruf D: putaran hanya memuat dokumen yang benar-benar
   // direvisi. Anggota Tim yang menentukan file mana yang dimasukkan.
   buatSubfolderJenis(folderPutaran);
 
@@ -363,7 +347,6 @@ function createPutaranRevisiFolder(folderKaryaId, nomorPutaran) {
 // ─────────────────────────────────────────────
 // 7. INISIALISASI WORKSPACE ARSIP HISTORIS
 //
-// Entry point khusus untuk dokumen WBTb yang
 // sudah ditetapkan sebelum Juknis ini berlaku.
 // Juknis Bab IX huruf B.
 // ─────────────────────────────────────────────
@@ -402,13 +385,12 @@ function initHistorisWorkspace(proposalId, namaKarya) {
   var folderKarya     = getOrCreateFolder(folderArsip, namaFolderKarya);
   var folderKaryaId   = folderKarya.getId();
 
-  // Buat subfolder jenis — semua opsional kecuali SERTIFIKAT
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.FORMULIR_USULAN);
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
   getOrCreateFolder(folderKarya, FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
   getOrCreateFolder(folderKarya, "PRESENTASI");
-  getOrCreateFolder(folderKarya, "SERTIFIKAT"); // wajib — syarat import historis
+  getOrCreateFolder(folderKarya, "SERTIFIKAT");
 
   writeAuditLog("HISTORIS_INIT_SUCCESS",
     "Workspace arsip historis berhasil dibuat untuk " + proposalId +
@@ -559,7 +541,6 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
       var copiedDoc = fileObj.makeCopy(fileObj.getName(), destFormulirFolder);
       newDocId = copiedDoc.getId();
       
-      // Update doc_history untuk memetakan key versi ke ID baru
       for (var key in docHistory) {
         if (docHistory[key] === docActiveId) {
           docHistory[key] = newDocId;
@@ -634,14 +615,12 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
     throw new Error("Gagal menyalin berkas Video URL ke folder tahap berikutnya: " + errVideo.message);
   }
 
-  // 4b. Salin file Presentasi (jika ada pada tahap Penetapan ke Final)
   var presentasiFiles = [];
   try {
     presentasiFiles = JSON.parse(row[COL.PRESENTASI_FILES_JSON] || "[]");
   } catch(e) {}
 
   if (sourceStageKey === "PENETAPAN" && destStageKey === "FINAL") {
-    // Pastikan folder SERTIFIKAT dibuat di destFolder jika belum ada (berguna untuk usulan lama)
     getOrCreateFolder(destFolder, "SERTIFIKAT");
 
     try {
@@ -668,7 +647,6 @@ function copyActiveFilesToStage(proposalId, sourceStageKey, destStageKey, optSou
     }
   }
 
-  // Helper untuk melakukan update database
   var updateDB = function(targetSheet) {
     var hasilTx = DatabaseEngine.findRow(targetSheet, COL.ID, proposalId);
     if (!hasilTx) throw new Error("Proposal ID '" + proposalId + "' tidak ditemukan saat transaksi database.");

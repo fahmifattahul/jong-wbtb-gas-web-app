@@ -58,7 +58,6 @@ function validateCatatanPenilai(catatan) {
     };
   }
 
-  // Minimal harus ada poin pertama "1."
   if (trimmed.indexOf("1.") === -1) {
     return {
       valid: false,
@@ -207,14 +206,11 @@ function entryCatatanPenilai(operatorEmail, proposalId, catatan, sumberCatatan, 
 
     var rowIdx = hasilTx.rowIndex;
 
-    // Update revisi_round
     sheetTx.getRange(rowIdx, COL.REVISI_ROUND + 1).setValue(putaranBaru);
 
-    // Update catatan_penilai_json
     sheetTx.getRange(rowIdx, COL.CATATAN_PENILAI_JSON + 1)
       .setValue(JSON.stringify(catatanPenilaiArray));
 
-    // Update updated_at
     sheetTx.getRange(rowIdx, COL.UPDATED_AT + 1).setValue(new Date());
   });
 
@@ -284,7 +280,6 @@ function getCatatanPenilai(requesterEmail, proposalId) {
     catatanArray = [];
   }
 
-  // Urutkan berdasarkan nomor putaran ascending
   catatanArray.sort(function(a, b) { return a.putaran - b.putaran; });
 
   return catatanArray;
@@ -294,7 +289,6 @@ function getCatatanPenilai(requesterEmail, proposalId) {
 // ─────────────────────────────────────────────
 // 4. GET CATATAN PENILAI AKTIF
 //
-// Shortcut untuk ambil catatan putaran aktif —
 // yang paling relevan untuk Anggota Tim saat
 // sedang mengerjakan revisi.
 // ─────────────────────────────────────────────
