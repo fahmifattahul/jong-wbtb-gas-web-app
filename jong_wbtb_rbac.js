@@ -50,8 +50,9 @@ var HEADERS_USERS = [
   "catatan"
 ];
 
+// Cache key prefix untuk CacheService
 var CACHE_KEY_ROLE = "user_role_";
-var CACHE_TTL      = 300;
+var CACHE_TTL      = 300; // 5 menit dalam detik
 
 
 // ─────────────────────────────────────────────
@@ -109,6 +110,7 @@ function initializeUsersSheet() {
 function getUserRole(email) {
   if (!email) return null;
 
+  // Cek cache dulu
   var cache     = CacheService.getScriptCache();
   var cacheKey  = CACHE_KEY_ROLE + email;
   var cached    = cache.get(cacheKey);
@@ -116,6 +118,7 @@ function getUserRole(email) {
     return cached === "null" ? null : cached;
   }
 
+  // Baca dari sheet
   var sheet  = DatabaseEngine.getSheet(DB_USERS);
   var result = DatabaseEngine.findRow(sheet, COL_USER.EMAIL, email);
 
@@ -127,6 +130,7 @@ function getUserRole(email) {
     }
   }
 
+  // Simpan ke cache
   cache.put(cacheKey, role === null ? "null" : role, CACHE_TTL);
 
   return role;
@@ -166,6 +170,7 @@ function requireRole(email, rolesIzinkan) {
 // ─────────────────────────────────────────────
 // 4. TAMBAH AKSES PENGGUNA
 //
+// Juknis Bab II huruf C:
 // Penambahan akses hanya atas perintah tertulis Atasan.
 // Dieksekusi oleh Operator.
 // ─────────────────────────────────────────────
@@ -186,6 +191,7 @@ function tambahAksesUser(operatorEmail, emailBaru, roleBaru, namaBaru, catatan) 
   // Validasi: hanya Operator yang bisa tambah akses
   requireRole(operatorEmail, ROLES.OPERATOR);
 
+  // Validasi: role harus valid
   var rolesValid = Object.values(ROLES);
   if (rolesValid.indexOf(roleBaru) === -1) {
     throw new Error("Role '" + roleBaru + "' tidak valid. Pilih dari: " + rolesValid.join(", "));
@@ -216,6 +222,7 @@ function tambahAksesUser(operatorEmail, emailBaru, roleBaru, namaBaru, catatan) 
       if (statusAktif === true || statusAktif === "TRUE") {
         throw new Error("Email '" + emailBaru + "' sudah terdaftar dan aktif di sistem.");
       }
+      // Jika pernah terdaftar tapi sudah dicabut — reaktivasi
       sheet.getRange(existing.rowIndex, COL_USER.ROLE + 1).setValue(roleBaru);
       sheet.getRange(existing.rowIndex, COL_USER.NAMA + 1).setValue(namaBaru);
       sheet.getRange(existing.rowIndex, COL_USER.AKTIF + 1).setValue(true);
@@ -225,6 +232,7 @@ function tambahAksesUser(operatorEmail, emailBaru, roleBaru, namaBaru, catatan) 
       sheet.getRange(existing.rowIndex, COL_USER.DICABUT_OLEH + 1).setValue("");
       sheet.getRange(existing.rowIndex, COL_USER.CATATAN + 1).setValue(catatan || "Reaktivasi");
     } else {
+      // Tambah baris baru
       sheet.appendRow([
         emailBaru,
         roleBaru,
@@ -241,6 +249,7 @@ function tambahAksesUser(operatorEmail, emailBaru, roleBaru, namaBaru, catatan) 
     return { email: emailBaru, role: roleBaru, nama: namaBaru };
   });
 
+  // Invalidasi cache user ini
   invalidateUserCache(emailBaru);
 
   writeAuditLog(
@@ -257,6 +266,7 @@ function tambahAksesUser(operatorEmail, emailBaru, roleBaru, namaBaru, catatan) 
 // ─────────────────────────────────────────────
 // 5. CABUT AKSES PENGGUNA
 //
+// Juknis Bab II huruf C:
 // Pencabutan akses paling lambat 1 hari kerja
 // setelah perintah Atasan diterima.
 // ─────────────────────────────────────────────
@@ -308,6 +318,7 @@ function cabutAksesUser(operatorEmail, emailTarget, catatan) {
     };
   });
 
+  // Invalidasi cache — efektif langsung setelah pencabutan
   invalidateUserCache(emailTarget);
 
   writeAuditLog(

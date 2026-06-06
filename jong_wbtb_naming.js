@@ -48,6 +48,7 @@
 // ─────────────────────────────────────────────
 // 1. VALIDASI JUDUL SINGKAT
 //
+// Diinput user sekali saat buat usulan baru.
 // Dipakai untuk semua penamaan file sepanjang
 // lifecycle Folder Usulan.
 // ─────────────────────────────────────────────
@@ -75,6 +76,7 @@ function validateJudulSingkat(judulSingkat) {
     return { valid: false, pesan: "Judul singkat maksimal 30 karakter." };
   }
 
+  // Hanya A-Z (uppercase) dan tanda hubung, tidak boleh mulai/akhiri dengan tanda hubung
   var polaNama = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
   if (!polaNama.test(trimmed)) {
     return {
@@ -85,6 +87,7 @@ function validateJudulSingkat(judulSingkat) {
     };
   }
 
+  // Tidak boleh ada tanda hubung berurutan
   if (/--/.test(trimmed)) {
     return { valid: false, pesan: "Tanda hubung tidak boleh berurutan (--). Contoh valid: TEPUNG-TAWAR" };
   }
@@ -261,6 +264,7 @@ function namaPublikasi(judulSingkat, tahun) {
 // ─────────────────────────────────────────────
 // 4. ROUTER NAMA FILE
 //
+// Satu fungsi terpadu yang memilih generator
 // yang tepat berdasarkan jenis dokumen dan
 // konteks (dalam revisi atau tidak).
 // ─────────────────────────────────────────────
@@ -294,6 +298,7 @@ var JENIS_DOK = {
 function namaFile(jenisDok, judulSingkat, params) {
   var p = params || {};
 
+  // Validasi judulSingkat setiap kali generate nama file
   var validasi = validateJudulSingkat(judulSingkat);
   if (!validasi.valid) {
     throw new Error("Judul singkat tidak valid: " + validasi.pesan);

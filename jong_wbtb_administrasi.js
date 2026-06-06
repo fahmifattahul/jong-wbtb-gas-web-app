@@ -59,6 +59,7 @@ function getFolderAdminSub(subfolderNama) {
 // ─────────────────────────────────────────────
 // 3. GENERATE PDF VIA GOOGLE DOCS TEMPLATE
 //
+// GAS tidak bisa generate PDF dari scratch.
 // Cara yang supported: buat Google Docs dulu,
 // isi kontennya, export ke PDF, hapus Docs-nya.
 // ─────────────────────────────────────────────
@@ -74,12 +75,15 @@ function getFolderAdminSub(subfolderNama) {
  */
 function generatePDF(judulDokumen, isiDokumen, folderTujuan) {
 
+  // Buat Google Docs sementara di root Drive
   var docTemp  = DocumentApp.create(judulDokumen + "_TEMP");
   var body     = docTemp.getBody();
 
+  // Tulis konten
   body.clear();
   body.setText(isiDokumen);
 
+  // Format dasar
   body.getParagraphs().forEach(function(p) {
     p.setFontFamily("Arial");
     p.setFontSize(11);
@@ -87,12 +91,15 @@ function generatePDF(judulDokumen, isiDokumen, folderTujuan) {
 
   docTemp.saveAndClose();
 
+  // Export ke PDF
   var fileDoc  = DriveApp.getFileById(docTemp.getId());
   var pdfBlob  = fileDoc.getAs(MimeType.PDF);
   pdfBlob.setName(judulDokumen + ".pdf");
 
+  // Simpan PDF ke folder tujuan
   var filePDF  = folderTujuan.createFile(pdfBlob);
 
+  // Hapus Google Docs sementara
   fileDoc.setTrashed(true);
 
   return filePDF;
@@ -102,6 +109,7 @@ function generatePDF(judulDokumen, isiDokumen, folderTujuan) {
 // ─────────────────────────────────────────────
 // 4. PENETAPAN OPERATOR
 //
+// Juknis Bab II huruf B:
 // Operator ditetapkan secara tertulis oleh Atasan.
 // Penetapan disampaikan kepada seluruh Anggota Tim.
 // ─────────────────────────────────────────────
@@ -141,7 +149,7 @@ function tetapkanOperator(atasanEmail, operatorEmailBaru, operatorNama, catatan)
   // ── Generate konten dokumen penetapan ────
   var nomorDokumen = "JONG-WBTb/PO/" +
     Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyyMMdd") + "/" +
-    String(Math.floor(Math.random() * 900) + 100);
+    String(Math.floor(Math.random() * 900) + 100); // 3 digit random sebagai nomor urut sementara
 
   var isiDokumen = [
     "SURAT PENETAPAN OPERATOR",
@@ -219,6 +227,7 @@ function tetapkanOperator(atasanEmail, operatorEmailBaru, operatorNama, catatan)
   var existingUser   = DatabaseEngine.findRow(sheetUserCheck, COL_USER.EMAIL, operatorEmailBaru);
 
   if (existingUser) {
+    // Update role yang sudah ada
     DatabaseEngine.executeTransaction(DB_USERS, function(sheet) {
       var h = DatabaseEngine.findRow(sheet, COL_USER.EMAIL, operatorEmailBaru);
       sheet.getRange(h.rowIndex, COL_USER.ROLE + 1).setValue(ROLES.OPERATOR);
@@ -232,6 +241,7 @@ function tetapkanOperator(atasanEmail, operatorEmailBaru, operatorNama, catatan)
         .setValue("Ditetapkan sebagai Operator. Nomor: " + nomorDokumen);
     });
   } else {
+    // Tambah baris baru
     DatabaseEngine.executeTransaction(DB_USERS, function(sheet) {
       sheet.appendRow([
         operatorEmailBaru,
@@ -273,6 +283,8 @@ function tetapkanOperator(atasanEmail, operatorEmailBaru, operatorNama, catatan)
 // ─────────────────────────────────────────────
 // 5. PERINTAH AKSES TERTULIS
 //
+// Juknis Bab II huruf C:
+// Penambahan atau pencabutan hak akses hanya
 // dapat dilakukan atas perintah tertulis Atasan.
 // Setiap perubahan hak akses wajib didokumentasikan.
 // ─────────────────────────────────────────────

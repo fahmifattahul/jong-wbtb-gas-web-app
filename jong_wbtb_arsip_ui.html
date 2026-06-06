@@ -1,4 +1,4 @@
-
+<!-- Modal: Detail Berkas Arsip (Semua Role) -->
 <div id="modal-detail-berkas-arsip" class="modal-overlay hidden">
   <div class="modal" style="max-width: 600px; width: 90%;">
     <div class="modal-header">
@@ -15,7 +15,7 @@
 
       <h4 style="margin-bottom: 12px; color: var(--gold-dark);">Daftar Berkas Kearsipan</h4>
       <div id="view-arsip-files-list" style="display: flex; flex-direction: column; gap: 10px;">
-        
+        <!-- Dynamic content -->
       </div>
     </div>
     <div class="modal-footer">
@@ -24,7 +24,7 @@
   </div>
 </div>
 
-
+<!-- Modal: Import Arsip Historis (Khusus Operator) -->
 <div id="modal-import-arsip" class="modal-overlay hidden">
   <div class="modal" style="max-width: 600px; width: 90%;">
     <div class="modal-header">
@@ -125,7 +125,7 @@
   </div>
 </div>
 
-
+<!-- Modal: Edit Arsip Historis (Khusus Operator) -->
 <div id="modal-edit-arsip" class="modal-overlay hidden">
   <div class="modal" style="max-width: 600px; width: 90%;">
     <div class="modal-header">
@@ -180,14 +180,14 @@
         </select>
       </div>
 
-      
+      <!-- File management section -->
       <hr style="border:0; border-top: 1px solid var(--border); margin: 20px 0;">
       <h4 style="margin-bottom:12px; color:var(--gold-dark);">Kelola Berkas Terunggah</h4>
       
       <div class="form-group">
         <label class="form-label" style="font-weight:600;">Daftar Berkas Saat Ini:</label>
         <div id="edit-files-list" style="border:1px solid var(--border); border-radius:6px; padding:10px; background:var(--surface-2); display:flex; flex-direction:column; gap:8px;">
-          
+          <!-- Rendered dynamically -->
         </div>
       </div>
 
@@ -254,6 +254,7 @@ function toggleEditSertifikatRequirement(status) {
   const fileListContainer = document.getElementById('edit-files-list');
   const hasSertifikat = fileListContainer.innerHTML.includes('Sertifikat:');
   
+  // Jika status Final dan belum ada sertifikat, maka wajib upload sertifikat
   if (status === 'Final' && !hasSertifikat) {
     req.style.display = 'inline';
   } else {
@@ -285,7 +286,7 @@ async function renderArsip() {
         <div id="arsip-table-actions">${actionsHtml}</div>
       </div>
       
-      
+      <!-- Filter bar -->
       <div style="display:flex;gap:10px;margin:16px 20px 16px;flex-wrap:wrap;">
         <div class="search-wrap" style="flex:1;min-width:200px;">
           <span class="search-icon">🔍</span>
@@ -482,6 +483,7 @@ function gantiHalamanArsip(page) {
   renderArsipTableAndPagination();
 }
 
+// Helper: Convert File to Base64 object
 function readFileAsBase64(fileInputId) {
   return new Promise((resolve) => {
     const input = document.getElementById(fileInputId);
@@ -502,6 +504,7 @@ function readFileAsBase64(fileInputId) {
   });
 }
 
+// Helper: Convert Multiple Files to Base64 array
 function readFilesAsBase64(fileInputId) {
   return new Promise((resolve) => {
     const input = document.getElementById(fileInputId);
@@ -529,6 +532,7 @@ function readFilesAsBase64(fileInputId) {
   });
 }
 
+// Submit Import Arsip
 async function submitImportArsip() {
   const namaKarya = document.getElementById('import-nama-karya').value.trim();
   const judulSingkat = document.getElementById('import-judul-singkat').value.trim().toUpperCase();
@@ -543,6 +547,7 @@ async function submitImportArsip() {
     return;
   }
 
+  // Validasi judulSingkat format
   const pattern = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
   if (!pattern.test(judulSingkat) || judulSingkat.includes(' ')) {
     showToast('Judul singkat tidak valid. Harus UPPERCASE, hanya huruf, angka, dan tanda hubung (-). Tanpa spasi.', 'error');
@@ -560,6 +565,7 @@ async function submitImportArsip() {
   btn.textContent = 'Mengupload berkas dan mengimpor...';
 
   try {
+    // Membaca berkas
     const formulirFile = await readFileAsBase64('import-formulir');
     const kajianFiles = await readFilesAsBase64('import-kajian');
     const fotoFiles = await readFilesAsBase64('import-foto');
@@ -587,6 +593,7 @@ async function submitImportArsip() {
     showToast('Berhasil mengimpor arsip historis beserta berkas!', 'success');
     closeModal('modal-import-arsip');
     
+    // Reset Form
     document.getElementById('import-nama-karya').value = '';
     document.getElementById('import-judul-singkat').value = '';
     document.getElementById('import-domain').value = '';
@@ -607,6 +614,7 @@ async function submitImportArsip() {
   }
 }
 
+// Buka Modal Edit Arsip
 function openEditArsipModal(id) {
   const item = App.data.arsip.find(p => p.id === id);
   if (!item) {
@@ -614,6 +622,7 @@ function openEditArsipModal(id) {
     return;
   }
 
+  // Reset Deleted Files List
   editDeletedFileIds = [];
 
   document.getElementById('edit-proposal-id').value = item.id;
@@ -625,12 +634,14 @@ function openEditArsipModal(id) {
   document.getElementById('edit-status').value = item.status || 'Final';
   document.getElementById('edit-video').value = item.videoUrl || '';
 
+  // Reset file inputs
   document.getElementById('edit-formulir').value = '';
   document.getElementById('edit-kajian').value = '';
   document.getElementById('edit-foto').value = '';
   document.getElementById('edit-presentasi').value = '';
   document.getElementById('edit-sertifikat').value = '';
 
+  // Render list berkas terunggah saat ini
   renderEditFilesList(item);
   
   toggleEditSertifikatRequirement(item.status);
@@ -642,6 +653,7 @@ function renderEditFilesList(item) {
   const container = document.getElementById('edit-files-list');
   let html = '';
 
+  // Formulir
   if (item.docActiveId) {
     html += `
       <div class="file-item-row" id="file-row-${item.docActiveId}" style="display:flex; align-items:center; justify-content:space-between; background:var(--surface); padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
@@ -651,6 +663,7 @@ function renderEditFilesList(item) {
     `;
   }
 
+  // Kajian (multiple)
   if (item.kajianFiles && item.kajianFiles.length > 0) {
     item.kajianFiles.forEach(f => {
       html += `
@@ -662,6 +675,7 @@ function renderEditFilesList(item) {
     });
   }
 
+  // Foto (multiple)
   if (item.fotoFiles && item.fotoFiles.length > 0) {
     item.fotoFiles.forEach(f => {
       html += `
@@ -673,6 +687,7 @@ function renderEditFilesList(item) {
     });
   }
 
+  // Presentasi
   if (item.presentasiFiles && item.presentasiFiles.length > 0) {
     item.presentasiFiles.forEach(f => {
       html += `
@@ -684,6 +699,7 @@ function renderEditFilesList(item) {
     });
   }
 
+  // Sertifikat
   if (item.sertifikatFiles && item.sertifikatFiles.length > 0) {
     item.sertifikatFiles.forEach(f => {
       html += `
@@ -702,6 +718,7 @@ function renderEditFilesList(item) {
   }
 }
 
+// Mark file deleted in edit mode
 function markFileDeleted(fileId) {
   editDeletedFileIds.push(fileId);
   const row = document.getElementById(`file-row-${fileId}`);
@@ -711,6 +728,7 @@ function markFileDeleted(fileId) {
     row.innerHTML = `<span style="font-size:0.82rem; color:var(--danger); text-decoration:line-through;">Berkas ditandai untuk dihapus</span><button class="btn btn-ghost btn-sm" onclick="restoreFileDeleted('${fileId}')" style="color:var(--success); padding:2px 6px;">Batal</button>`;
   }
   
+  // Re-eval sertifikat req jika sertifikat dihapus
   const item = App.data.arsip.find(p => p.id === document.getElementById('edit-proposal-id').value);
   if (item && item.sertifikatFiles && item.sertifikatFiles.some(f => f.fileId === fileId)) {
     document.getElementById('edit-sertifikat-req').style.display = 'inline';
@@ -723,6 +741,7 @@ function restoreFileDeleted(fileId) {
   if (item) {
     renderEditFilesList(item);
     
+    // Kembalikan status coret list ke semula
     editDeletedFileIds.forEach(id => {
       const row = document.getElementById(`file-row-${id}`);
       if (row) {
@@ -736,6 +755,7 @@ function restoreFileDeleted(fileId) {
   }
 }
 
+// Submit Edit Arsip
 async function submitEditArsip() {
   const proposalId = document.getElementById('edit-proposal-id').value;
   const namaKarya = document.getElementById('edit-nama-karya').value.trim();
@@ -751,12 +771,14 @@ async function submitEditArsip() {
     return;
   }
 
+  // Validasi judulSingkat
   const pattern = /^[A-Z][A-Z0-9-]*[A-Z0-9]$|^[A-Z]$/;
   if (!pattern.test(judulSingkat) || judulSingkat.includes(' ')) {
     showToast('Judul singkat tidak valid. Harus UPPERCASE, hanya huruf, angka, dan tanda hubung (-). Tanpa spasi.', 'error');
     return;
   }
 
+  // Validasi jika status Final, apakah ada sertifikat aktif
   const item = App.data.arsip.find(p => p.id === proposalId);
   const certInput = document.getElementById('edit-sertifikat');
   const oldSertExist = item.sertifikatFiles && item.sertifikatFiles.length > 0;
@@ -773,6 +795,7 @@ async function submitEditArsip() {
   btn.textContent = 'Menyimpan perubahan...';
 
   try {
+    // Membaca berkas baru
     const formulirFile = await readFileAsBase64('edit-formulir');
     const kajianFiles = await readFilesAsBase64('edit-kajian');
     const fotoFiles = await readFilesAsBase64('edit-foto');
@@ -809,6 +832,7 @@ async function submitEditArsip() {
   }
 }
 
+// Hapus Arsip
 function confirmDeleteArsip(id, namaKarya) {
   showKonfirmasi(
     'Hapus Arsip Historis',

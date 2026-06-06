@@ -200,6 +200,7 @@ function createProposal(operatorEmail, data) {
 
     var hasilFolder = initProposalWorkspace(proposalId, data.namaKarya);
 
+    // Set Drive permission
     try {
       var folderKarya = DriveApp.getFolderById(hasilFolder.folderKaryaId);
       folderKarya.addEditor(data.penanggungJawabEmail);
@@ -211,11 +212,13 @@ function createProposal(operatorEmail, data) {
       Logger.log('Warning: gagal set Drive permission: ' + driveErr.toString());
     }
 
+    // Ambil nama PJ
     var sheetUser = DatabaseEngine.getSheet(DB_USERS);
     var hasilPJ   = DatabaseEngine.findRow(sheetUser, COL_USER.EMAIL,
       data.penanggungJawabEmail);
     var pjNama    = hasilPJ ? hasilPJ.rowData[COL_USER.NAMA] : data.penanggungJawabEmail;
 
+    // Simpan ke database
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
       var now     = new Date();
       var rowData = new Array(TOTAL_COLS_WBTB).fill('');
@@ -411,6 +414,7 @@ function kunciFolderDrive(proposalId, operatorEmail) {
     return;
   }
 
+  // Coba ubah permission di Google Drive
   var driveSuccess = false;
   if (folderKaryaId && pjEmail) {
     try {
@@ -424,6 +428,7 @@ function kunciFolderDrive(proposalId, operatorEmail) {
     }
   }
 
+  // Tetap update status database agar tidak inkonsisten
   try {
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
       var h = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
@@ -496,11 +501,13 @@ function buatFormulirProposal(anggotaEmail, proposalId) {
     if (!folderPDId) throw new Error('Folder Pengumpulan Data tidak ditemukan.');
     if (row[COL.DOC_ACTIVE_ID]) throw new Error('Formulir sudah ada. Gunakan Naik Versi untuk membuat versi baru.');
 
+    // Cari subfolder FORMULIR-USULAN
     var folderPD       = DriveApp.getFolderById(folderPDId);
     var iterFormulir   = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.FORMULIR_USULAN);
     if (!iterFormulir.hasNext()) throw new Error('Subfolder FORMULIR-USULAN tidak ditemukan.');
     var folderFormulir = iterFormulir.next();
 
+    // Buat nama file sesuai Juknis
     var namaFileStr  = namaFile(JENIS_DOK.FORMULIR, judulSingkat, { versi: 1 });
 var fileTemplate = DriveApp.getFileById(TEMPLATE_FORMULIR_ID);
 var fileCopy     = fileTemplate.makeCopy(namaFileStr, folderFormulir);
@@ -561,16 +568,19 @@ function naikVersiFormulir(anggotaEmail, proposalId) {
 
     if (!docActiveId) throw new Error('Belum ada formulir aktif.');
 
+    // Cari folder FORMULIR-USULAN di tahap aktif
     var folderPDId    = folderIds['PENGUMPULAN_DATA'];
     var folderPD      = DriveApp.getFolderById(folderPDId);
     var iterFormulir  = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.FORMULIR_USULAN);
     if (!iterFormulir.hasNext()) throw new Error('Folder FORMULIR-USULAN tidak ditemukan.');
     var folderFormulirId = iterFormulir.next().getId();
 
+    // Arsip versi lama
     var hasilArsip = arsipFormulirVersi(
       proposalId, folderFormulirId, docActiveId, versiLama, anggotaEmail
     );
 
+    // Update doc_history dan doc_active_id
     docHistory['v' + hasilArsip.versiBaru] = hasilArsip.newDocId;
 
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
@@ -605,6 +615,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
   try {
     var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
+    // Validasi server-side
     var validasi = validateFilePDF(fileMeta);
     if (!validasi.valid) throw new Error(validasi.pesan);
 
@@ -631,8 +642,10 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
     var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
     var kajianFiles   = safeParseJSON(row[COL.KAJIAN_FILES_JSON], []);
 
+    // Tentukan folder tujuan berdasarkan status
     var folderTahapId = folderIds['PENGUMPULAN_DATA'];
     if (revisiRound > 0 && row[COL.STATUS] === STATUS.DIPERBAIKI) {
+      // Upload ke subfolder putaran revisi aktif
       var folderRevisiId  = folderIds['REVISI'];
       var folderRevisi    = DriveApp.getFolderById(folderRevisiId);
       var namaPutaran     = formatNamaPutaran(revisiRound);
@@ -643,28 +656,33 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
         if (iterKajian.hasNext()) folderTahapId = iterKajian.next().getId();
       }
     } else {
+      // Upload ke 01_PENGUMPULAN-DATA/KAJIAN-ILMIAH
       var folderPD   = DriveApp.getFolderById(folderTahapId);
       var iterKajian = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
       if (iterKajian.hasNext()) folderTahapId = iterKajian.next().getId();
     }
 
+    // Arsip file lama jika ada
     if (fileMeta.gantiFileId) {
       arsipKajianFile(proposalId, folderTahapId, fileMeta.gantiFileId, anggotaEmail);
       kajianFiles = tandaiFileDiarsip(kajianFiles, fileMeta.gantiFileId,
         fileMeta.gantiFileId);
     }
 
+    // Hitung nomor urut
     var nomorUrut    = kajianFiles.filter(function(f) { return f.status==='aktif'; }).length + 1;
     var versi        = fileMeta.gantiFileId
       ? (kajianFiles.find(function(f) { return f.fileId===fileMeta.gantiFileId; }) || {versi:0}).versi + 1
       : 1;
 
+    // Generate nama file sesuai Juknis
     var jenisDok  = revisiRound > 0 ? JENIS_DOK.KAJIAN_REVISI : JENIS_DOK.KAJIAN;
     var params    = revisiRound > 0
       ? { putaran: revisiRound, nomorUrut: nomorUrut }
       : { nomorUrut: nomorUrut };
     var namaFileKajian = namaFile(jenisDok, judulSingkat, params);
 
+    // Upload ke Drive
     var base64Data = fileMeta.base64.indexOf(',') !== -1
       ? fileMeta.base64.split(',')[1] : fileMeta.base64;
     var blob    = Utilities.newBlob(
@@ -678,6 +696,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
       Logger.log('Warning: gagal setSharing untuk kajian: ' + sharingErr.toString());
     }
 
+    // Update metadata
     var newMeta = buildFileMetadata(file.getId(), namaFileKajian + '.pdf', versi, anggotaEmail);
     kajianFiles.push(newMeta);
     updateFileMetadata(proposalId, COL.KAJIAN_FILES_JSON, kajianFiles);
@@ -708,6 +727,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
   try {
     var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
 
+    // Validasi total payload
     var validasiTotal = validateTotalPayload(payload.files);
     if (!validasiTotal.valid) throw new Error(validasiTotal.pesan);
 
@@ -734,11 +754,13 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     var folderIds    = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
     var fotoFiles    = safeParseJSON(row[COL.FOTO_FILES_JSON], []);
 
+    // Folder tujuan
     var folderTahapId = folderIds['PENGUMPULAN_DATA'];
     var folderPD      = DriveApp.getFolderById(folderTahapId);
     var iterFoto      = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
     var folderFotoId  = iterFoto.hasNext() ? iterFoto.next().getId() : folderTahapId;
 
+    // Arsip file lama jika ada
     if (payload.gantiFileId) {
       arsipFotoFile(proposalId, folderFotoId, payload.gantiFileId, anggotaEmail);
       fotoFiles = tandaiFileDiarsip(fotoFiles, payload.gantiFileId, payload.gantiFileId);
@@ -748,6 +770,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     var nomorBase   = fotoFiles.filter(function(f) { return f.status==='aktif'; }).length;
 
     payload.files.forEach(function(fileMeta, idx) {
+      // Validasi per file
       var validasi = validateFileFoto(fileMeta);
       if (!validasi.valid) throw new Error(fileMeta.name + ': ' + validasi.pesan);
 
@@ -818,8 +841,10 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
     var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
     var fileIdLama    = null;
 
+    // Cari file .txt URL lama jika ada
     var videoUrl = row[COL.VIDEO_URL];
     if (videoUrl) {
+      // Cari file .txt di folder VIDEO-DOKUMENTASI
       var folderPDId = folderIds['PENGUMPULAN_DATA'];
       var folderPD   = DriveApp.getFolderById(folderPDId);
       var iterVideo  = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
@@ -836,16 +861,18 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
       }
     }
 
+    // Arsip URL lama dan buat file .txt baru
     var judulSingkat = row[COL.JUDUL_SINGKAT];
     var folderPDId2  = folderIds['PENGUMPULAN_DATA'];
     var folderPD2    = DriveApp.getFolderById(folderPDId2);
     var iterVideo2   = folderPD2.getFoldersByName(FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
     var folderVideoId = iterVideo2.hasNext() ? iterVideo2.next().getId() : folderPDId2;
 
-    var nomorUrut = 1;
+    var nomorUrut = 1; // default, bisa dikembangkan untuk multi-video
     arsipVideoUrl(proposalId, judulSingkat, folderVideoId, fileIdLama,
       url, keterangan, nomorUrut, anggotaEmail);
 
+    // Update kolom video_url di sheet
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
       var h = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
       sheetTx.getRange(h.rowIndex, COL.VIDEO_URL + 1).setValue(url);
@@ -906,6 +933,7 @@ function getLogAktivitas(requesterEmail, halaman, perHalaman, filterAction, filt
       var proposalId = (row[COL_LOG.PROPOSAL_ID] || '').toString().toLowerCase();
       var detail     = (row[COL_LOG.DETAIL] || '').toString().toLowerCase();
 
+      // Cocokkan Aksi (Dropdown)
       var matchAction = true;
       if (filterAction) {
         if (filterAction === 'STATUS_CHANGE') {
@@ -932,6 +960,7 @@ function getLogAktivitas(requesterEmail, halaman, perHalaman, filterAction, filt
         }
       }
 
+      // Cocokkan Search Query
       var matchQuery = true;
       if (filterSearch) {
         var q = filterSearch.toLowerCase().trim();
@@ -1118,6 +1147,7 @@ function deleteProposal(requesterEmail, proposalId) {
     var status = row[COL.STATUS];
     var folderKaryaId = row[COL.FOLDER_KARYA_ID];
     
+    // Hanya bisa dihapus jika statusnya "Sedang Dikerjakan" atau "Diperbaiki" (draft)
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dihapus.');
     }
@@ -1151,6 +1181,7 @@ function deleteProposal(requesterEmail, proposalId) {
         }
       } catch (driveErr) {
         var errMsg = driveErr.toString().toLowerCase();
+        // Jika folder memang tidak ditemukan atau sudah dihapus, biarkan hapus spreadsheet jalan
         if (errMsg.indexOf("not found") !== -1 || errMsg.indexOf("tidak ditemukan") !== -1 || errMsg.indexOf("invalid id") !== -1) {
           Logger.log("Folder tidak ditemukan di Drive (ID: " + folderKaryaId + "), melanjutkan hapus spreadsheet.");
         } else {
@@ -1190,7 +1221,7 @@ function trashDriveFileSafely(fileId) {
       file = DriveApp.getFileById(fileId);
     } catch (notFoundErr) {
       Logger.log('File tidak ditemukan di Drive (sudah terhapus manual?): ' + fileId);
-      return;
+      return; // Anggap sukses karena file sudah tidak ada
     }
     
     if (!file.isTrashed()) {
@@ -1247,13 +1278,16 @@ function deleteActiveFormulir(operatorEmail, proposalId) {
       throw new Error('Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.');
     }
     
+    // Trash active file
     trashDriveFileSafely(docActiveId);
     
+    // Trash history files
     var docHistory = safeParseJSON(row[COL.DOC_HISTORY_JSON], {});
     for (var key in docHistory) {
       trashDriveFileSafely(docHistory[key]);
     }
     
+    // Update database
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
       var hTx = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
       if (hTx) {
@@ -1408,6 +1442,7 @@ function deleteVideoUrl(operatorEmail, proposalId) {
       throw new Error('Belum ada video URL yang tersimpan.');
     }
     
+    // Trash .txt file in Google Drive
     var folderPDId = folderIds['PENGUMPULAN_DATA'];
     if (folderPDId) {
       try {
@@ -1437,6 +1472,7 @@ function deleteVideoUrl(operatorEmail, proposalId) {
       }
     }
     
+    // Update database
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
       var hTx = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
       if (hTx) {
@@ -1520,6 +1556,7 @@ function uploadPresentasi(email, proposalId, fileMeta) {
     var folderIds = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
     var presentasiFiles = safeParseJSON(row[COL.PRESENTASI_FILES_JSON], []);
 
+    // Tentukan folder tujuan
     var activeStage = getActiveStageKey(row[COL.STATUS], parseInt(row[COL.REVISI_ROUND] || '0', 10), row[COL.IS_APPROVED_BY_ATASAN] === true || row[COL.IS_APPROVED_BY_ATASAN] === 'TRUE');
     var parentFolderId = folderIds[activeStage];
     if (!parentFolderId) throw new Error('Folder ID untuk tahap aktif tidak ditemukan.');
@@ -1528,6 +1565,7 @@ function uploadPresentasi(email, proposalId, fileMeta) {
     var folderPres = getOrCreateFolder(parentFolder, 'PRESENTASI');
     var folderPresId = folderPres.getId();
 
+    // Arsip file lama jika diganti
     if (fileMeta.gantiFileId) {
       var fileLama = DriveApp.getFileById(fileMeta.gantiFileId);
       var folderArsip = getOrCreateFolder(folderPres, FOLDER_NAMES.JENIS.ARSIP_VERSI);
@@ -1535,10 +1573,12 @@ function uploadPresentasi(email, proposalId, fileMeta) {
       presentasiFiles = tandaiFileDiarsip(presentasiFiles, fileMeta.gantiFileId, fileMeta.gantiFileId);
     }
 
+    // Hitung nomor urut/versi
     var versi = fileMeta.gantiFileId
       ? (presentasiFiles.find(function(f) { return f.fileId === fileMeta.gantiFileId; }) || {versi:0}).versi + 1
       : 1;
 
+    // Nama file sesuai Juknis
     var judulSingkat = row[COL.JUDUL_SINGKAT];
     var namaFilePres = namaPresentasi(judulSingkat, versi);
     var ext = fileMeta.mimeType === 'application/pdf' ? '.pdf' : (fileMeta.mimeType === 'application/vnd.ms-powerpoint' ? '.ppt' : '.pptx');
@@ -1636,6 +1676,7 @@ function uploadSertifikat(email, proposalId, fileMeta) {
     var tahun = row[COL.TAHUN_USULAN];
     var namaFileSert = namaSertifikat(judulSingkat, tahun);
 
+    // Hapus sertifikat lama jika diganti (hanya simpan satu sertifikat teraktif)
     sertifikatFiles.forEach(function(f) {
       trashDriveFileSafely(f.fileId);
     });
@@ -1709,6 +1750,7 @@ function safeParseJSON(str, fallback) {
 // ─────────────────────────────────────────────
 
 function runDebugProposal() {
+  // Ganti "WBTB-001" dengan ID proposal yang sedang bermasalah jika perlu
   debugProposalFiles("WBTB-001");
 }
 
@@ -1815,6 +1857,7 @@ function getArsipHistoris(requesterEmail) {
       var row = data[i];
       if (!row[COL.ID]) continue;
       
+      // Arsip historis meliputi:
       // 1. Usulan yang berasal dari import (ENTRY_TYPE.HISTORIS)
       // 2. Usulan normal yang sudah mencapai status FINAL atau DITANGGUHKAN
       var isHistorisType = (row[COL.ENTRY_TYPE] === ENTRY_TYPE.HISTORIS);
@@ -1825,6 +1868,7 @@ function getArsipHistoris(requesterEmail) {
       }
     }
     
+    // Urutkan berdasarkan tahun terbaru, lalu nama karya
     arsip.sort(function(a, b) {
       if (b.tahunUsulan !== a.tahunUsulan) {
         return (parseInt(b.tahunUsulan) || 0) - (parseInt(a.tahunUsulan) || 0);
@@ -2086,6 +2130,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
       var tahunChanged = (form.tahunPenetapan !== oldTahun);
       
       if ((judulChanged || tahunChanged) && folderKaryaId) {
+        // Rename Formulir
         if (docActiveId) {
           try {
             var file = DriveApp.getFileById(docActiveId);
@@ -2094,6 +2139,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
           } catch(e) { Logger.log("Gagal rename Formulir: " + e.toString()); }
         }
         
+        // Rename Kajian
         kajianFiles.forEach(function(f, idx) {
           try {
             var file = DriveApp.getFileById(f.fileId);
@@ -2104,6 +2150,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
           } catch(e) { Logger.log("Gagal rename Kajian file: " + e.toString()); }
         });
         
+        // Rename Foto
         fotoFiles.forEach(function(f, idx) {
           try {
             var file = DriveApp.getFileById(f.fileId);
@@ -2114,6 +2161,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
           } catch(e) { Logger.log("Gagal rename Foto file: " + e.toString()); }
         });
         
+        // Rename Presentasi
         presentasiFiles.forEach(function(f) {
           try {
             var file = DriveApp.getFileById(f.fileId);
@@ -2124,6 +2172,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
           } catch(e) { Logger.log("Gagal rename Presentasi file: " + e.toString()); }
         });
         
+        // Rename Sertifikat
         sertifikatFiles.forEach(function(f) {
           try {
             var file = DriveApp.getFileById(f.fileId);
@@ -2136,6 +2185,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
       }
       
       // 5. Upload New/Replacement Files
+      // Upload Formulir Baru
       if (form.formulir) {
         if (docActiveId) {
           trashDriveFileSafely(docActiveId);
@@ -2149,6 +2199,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
         docHistoryJson = { "v1": docActiveId };
       }
       
+      // Upload Kajian Baru (Append)
       if (form.kajian && form.kajian.length > 0) {
         var folderKajian = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.KAJIAN_ILMIAH);
         var nextIdx = kajianFiles.length;
@@ -2164,6 +2215,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
         });
       }
       
+      // Upload Foto Baru (Append)
       if (form.foto && form.foto.length > 0) {
         var folderFoto = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.FOTO_DOKUMENTASI);
         var nextIdx = fotoFiles.length;
@@ -2179,10 +2231,12 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
         });
       }
       
+      // Update Video URL & File Txt
       if (form.videoUrl !== undefined && form.videoUrl !== videoUrl) {
         videoUrl = form.videoUrl;
         var folderVideo = getOrCreateFolder(stageFolder, FOLDER_NAMES.JENIS.VIDEO_DOKUMENTASI);
         
+        // Hapus file txt lama jika ada
         var files = folderVideo.getFiles();
         while (files.hasNext()) {
           var f = files.next();
@@ -2203,6 +2257,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
         }
       }
       
+      // Upload Presentasi Baru
       if (form.presentasi) {
         presentasiFiles.forEach(function(pf) { trashDriveFileSafely(pf.fileId); });
         presentasiFiles = [];
@@ -2216,6 +2271,7 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
         presentasiFiles.push(meta);
       }
       
+      // Upload Sertifikat Baru
       if (form.sertifikat) {
         sertifikatFiles.forEach(function(sf) { trashDriveFileSafely(sf.fileId); });
         sertifikatFiles = [];

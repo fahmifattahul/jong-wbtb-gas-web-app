@@ -45,7 +45,7 @@
 // 1. KONSTANTA RETENSI
 // ─────────────────────────────────────────────
 
-var RETENSI_HARI = 365;
+var RETENSI_HARI = 365; // 1 tahun = 365 hari
 
 
 // ─────────────────────────────────────────────
@@ -85,7 +85,7 @@ function cekRetensiArsipDitangguhkan() {
   var data  = sheet.getDataRange().getValues();
 
   var folderLewatRetensi   = [];
-  var folderMendekatiRetensi = [];
+  var folderMendekatiRetensi = []; // dalam 30 hari ke depan
 
   for (var i = 1; i < data.length; i++) {
     var row    = data[i];
@@ -109,6 +109,7 @@ function cekRetensiArsipDitangguhkan() {
     if (hariSejak >= RETENSI_HARI) {
       folderLewatRetensi.push(item);
     } else if (hariSejak >= RETENSI_HARI - 30) {
+      // Peringatan dini 30 hari sebelum retensi habis
       folderMendekatiRetensi.push(item);
     }
   }
@@ -118,6 +119,7 @@ function cekRetensiArsipDitangguhkan() {
     folderMendekatiRetensi.length + " folder mendekati retensi."
   );
 
+  // Kirim notifikasi jika ada yang perlu diinformasikan
   if (folderLewatRetensi.length > 0 || folderMendekatiRetensi.length > 0) {
     kirimNotifikasiRetensi(folderLewatRetensi, folderMendekatiRetensi);
   }
@@ -219,7 +221,9 @@ function kirimNotifikasiRetensi(lewatRetensi, mendekatiRetensi) {
 // ─────────────────────────────────────────────
 // 5. EKSEKUSI PENGHAPUSAN ARSIP DITANGGUHKAN
 //
+// Juknis Bab IV huruf E:
 // - Kewenangan eksklusif Operator
+// - Hanya untuk folder yang sudah >= 1 tahun
 // - Setiap penghapusan wajib didokumentasikan
 //   dan dilaporkan ke Atasan
 // ─────────────────────────────────────────────
@@ -304,9 +308,11 @@ function deleteArsipDitangguhkan(operatorEmail, proposalId) {
     file.setTrashed(true);
   }
 
+  // Hapus juga subfolder di dalam Arsip Ditangguhkan (jika ada)
   var iterSubfolders = folderArsip.getFolders();
   while (iterSubfolders.hasNext()) {
     var subfolder = iterSubfolders.next();
+    // Hapus file di dalam subfolder dulu
     var iterSubFiles = subfolder.getFiles();
     while (iterSubFiles.hasNext()) {
       var subFile = iterSubFiles.next();
@@ -322,7 +328,7 @@ function deleteArsipDitangguhkan(operatorEmail, proposalId) {
 
   // ── Audit log ─────────────────────────────
   writeAuditLog(
-    ACTION_TYPES.ARSIP_VERSI_PINDAH,
+    ACTION_TYPES.ARSIP_VERSI_PINDAH, // reuse sebagai "penghapusan"
     "Arsip Ditangguhkan dihapus (dipindah ke Trash) untuk " + proposalId + ". " +
     "Total file: " + filesDihapus.length + ". " +
     "Hari sejak ditangguhkan: " + hariSejak + ". " +
@@ -348,6 +354,7 @@ function deleteArsipDitangguhkan(operatorEmail, proposalId) {
 // ─────────────────────────────────────────────
 // 6. LAPORAN PENGHAPUSAN KE ATASAN
 //
+// Juknis Bab IV huruf E:
 // Setiap penghapusan wajib didokumentasikan
 // dan dilaporkan kepada Atasan.
 // ─────────────────────────────────────────────
@@ -414,6 +421,8 @@ function kirimLaporanPenghapusanKeAtasan(operatorEmail, proposalId, namaKarya,
 // ─────────────────────────────────────────────
 // 7. HELPER: CATAT TANGGAL DITANGGUHKAN
 //
+// Dipanggil dari changeStatus() saat status
+// berubah ke DITANGGUHKAN.
 // Diintegrasikan ke changeStatus() di
 // jong_wbtb_state_machine.js.
 // ─────────────────────────────────────────────

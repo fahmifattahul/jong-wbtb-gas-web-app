@@ -22,12 +22,13 @@
 // ─────────────────────────────────────────────
 
 var FILE_LIMITS = {
-  PDF_BYTES    : 15 * 1024 * 1024,
-  FOTO_BYTES   : 5  * 1024 * 1024,
-  TXT_BYTES    : 10 * 1024,
-  TOTAL_BYTES  : 30 * 1024 * 1024
+  PDF_BYTES    : 15 * 1024 * 1024,  // 15MB
+  FOTO_BYTES   : 5  * 1024 * 1024,  // 5MB
+  TXT_BYTES    : 10 * 1024,          // 10KB
+  TOTAL_BYTES  : 30 * 1024 * 1024   // 30MB aggregate per request
 };
 
+// MIME type yang diizinkan per jenis dokumen
 var MIME_IZIN = {
   PDF  : ["application/pdf"],
   FOTO : ["image/jpeg", "image/png"],
@@ -48,10 +49,12 @@ var MIME_IZIN = {
  * @returns {number}            - Estimasi ukuran file dalam bytes
  */
 function hitungUkuranDariBase64(base64String) {
+  // Hapus data URI prefix jika ada (contoh: "data:application/pdf;base64,")
   var base64Data = base64String.indexOf(",") !== -1
     ? base64String.split(",")[1]
     : base64String;
 
+  // Hitung padding karakter '=' di akhir
   var padding = 0;
   if (base64Data.charAt(base64Data.length - 1) === "=") padding++;
   if (base64Data.charAt(base64Data.length - 2) === "=") padding++;
@@ -76,6 +79,7 @@ function validateFilePDF(fileMeta) {
     return { valid: false, pesan: "Data file tidak lengkap." };
   }
 
+  // Validasi MIME type
   if (MIME_IZIN.PDF.indexOf(fileMeta.mimeType) === -1) {
     return {
       valid: false,
@@ -84,6 +88,7 @@ function validateFilePDF(fileMeta) {
     };
   }
 
+  // Validasi ukuran
   var ukuranBytes = hitungUkuranDariBase64(fileMeta.base64);
   if (ukuranBytes > FILE_LIMITS.PDF_BYTES) {
     return {
@@ -93,6 +98,7 @@ function validateFilePDF(fileMeta) {
     };
   }
 
+  // Nama file asli dari client diabaikan karena sistem akan me-rename otomatis di Drive
 
   return { valid: true, pesan: "File PDF valid.", ukuranBytes: ukuranBytes };
 }
@@ -110,6 +116,7 @@ function validateFileFoto(fileMeta) {
     return { valid: false, pesan: "Data file tidak lengkap." };
   }
 
+  // Validasi MIME type
   if (MIME_IZIN.FOTO.indexOf(fileMeta.mimeType) === -1) {
     return {
       valid: false,
@@ -118,6 +125,7 @@ function validateFileFoto(fileMeta) {
     };
   }
 
+  // Validasi ukuran
   var ukuranBytes = hitungUkuranDariBase64(fileMeta.base64);
   if (ukuranBytes > FILE_LIMITS.FOTO_BYTES) {
     return {
@@ -128,6 +136,7 @@ function validateFileFoto(fileMeta) {
     };
   }
 
+  // Nama file asli dari client diabaikan karena sistem akan me-rename otomatis di Drive
 
   return { valid: true, pesan: "File foto valid.", ukuranBytes: ukuranBytes };
 }
@@ -148,6 +157,7 @@ function validateVideoUrl(url) {
 
   var trimmed = url.trim();
 
+  // Harus HTTPS
   if (!trimmed.startsWith("https://")) {
     return {
       valid: false,
@@ -158,6 +168,7 @@ function validateVideoUrl(url) {
 
   // Harus dari platform yang diizinkan Atasan
   // Per Juknis Bab IV huruf C: platform ditetapkan Atasan.
+  // Default: YouTube dan Google Drive Publik.
   var platformIzin = [
     "youtube.com",
     "youtu.be",
@@ -177,6 +188,7 @@ function validateVideoUrl(url) {
     };
   }
 
+  // Batas panjang URL wajar
   if (trimmed.length > 500) {
     return { valid: false, pesan: "URL video terlalu panjang (maksimal 500 karakter)." };
   }
@@ -250,6 +262,7 @@ function verifikasiMandiri(proposalId) {
   var itemGagal   = [];
   var itemLulus   = [];
 
+  // Helper push hasil cek
   function cek(kondisi, labelLulus, labelGagal) {
     if (kondisi) {
       itemLulus.push(labelLulus);
@@ -261,6 +274,7 @@ function verifikasiMandiri(proposalId) {
   // ── Cek 1: Nama folder dan file sesuai standar penamaan ──
   // Tidak bisa dicek otomatis di server tanpa list semua file Drive.
   // Ini responsibility Anggota Tim — dikonfirmasi via checkbox di UI.
+  // Di sini kita cek kolom judul_singkat sudah diisi dan valid.
   var judulSingkat = row[COL.JUDUL_SINGKAT] || "";
   var validasiJudul = validateJudulSingkat(judulSingkat);
   cek(
@@ -308,6 +322,7 @@ function verifikasiMandiri(proposalId) {
   // ── Cek 6: Dokumen berada di subfolder tahap yang sesuai ──
   // Dikonfirmasi secara implisit dari status folder — jika status SEDANG_DIKERJAKAN,
   // dokumen aktif ada di subfolder 01_PENGUMPULAN-DATA (entry pertama).
+  // Validasi fisik folder tidak dilakukan di sini untuk efisiensi.
   var status = row[COL.STATUS] || "";
   cek(
     status === STATUS.SEDANG_DIKERJAKAN,
@@ -347,6 +362,7 @@ function verifikasiMandiri(proposalId) {
   // ── Cek 9: Tabel riwayat versi pada formulir sudah diperbarui ──
   // Tidak bisa dicek otomatis dari GAS tanpa buka Google Docs.
   // Dikonfirmasi via checkbox di UI oleh Anggota Tim.
+  // Di sini kita cek bahwa doc_history minimal punya 1 entri.
   cek(
     versiKeys.length > 0,
     "Riwayat versi formulir tercatat (" + versiKeys.length + " versi)",
