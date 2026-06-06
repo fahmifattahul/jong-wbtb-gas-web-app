@@ -8,35 +8,60 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  /* ── CSS Variables (RawBlock Brutalism + Melayu Lingga) ────────── */
+  /* ── CSS Variables (Neubrutalism + Melayu Lingga) ────────── */
   :root {
-    --gold:        #F1C40F; /* Kuning Keemasan Melayu */
-    --gold-dark:   #9A7D0A;
-    --gold-light:  #FEF9E7;
-    --emerald:     #1E5631; /* Hijau Lumut Melayu */
-    --emerald-dark:#143D22;
-    --emerald-light:#EAF2EC;
-    --ink:         #000000;
-    --ink-muted:   #333333;
-    --ink-faint:   #666666;
-    --surface:     #FFFFFF;
-    --surface-2:   #F0F0F0;
-    --border:      #000000;
-    --danger:      #A91B1D; /* Merah Darah Melayu */
-    --danger-light:#FDEDEC;
-    --info:        #0F2C59; /* Biru Tua Melayu */
-    --info-light:  #EBF2FA;
-    --success:     #1E5631;
-    --success-light:#EAF2EC;
-  }
+    /* Grapefruit Pink (Merah Darah) */
+    --grapefruit-50:  #ffe5e5;
+    --grapefruit-100: #ffcccc;
+    --grapefruit-500: #ff0000;
+    --grapefruit-600: #cc0000;
+    --grapefruit-700: #990000;
+    
+    /* Mustard (Kuning Keemasan) */
+    --mustard-50:     #fff9e6;
+    --mustard-100:    #fef4cd;
+    --mustard-500:    #fcc603;
+    --mustard-700:    #977702;
+    
+    /* Strong Cyan (Hijau Lumut) */
+    --cyan-50:        #ebf9f8;
+    --cyan-100:       #d7f4f2;
+    --cyan-500:       #38c7bd;
+    --cyan-700:       #227772;
+    --cyan-900:       #0b2826;
+    
+    /* Dodger Blue (Biru Tua) */
+    --blue-50:        #e7f3fe;
+    --blue-100:       #cfe8fc;
+    --blue-500:       #0d8bf2;
+    --blue-800:       #053861;
 
+    /* Semantics mapping to new palette */
+    --gold:           var(--mustard-500);
+    --gold-dark:      var(--mustard-700);
+    --gold-light:     var(--mustard-50);
+    --emerald:        var(--cyan-700);
+    --emerald-dark:   var(--cyan-900);
+    --emerald-light:  var(--cyan-50);
+    --ink:            #000000;
+    --ink-muted:      #333333;
+    --ink-faint:      #666666;
+    --surface:        #FFFFFF;
+    --surface-2:      #F0F0F0;
+    --border:         #000000;
+    --danger:         var(--grapefruit-600);
+    --danger-light:   var(--grapefruit-50);
+    --info:           var(--blue-800);
+    --info-light:     var(--blue-50);
+    --success:        var(--cyan-700);
+    --success-light:  var(--cyan-50);
+  }
+ 
   /* ── Base Reset & Brutalism Rules ──────────────── */
   * { 
     box-sizing: border-box; 
     margin: 0; 
     padding: 0; 
-    border-radius: 0px !important; 
-    box-shadow: none !important; 
   }
 
   body {
@@ -260,12 +285,14 @@
     padding: 24px;
   }
 
-  /* ── Card (RawBlock Elevated Box) ───────────────── */
+  /* ── Card (Neubrutalism Elevated Box) ────────────── */
   .card {
     background: #FFFFFF;
     border: 3px solid #000000;
     padding: 24px;
     position: relative;
+    border-radius: 8px;
+    box-shadow: 5px 5px 0px #000000;
   }
 
   .card-header {
@@ -292,6 +319,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border: 2px solid #000000 !important;
+    border-radius: 8px;
   }
 
   .badge-gold      { background: var(--gold-light); color: var(--gold-dark); border-color: var(--gold) !important; }
@@ -323,8 +351,10 @@
     border: 3px solid #000000 !important;
     background: #FFFFFF;
     color: #000000;
-    transition: all 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s;
     text-decoration: none;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
   }
 
   .btn:disabled { 
@@ -332,6 +362,13 @@
     color: #888888 !important; 
     border-color: #CCCCCC !important; 
     cursor: not-allowed; 
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translate(2px, 2px) !important;
+    box-shadow: 2px 2px 0px #000000 !important;
   }
 
   .btn-primary {
@@ -342,9 +379,6 @@
     background: var(--gold); 
     color: #000000; 
   }
-  .btn-primary:active:not(:disabled) {
-    border-width: 5px !important;
-  }
 
   .btn-gold {
     background: var(--gold);
@@ -354,19 +388,21 @@
     background: var(--emerald); 
     color: #FFFFFF; 
   }
-  .btn-gold:active:not(:disabled) {
-    border-width: 5px !important;
-  }
 
   .btn-ghost {
     background: transparent;
     color: #000000;
     border: none !important;
     text-decoration: underline;
+    box-shadow: none !important;
   }
   .btn-ghost:hover:not(:disabled) { 
     color: var(--info); 
     background: transparent;
+  }
+  .btn-ghost:active:not(:disabled) {
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   .btn-danger {
@@ -376,9 +412,6 @@
   .btn-danger:hover:not(:disabled) { 
     background: var(--gold); 
     color: #000000; 
-  }
-  .btn-danger:active:not(:disabled) {
-    border-width: 5px !important;
   }
 
   .btn-sm { 
@@ -410,13 +443,15 @@
     background: var(--surface-2);
     outline: none;
     transition: all 0.1s;
+    border-radius: 8px;
   }
   .form-control:hover {
     background: #E8E8E8;
   }
   .form-control:focus { 
-    border-width: 5px !important; 
+    border-width: 3px !important; 
     background: #FFFFFF;
+    box-shadow: 3px 3px 0px #000000;
   }
   .form-control.error { 
     border-color: var(--danger) !important; 
@@ -441,6 +476,9 @@
     overflow-x: auto; 
     border: 3px solid #000000;
     margin-top: 16px;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
+    overflow: hidden;
   }
   table { 
     width: 100%; 
@@ -484,6 +522,8 @@
     gap: 12px;
     margin-bottom: 20px;
     border: 3px solid #000000 !important;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
   }
   .alert-danger  { background: #FFFFFF; color: var(--danger);  border-color: var(--danger) !important; }
   .alert-success { background: #FFFFFF; color: var(--success); border-color: var(--success) !important; }
@@ -510,6 +550,8 @@
     max-width: 520px;
     max-height: 90vh;
     overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 8px 8px 0px #000000;
   }
 
   .modal-header {
@@ -605,16 +647,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s;
     color: #000000;
+    border-radius: 8px;
+    box-shadow: 2px 2px 0px #000000;
   }
   .page-btn:hover { background: #000000; color: #FFFFFF; }
   .page-btn.active { background: var(--gold); color: #000000; }
+  .page-btn:active:not(:disabled) {
+    transform: translate(1px, 1px) !important;
+    box-shadow: 1px 1px 0px #000000 !important;
+  }
   .page-btn:disabled { 
     background: #F0F0F0 !important; 
     border-color: #CCCCCC !important; 
     color: #888888 !important; 
     cursor: not-allowed; 
+    box-shadow: none !important;
+    transform: none !important;
   }
 
   /* Metric card (Stat boxes) */
@@ -625,6 +675,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
   }
   .metric-label { 
     font-family: 'Space Mono', monospace;
@@ -691,6 +743,8 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    border-radius: 8px;
+    box-shadow: 4px 4px 0px #000000;
   }
   .toast.success { background: #FFFFFF; color: #000000; border-left: 8px solid var(--success) !important; }
   .toast.error   { background: #FFFFFF; color: #000000; border-left: 8px solid var(--danger) !important; }
@@ -743,6 +797,8 @@
     font-family: 'Space Mono', monospace;
     font-size: 0.8rem;
     font-weight: 500;
+    border-radius: 8px;
+    box-shadow: 3px 3px 0px #000000;
   }
   
   .foto-thumb {
@@ -751,6 +807,8 @@
     overflow: hidden;
     position: relative;
     background: var(--surface-2);
+    border-radius: 8px;
+    box-shadow: 3px 3px 0px #000000;
   }
   .foto-thumb img { width: 100%; height: 100%; object-fit: cover; }
   .foto-thumb .foto-name {
