@@ -570,7 +570,7 @@ function buatFormulirProposal(anggotaEmail, proposalId) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -636,7 +636,7 @@ function naikVersiFormulir(anggotaEmail, proposalId) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -715,7 +715,7 @@ function uploadKajian(anggotaEmail, proposalId, fileMeta) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -828,7 +828,7 @@ function uploadFoto(anggotaEmail, proposalId, payload) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -917,7 +917,7 @@ function simpanVideoUrl(anggotaEmail, proposalId, url, keterangan) {
     var driveLocked   = row[COL.DRIVE_LOCKED];
     var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
 
-    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+    if (pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
@@ -1359,6 +1359,10 @@ function deleteActiveFormulir(operatorEmail, proposalId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var docActiveId = row[COL.DOC_ACTIVE_ID];
+    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
+    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1412,6 +1416,10 @@ function deleteKajianFile(operatorEmail, proposalId, fileId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var kajianFiles = safeParseJSON(row[COL.KAJIAN_FILES_JSON], []);
+    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
+    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1465,6 +1473,10 @@ function deleteFotoFile(operatorEmail, proposalId, fileId) {
     var status = row[COL.STATUS];
     var driveLocked = row[COL.DRIVE_LOCKED];
     var fotoFiles = safeParseJSON(row[COL.FOTO_FILES_JSON], []);
+    var pjEmail = row[COL.PENANGGUNG_JAWAB_EMAIL];
+    if (pjEmail.toLowerCase() !== operatorEmail.toLowerCase()) {
+      throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
+    }
     
     if (status !== STATUS.SEDANG_DIKERJAKAN && status !== STATUS.DIPERBAIKI) {
       throw new Error('Akses ditolak: Hanya usulan berstatus "Sedang Dikerjakan" atau "Diperbaiki" yang dapat dimodifikasi.');
@@ -1592,7 +1604,7 @@ function setRevisiSelesai(requesterEmail, proposalId, isSelesai) {
     var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
     if (!hasil) throw new Error('Proposal \'' + proposalId + '\' tidak ditemukan.');
     
-    if (role === ROLES.ANGGOTA_TIM && hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
+    if (hasil.rowData[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== requesterEmail.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
     
@@ -1634,7 +1646,7 @@ function uploadPresentasi(email, proposalId, fileMeta) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row = hasil.rowData;
-    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+    if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
 
@@ -1705,7 +1717,7 @@ function deletePresentasiFile(email, proposalId, fileId) {
     if (!hasil) throw new Error('Proposal tidak ditemukan.');
 
     var row = hasil.rowData;
-    if (role === ROLES.ANGGOTA_TIM && row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
+    if (row[COL.PENANGGUNG_JAWAB_EMAIL].toLowerCase() !== email.toLowerCase()) {
       throw new Error('Akses ditolak: Anda bukan penanggung jawab usulan ini.');
     }
 
