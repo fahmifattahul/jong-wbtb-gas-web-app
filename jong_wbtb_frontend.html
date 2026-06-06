@@ -3805,6 +3805,9 @@ async function renderVerifikasi() {
 
           <!-- Formulir -->
           <div id="ws-tab-ver-formulir" class="ws-tab-content">
+            <div id="ver-no-formulir" class="hidden" style="text-align:center;padding:32px;color:var(--ink-faint);">
+              Formulir usulan belum dibuat.
+            </div>
             <div id="ver-formulir-wrap">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                 <div>
@@ -4060,7 +4063,13 @@ function renderVerDetail(p) {
   }
 
   // Formulir — preview mode (read-only untuk Atasan)
+  const noFormulir = document.getElementById('ver-no-formulir');
+  const formulirWrap = document.getElementById('ver-formulir-wrap');
+
   if (p.docActiveId) {
+    if (noFormulir) noFormulir.classList.add('hidden');
+    if (formulirWrap) formulirWrap.classList.remove('hidden');
+
     const versiKeys  = Object.keys(p.docHistory || {});
     document.getElementById('ver-formulir-versi').textContent =
       'Versi ' + versiKeys.length;
@@ -4074,6 +4083,10 @@ function renderVerDetail(p) {
       'https://docs.google.com/document/d/' + p.docActiveId + '/preview?embedded=true';
     document.getElementById('ver-formulir-link').href =
       'https://docs.google.com/document/d/' + p.docActiveId + '/preview';
+  } else {
+    if (noFormulir) noFormulir.classList.remove('hidden');
+    if (formulirWrap) formulirWrap.classList.add('hidden');
+    document.getElementById('ver-formulir-iframe').src = '';
   }
 
   // Kajian
