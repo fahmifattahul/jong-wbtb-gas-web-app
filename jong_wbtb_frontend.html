@@ -2124,7 +2124,7 @@ function renderWsVideo(p) {
 function isPresentasiEditable(p) {
   if (!p) return false;
   if (p.status !== 'Dilanjutkan' || p.driveLocked) return false;
-  return App.user.role === 'Operator' || (App.user.role === 'Anggota Tim' && p.penanggungJawabEmail.toLowerCase() === App.user.email.toLowerCase());
+  return App.user.role === 'Operator';
 }
 
 function isSertifikatEditable(p) {
