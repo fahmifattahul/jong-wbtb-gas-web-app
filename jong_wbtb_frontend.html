@@ -509,11 +509,11 @@
   /* ── Table (Raw Brutalist Grid) ─────────────────── */
   .table-wrap { 
     overflow-x: auto; 
+    overflow-y: hidden;
     border: 3px solid #000000;
     margin-top: 16px;
     border-radius: 8px;
     box-shadow: 4px 4px 0px #000000;
-    overflow: hidden;
   }
   table { 
     width: 100%; 
@@ -797,16 +797,35 @@
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 
   /* Responsive */
+  #menu-btn { display: none; }
+  #close-sidebar-btn { display: none; }
+
   @media (max-width: 768px) {
+    #menu-btn { display: inline-flex !important; }
+    #close-sidebar-btn { display: block !important; }
     #sidebar { transform: translateX(-240px); }
     #sidebar.open { transform: translateX(0); border-right: 4px solid #000000; }
     #main { margin-left: 0; }
     .grid-4 { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
+    
+    /* Responsive details */
+    #topbar { padding: 12px 16px; }
+    #page-title { font-size: 1.1rem; }
+    #page-subtitle { font-size: 0.7rem; }
+  }
+
+  @media (max-width: 480px) {
+    .grid-4 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+    #page-subtitle { display: none; }
+    #topbar-role-badge { font-size: 0.65rem; padding: 2px 6px; }
+    #toast-container { left: 16px; right: 16px; bottom: 16px; max-width: none; }
   }
 
   /* Workspace Tabs & Items (Neobrutalist Tabs) */
   .ws-tab {
+    flex-shrink: 0;
     padding: 12px 20px;
     font-family: 'Space Mono', monospace;
     font-size: 0.8rem;
@@ -821,6 +840,15 @@
   }
   .ws-tab:hover { background: var(--surface-2); }
   .ws-tab.active { background: #000000; color: #FFFFFF; border-bottom-color: #000000; }
+
+  /* Sembunyikan scrollbar untuk tab list di Chrome/Safari/Firefox */
+  .ws-tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+  .ws-tabs-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
   
   .file-item {
     display: flex;
@@ -870,7 +898,8 @@
 
   <!-- Sidebar -->
   <nav id="sidebar">
-    <div id="sidebar-logo">
+    <div id="sidebar-logo" style="position: relative;">
+      <button id="close-sidebar-btn" class="btn btn-sm" onclick="toggleSidebar()" style="position: absolute; right: 12px; top: 12px; padding: 4px 8px; font-size: 0.8rem; box-shadow: 1px 1px 0px #000; border-radius: 4px; z-index: 10;">✕</button>
       <div class="logo-title">JONG WBTb</div>
       <div class="logo-sub">Jaringan Online Pengelolaan<br>Warisan Budaya Takbenda</div>
     </div>
@@ -893,9 +922,12 @@
   <!-- Main -->
   <div id="main">
     <div id="topbar">
-      <div>
-        <div id="page-title">Dashboard</div>
-        <div id="page-subtitle"></div>
+      <div style="display:flex;align-items:center;">
+        <button id="menu-btn" class="btn btn-sm" onclick="toggleSidebar()" style="margin-right:12px;padding:6px 10px;font-size:1rem;box-shadow:2px 2px 0px #000;">☰</button>
+        <div>
+          <div id="page-title">Dashboard</div>
+          <div id="page-subtitle"></div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="topbar-role-badge" class="badge badge-emerald"></span>
@@ -1216,8 +1248,15 @@ function setupUserInfo() {
 
 
 // ════════════════════════════════════════════════
-// ROUTING
+// ROUTING & SIDEBAR TOGGLE
 // ════════════════════════════════════════════════
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
+}
 
 function navigateTo(pageId) {
   App.currentPage = pageId;
@@ -1226,6 +1265,12 @@ function navigateTo(pageId) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-' + pageId);
   if (navEl) navEl.classList.add('active');
+
+  // Tutup sidebar di mobile setelah memilih menu
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && window.innerWidth <= 768) {
+    sidebar.classList.remove('open');
+  }
 
   // Render page
   const pages = {
@@ -1247,6 +1292,7 @@ function navigateTo(pageId) {
     renderPlaceholder(pageId);
   }
 }
+
 
 
 // ════════════════════════════════════════════════
@@ -1521,7 +1567,7 @@ async function renderWorkspace() {
 
         <!-- Tabs konten -->
         <div class="card">
-          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
+          <div class="ws-tabs-container" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;">
             <button class="ws-tab active" data-tab="formulir" onclick="switchWsTab('formulir')">Formulir</button>
             <button class="ws-tab" data-tab="kajian" onclick="switchWsTab('kajian')">Kajian Ilmiah</button>
             <button class="ws-tab" data-tab="foto" onclick="switchWsTab('foto')">Foto</button>
@@ -3794,7 +3840,7 @@ async function renderVerifikasi() {
 
         <!-- Tabs dokumen -->
         <div class="card">
-          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;">
+          <div class="ws-tabs-container" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;">
             <button class="ws-tab active" data-tab="ver-formulir" onclick="switchWsTab('ver-formulir')">Formulir</button>
             <button class="ws-tab" data-tab="ver-kajian" onclick="switchWsTab('ver-kajian')">Kajian Ilmiah</button>
             <button class="ws-tab" data-tab="ver-foto" onclick="switchWsTab('ver-foto')">Foto</button>
@@ -4470,7 +4516,7 @@ async function renderAdministrasi() {
           di Google Drive folder administrasi.
         </p>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="grid-2" style="gap:12px;margin-bottom:12px;">
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label">
               Tindakan <span class="required">*</span>
