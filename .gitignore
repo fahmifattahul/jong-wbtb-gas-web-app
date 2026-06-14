@@ -42,3 +42,9 @@ walkthrough.md
 
 # Standalone debug scripts
 jong_wbtb_debug.js
+
+# Exclude all markdown files
+*.md
+
+# Exclude presentation and sharing session materials
+presentasi_sharing_session/
