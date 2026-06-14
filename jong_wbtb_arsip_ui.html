@@ -850,13 +850,12 @@ function confirmDeleteArsip(id, namaKarya) {
   showKonfirmasi(
     'Hapus Arsip Historis',
     `Apakah Anda yakin ingin menghapus arsip historis "${namaKarya}" secara permanen? Tindakan ini akan menghapus baris data di database dan memindahkan folder karya beserta seluruh dokumennya di Google Drive ke tempat sampah (Trash).`,
-    () => { executeDeleteArsip(id); }
+    () => executeDeleteArsip(id)
   );
 }
 
 async function executeDeleteArsip(id) {
   try {
-    showToast('Sedang menghapus arsip dari sistem...', 'info');
     const res = await gasCall('deleteArsipHistoris', App.user.email, id);
     if (!res.success) throw new Error(res.message);
 

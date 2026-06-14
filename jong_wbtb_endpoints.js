@@ -203,6 +203,9 @@ function createProposal(operatorEmail, data) {
     var validasiJudul = validateJudulSingkat(data.judulSingkat);
     if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
 
+    var dup = checkDuplicateTitle(data.namaKarya, data.judulSingkat);
+    if (dup.exists) throw new Error(dup.message);
+
     var pjRole = getUserRole(data.penanggungJawabEmail);
     if (!pjRole) {
       throw new Error('Email penanggung jawab tidak terdaftar di sistem.');
@@ -391,11 +394,11 @@ function kembalikanKeAnggota(atasanEmail, proposalId, catatan) {
 }
 
 /**
- * Atasan tangguhkan proposal secara permanen.
+ * Operator tangguhkan proposal secara permanen.
  */
-function tangguhkanProposal(atasanEmail, proposalId, alasan) {
+function tangguhkanProposal(operatorEmail, proposalId, alasan) {
   try {
-    requireRole(atasanEmail, ROLES.ATASAN);
+    requireRole(operatorEmail, ROLES.OPERATOR);
     if (!alasan) throw new Error('Alasan penangguhan wajib diisi.');
     DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
       var h = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
@@ -403,7 +406,7 @@ function tangguhkanProposal(atasanEmail, proposalId, alasan) {
       sheet.getRange(h.rowIndex, COL.CATATAN_ATASAN + 1).setValue(alasan);
       sheet.getRange(h.rowIndex, COL.UPDATED_AT + 1).setValue(new Date());
     });
-    return updateProposalStatus(atasanEmail, proposalId, STATUS.DITANGGUHKAN);
+    return updateProposalStatus(operatorEmail, proposalId, STATUS.DITANGGUHKAN);
   } catch (err) {
     throw new Error('tangguhkanProposal gagal: ' + err.message);
   }
@@ -1913,6 +1916,9 @@ function importArsipHistoris(requesterEmail, form) {
 
     var validasiJudul = validateJudulSingkat(form.judulSingkat);
     if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
+
+    var dup = checkDuplicateTitle(form.namaKarya, form.judulSingkat);
+    if (dup.exists) throw new Error(dup.message);
     
     return DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
       var proposalId = generateProposalId(sheet);
@@ -2060,6 +2066,9 @@ function editArsipHistoris(requesterEmail, proposalId, form) {
     
     var validasiJudul = validateJudulSingkat(form.judulSingkat);
     if (!validasiJudul.valid) throw new Error(validasiJudul.pesan);
+
+    var dup = checkDuplicateTitle(form.namaKarya, form.judulSingkat, proposalId);
+    if (dup.exists) throw new Error(dup.message);
     
     return DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheet) {
       var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
@@ -2379,3 +2388,175 @@ function getFileExtension(filename) {
   var parts = filename.split('.');
   return parts.length > 1 ? parts.pop().toLowerCase() : "";
 }
+
+/**
+ * Memeriksa apakah nama karya atau judul singkat sudah digunakan di database.
+ * @param {string} namaKarya
+ * @param {string} judulSingkat
+ * @param {string} [excludeId] - ID usulan yang dikecualikan (untuk kasus edit)
+ * @returns {{ exists: boolean, type: string, message: string }}
+ */
+function checkDuplicateTitle(namaKarya, judulSingkat, excludeId) {
+  var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+  var data = sheet.getDataRange().getValues();
+  
+  var targetNama = String(namaKarya).trim().toLowerCase();
+  var targetJudulSingkat = String(judulSingkat).trim().toLowerCase();
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var rowId = row[COL.ID];
+    if (!rowId) continue;
+    if (excludeId && rowId.toLowerCase() === excludeId.toLowerCase()) continue;
+    
+    var rowNama = String(row[COL.NAMA_KARYA]).trim().toLowerCase();
+    var rowJudulSingkat = String(row[COL.JUDUL_SINGKAT]).trim().toLowerCase();
+    
+    if (rowNama === targetNama) {
+      return {
+        exists: true,
+        type: "namaKarya",
+        message: "Judul usulan \"" + row[COL.NAMA_KARYA] + "\" sudah terdaftar di sistem (ID: " + rowId + ")."
+      };
+    }
+    
+    if (rowJudulSingkat === targetJudulSingkat) {
+      return {
+        exists: true,
+        type: "judulSingkat",
+        message: "Judul singkat \"" + row[COL.JUDUL_SINGKAT] + "\" sudah terdaftar di sistem (ID: " + rowId + ")."
+      };
+    }
+  }
+  
+  return { exists: false };
+}
+
+/**
+ * Mengunggah file Word (.docx/.doc) ke Google Drive dan mengonversinya menjadi Google Docs.
+ */
+function convertDocxToGoogleDoc(folderId, fileName, base64Data, mimeType) {
+  var url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+  
+  var metadata = {
+    name: fileName,
+    mimeType: "application/vnd.google-apps.document", // Triggers conversion to Google Doc
+    parents: [folderId]
+  };
+  
+  var boundary = "xxxxxxxxxx";
+  var delimiter = "\r\n--" + boundary + "\r\n";
+  var closeDelimiter = "\r\n--" + boundary + "--";
+  
+  var multipartRequestBody = 
+    delimiter +
+    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+    JSON.stringify(metadata) +
+    delimiter +
+    "Content-Type: " + mimeType + "\r\n" +
+    "Content-Transfer-Encoding: base64\r\n\r\n" +
+    base64Data +
+    closeDelimiter;
+  
+  var options = {
+    method: "post",
+    contentType: "multipart/related; boundary=" + boundary,
+    payload: multipartRequestBody,
+    headers: {
+      Authorization: "Bearer " + ScriptApp.getOAuthToken()
+    },
+    muteHttpExceptions: true
+  };
+  
+  var response = UrlFetchApp.fetch(url, options);
+  var responseCode = response.getResponseCode();
+  var responseText = response.getContentText();
+  
+  if (responseCode !== 200) {
+    throw new Error("Gagal mengonversi file Word ke Google Docs. Error: " + responseText);
+  }
+  
+  var json = JSON.parse(responseText);
+  return json.id; // Returns Google Doc ID
+}
+
+/**
+ * Endpoint unggah pertama kali formulir usulan (.docx) oleh Anggota / Operator.
+ */
+function uploadFormulirPertama(anggotaEmail, proposalId, fileMeta) {
+  try {
+    var role = requireRole(anggotaEmail, [ROLES.ANGGOTA_TIM, ROLES.OPERATOR]);
+
+    // Validasi file
+    var validasiFile = validateFileFormulir(fileMeta);
+    if (!validasiFile.valid) throw new Error(validasiFile.pesan);
+
+    var sheet = DatabaseEngine.getSheet(DB_NAMES.WBTB_LINGGA);
+    var hasil = DatabaseEngine.findRow(sheet, COL.ID, proposalId);
+    if (!hasil) throw new Error("Proposal tidak ditemukan.");
+
+    var row           = hasil.rowData;
+    var status        = row[COL.STATUS];
+    var driveLocked   = row[COL.DRIVE_LOCKED];
+    var pjEmail       = row[COL.PENANGGUNG_JAWAB_EMAIL];
+
+    if (role === ROLES.ANGGOTA_TIM && pjEmail.toLowerCase() !== anggotaEmail.toLowerCase()) {
+      throw new Error("Akses ditolak: Anda bukan penanggung jawab usulan ini.");
+    }
+    if (status === STATUS.FINAL || status === STATUS.DITANGGUHKAN) {
+      throw new Error("Akses ditolak: Usulan berstatus Final atau Ditangguhkan tidak dapat dimodifikasi.");
+    }
+    if (driveLocked === true || driveLocked === 'TRUE') {
+      throw new Error("Akses ditolak: Folder terkunci. Tidak dapat mengubah komponen.");
+    }
+
+    var judulSingkat  = row[COL.JUDUL_SINGKAT];
+    var folderIds     = safeParseJSON(row[COL.FOLDER_IDS_JSON], {});
+    var folderPDId    = folderIds['PENGUMPULAN_DATA'];
+
+    if (!folderPDId) throw new Error("Folder Pengumpulan Data tidak ditemukan.");
+    if (row[COL.DOC_ACTIVE_ID]) throw new Error("Formulir sudah ada. Gunakan Naik Versi untuk membuat versi baru.");
+
+    // Cari subfolder FORMULIR-USULAN
+    var folderPD       = DriveApp.getFolderById(folderPDId);
+    var iterFormulir   = folderPD.getFoldersByName(FOLDER_NAMES.JENIS.FORMULIR_USULAN);
+    if (!iterFormulir.hasNext()) throw new Error("Subfolder FORMULIR-USULAN tidak ditemukan.");
+    var folderFormulir = iterFormulir.next();
+
+    // Buat nama file sesuai Juknis
+    var namaFileStr  = namaFile(JENIS_DOK.FORMULIR, judulSingkat, { versi: 1 });
+    
+    // Konversi dan upload ke Drive
+    var base64Data = fileMeta.base64.indexOf(',') !== -1
+      ? fileMeta.base64.split(',')[1] : fileMeta.base64;
+      
+    var docId = convertDocxToGoogleDoc(folderFormulir.getId(), namaFileStr, base64Data, fileMeta.mimeType);
+
+    // Set sharing
+    try {
+      var file = DriveApp.getFileById(docId);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingErr) {
+      Logger.log("Warning: gagal setSharing untuk formulir: " + sharingErr.toString());
+    }
+
+    var docHistory   = {};
+    docHistory['v1'] = docId;
+
+    DatabaseEngine.executeTransaction(DB_NAMES.WBTB_LINGGA, function(sheetTx) {
+      var h = DatabaseEngine.findRow(sheetTx, COL.ID, proposalId);
+      sheetTx.getRange(h.rowIndex, COL.DOC_ACTIVE_ID + 1).setValue(docId);
+      sheetTx.getRange(h.rowIndex, COL.DOC_HISTORY_JSON + 1)
+        .setValue(JSON.stringify(docHistory));
+      sheetTx.getRange(h.rowIndex, COL.UPDATED_AT + 1).setValue(new Date());
+    });
+
+    writeAuditLog(ACTION_TYPES.FORMULIR_VERSI_BARU,
+      'Formulir v1 diunggah dan dikonversi: ' + namaFileStr + '. Doc ID: ' + docId,
+      proposalId);
+
+    return { docId: docId, namaFile: namaFileStr };
+  } catch (err) {
+    throw new Error("uploadFormulirPertama gagal: " + err.message);
+  }
+}

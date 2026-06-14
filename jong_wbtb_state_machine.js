@@ -184,14 +184,6 @@ var TRANSITIONS = [
             "disetujui Atasan. Seluruh dokumen telah disalin ke subfolder Arsip Ditangguhkan."
   },
 
-  // Persetujuan Internal → Ditangguhkan (oleh Atasan)
-  {
-    dari  : STATUS.PERSETUJUAN_INTERNAL,
-    ke    : STATUS.DITANGGUHKAN,
-    aktor : ROLES.ATASAN,
-    syarat: "Keputusan penangguhan dari penilai eksternal (Provinsi/Kementerian) disetujui Atasan."
-  },
-
   // Diperbaiki → Ditangguhkan (oleh Operator)
   {
     dari  : STATUS.DIPERBAIKI,
@@ -202,14 +194,6 @@ var TRANSITIONS = [
             "Seluruh dokumen telah disalin ke subfolder Arsip Ditangguhkan."
   },
 
-  // Diperbaiki → Ditangguhkan (oleh Atasan)
-  {
-    dari  : STATUS.DIPERBAIKI,
-    ke    : STATUS.DITANGGUHKAN,
-    aktor : ROLES.ATASAN,
-    syarat: "Keputusan penangguhan dari penilai eksternal (Provinsi/Kementerian) disetujui Atasan setelah putaran revisi."
-  },
-
   // Dilanjutkan → Ditangguhkan (oleh Operator)
   {
     dari  : STATUS.DILANJUTKAN,
@@ -218,14 +202,6 @@ var TRANSITIONS = [
     syarat: "Keputusan penangguhan dari penilai eksternal (Provinsi/Kementerian) " +
             "disetujui Atasan pada tahap penetapan. " +
             "Seluruh dokumen telah disalin ke subfolder Arsip Ditangguhkan."
-  },
-
-  // Dilanjutkan → Ditangguhkan (oleh Atasan)
-  {
-    dari  : STATUS.DILANJUTKAN,
-    ke    : STATUS.DITANGGUHKAN,
-    aktor : ROLES.ATASAN,
-    syarat: "Keputusan penangguhan dari penilai eksternal (Provinsi/Kementerian) disetujui Atasan pada tahap penetapan."
   }
 
   // CATATAN: Status FINAL bersifat terminal — tidak ada transisi keluar dari Final.
@@ -314,7 +290,7 @@ function getTransisiTersedia(dariStatus, aktorRole) {
  */
 function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
 
-  return DatabaseEngine.executeTransaction("db_wbtb_lingga", function(sheet) {
+  var result = DatabaseEngine.executeTransaction("db_wbtb_lingga", function(sheet) {
     var data = sheet.getDataRange().getValues();
     var targetRowIndex = -1;
     var dariStatus = null;
@@ -368,37 +344,36 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
     }
     sheet.getRange(targetRowIndex, COL.IS_APPROVED_BY_ATASAN + 1).setValue(nextApprovedByAtasan);
 
-    // Salin berkas fisik jika terjadi transisi tahap penting
+    // Kumpulkan tugas penyalinan file fisik untuk dieksekusi DI LUAR lock transaksi
+    var postCopyTasks = [];
     var revisiRound = parseInt(data[targetRowIndex - 1][COL.REVISI_ROUND] || "0", 10);
+    var currentApproved = data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === true || 
+                          data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === 'TRUE';
     
     // 1. Atasan ACC (Persetujuan Internal -> Persetujuan Internal oleh Atasan)
     var isAtasanACC = (dariStatus === STATUS.PERSETUJUAN_INTERNAL && keStatus === STATUS.PERSETUJUAN_INTERNAL && aktorRole === ROLES.ATASAN);
     if (isAtasanACC) {
       var sourceStage = (revisiRound > 0) ? "REVISI" : "PENGUMPULAN_DATA";
-      copyActiveFilesToStage(proposalId, sourceStage, "PENGUSULAN", revisiRound, null, sheet);
+      postCopyTasks.push({ src: sourceStage, dest: "PENGUSULAN", rev: revisiRound });
     }
 
     // 2. Ditangguhkan
     if (keStatus === STATUS.DITANGGUHKAN) {
-      var currentApproved = data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === true || 
-                            data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === 'TRUE';
       var activeStage = getActiveStageKey(dariStatus, revisiRound, currentApproved);
-      copyActiveFilesToStage(proposalId, activeStage, "ARSIP_DITANGGUHKAN", revisiRound, null, sheet);
+      postCopyTasks.push({ src: activeStage, dest: "ARSIP_DITANGGUHKAN", rev: revisiRound });
     }
 
     // 3. Dilanjutkan (dari tahap aktif sebelumnya ke Penetapan)
     if (keStatus === STATUS.DILANJUTKAN) {
-      var currentApproved = data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === true || 
-                            data[targetRowIndex - 1][COL.IS_APPROVED_BY_ATASAN] === 'TRUE';
       var activeStage = getActiveStageKey(dariStatus, revisiRound, currentApproved);
-      copyActiveFilesToStage(proposalId, activeStage, "PENETAPAN", revisiRound, null, sheet);
+      postCopyTasks.push({ src: activeStage, dest: "PENETAPAN", rev: revisiRound });
     }
 
     // 4. Final (dari Dilanjutkan/Penetapan)
     if (keStatus === STATUS.FINAL && dariStatus === STATUS.DILANJUTKAN) {
-      copyActiveFilesToStage(proposalId, "PENETAPAN", "FINAL", null, null, sheet);
+      postCopyTasks.push({ src: "PENETAPAN", dest: "FINAL", rev: null });
     }
-	
+    
     // Tulis audit log
     writeAuditLog(
       "STATUS_CHANGE",
@@ -411,7 +386,19 @@ function changeStatus(proposalId, keStatus, aktorRole, aktorEmail, entryType) {
       proposalId: proposalId,
       dariStatus: dariStatus,
       keStatus  : keStatus,
-      aktor     : aktorEmail
+      aktor     : aktorEmail,
+      postCopyTasks: postCopyTasks
     };
   });
+
+  // Eksekusi penyalinan file fisik di luar lock agar tidak ngeblok Google Sheets selama 30 detik
+  if (result.postCopyTasks && result.postCopyTasks.length > 0) {
+    for (var i = 0; i < result.postCopyTasks.length; i++) {
+      var task = result.postCopyTasks[i];
+      // OptSheetTx = null agar copyActiveFilesToStage membuat transaksi sendiri saat selesai
+      copyActiveFilesToStage(proposalId, task.src, task.dest, task.rev, null, null);
+    }
+  }
+
+  return result;
 }

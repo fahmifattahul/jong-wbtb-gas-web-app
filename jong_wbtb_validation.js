@@ -23,7 +23,7 @@
 
 var FILE_LIMITS = {
   PDF_BYTES    : 15 * 1024 * 1024,  // 15MB
-  FOTO_BYTES   : 5  * 1024 * 1024,  // 5MB
+  FOTO_BYTES   : 10 * 1024 * 1024,  // 10MB
   TXT_BYTES    : 10 * 1024,          // 10KB
   TOTAL_BYTES  : 30 * 1024 * 1024   // 30MB aggregate per request
 };
@@ -130,7 +130,7 @@ function validateFileFoto(fileMeta) {
   if (ukuranBytes > FILE_LIMITS.FOTO_BYTES) {
     return {
       valid: false,
-      pesan: "Ukuran foto '" + fileMeta.name + "' melebihi batas maksimal 5MB. " +
+      pesan: "Ukuran foto '" + fileMeta.name + "' melebihi batas maksimal 10MB. " +
              "Ukuran terdeteksi: " + Math.round(ukuranBytes / (1024 * 1024) * 100) / 100 + "MB. " +
              "Kompres foto sebelum upload."
     };
@@ -427,3 +427,44 @@ function validateFilePresentasi(fileMeta) {
 
   return { valid: true, pesan: "File presentasi valid.", ukuranBytes: ukuranBytes };
 }
+
+/**
+ * Memvalidasi file formulir usulan (.docx / .doc).
+ *
+ * @param {object} fileMeta - { name, mimeType, base64 }
+ * @returns {{ valid: boolean, pesan: string, ukuranBytes: number }}
+ */
+function validateFileFormulir(fileMeta) {
+  if (!fileMeta || !fileMeta.base64) {
+    return { valid: false, pesan: "Data file tidak lengkap." };
+  }
+
+  var mimeIzin = [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword"
+  ];
+
+  // Toleransi ekstensi jika mimeType kosong/tidak terdeteksi oleh browser
+  var ext = String(fileMeta.name).split('.').pop().toLowerCase();
+  var isMimeValid = mimeIzin.indexOf(fileMeta.mimeType) !== -1;
+  var isExtValid = ext === "docx" || ext === "doc";
+
+  if (!isMimeValid && !isExtValid) {
+    return {
+      valid: false,
+      pesan: "Format file tidak valid. Hanya file Word (.docx atau .doc) yang diizinkan."
+    };
+  }
+
+  var ukuranBytes = hitungUkuranDariBase64(fileMeta.base64);
+  if (ukuranBytes > 15 * 1024 * 1024) {
+    return {
+      valid: false,
+      pesan: "Ukuran file formulir '" + fileMeta.name + "' melebihi batas maksimal 15MB. " +
+             "Ukuran terdeteksi: " + Math.round(ukuranBytes / (1024 * 1024)) + "MB."
+    };
+  }
+
+  return { valid: true, pesan: "File formulir valid.", ukuranBytes: ukuranBytes };
+}
+

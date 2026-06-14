@@ -71,14 +71,23 @@
     font-family: 'Work Sans', sans-serif;
     font-size: 14px;
     color: var(--ink);
-    background: #F4F6F8; /* Latar belakang solid off-white */
+    background: var(--mustard-50); /* Background krem kekuningan */
     min-height: 100vh;
     position: relative;
   }
 
-  /* Kisi Neobrutalisme Grid Background - Dinonaktifkan untuk kenyamanan visual */
+  /* Kisi Neobrutalisme Grid Background */
   body::before {
-    display: none;
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: 
+      linear-gradient(var(--mustard-100) 1px, transparent 1px),
+      linear-gradient(90deg, var(--mustard-100) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.8;
   }
 
   /* ── Typography ────────────────────────────────── */
@@ -107,7 +116,7 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     width: 240px;
-    background: #FFFFFF; /* Latar belakang putih bersih */
+    background: #FFFFFF; /* Dikembalikan ke putih agar tidak bertabrakan dengan kuning latar */
     color: var(--ink);
     display: flex;
     flex-direction: column;
@@ -527,15 +536,18 @@
     text-transform: uppercase;
     color: #FFFFFF;
     padding: 12px 16px;
-    background: #000000;
+    background: var(--cyan-900); /* Hijau lumut sangat gelap untuk tajuk tabel */
     border-bottom: 3px solid #000000;
   }
   tbody tr { 
     border-bottom: 2px solid #000000; 
     transition: background 0.1s; 
   }
+  tbody tr:nth-child(even) {
+    background: #FAFAFA; /* Zebra striping */
+  }
   tbody tr:hover { 
-    background: var(--surface-2); 
+    background: var(--mustard-50) !important; /* Efek hover krem kekuningan */
   }
   tbody td { 
     padding: 12px 16px; 
@@ -1036,15 +1048,60 @@
 // GAS BRIDGE
 // ════════════════════════════════════════════════
 
+let currentClickButton = null;
+
+// Tangkap tombol yang diklik untuk memberikan feedback loading langsung
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.btn, button, input[type="button"], input[type="submit"]');
+  if (btn) {
+    currentClickButton = btn;
+    setTimeout(() => {
+      if (currentClickButton === btn) {
+        currentClickButton = null;
+      }
+    }, 100);
+  }
+}, true);
+
 function gasCall(fnName, ...args) {
+  const btn = currentClickButton;
+  let originalHtml = '';
+  let disabledAlready = false;
+
+  if (btn && !btn.disabled) {
+    disabledAlready = true;
+    originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    if (btn.innerText && btn.innerText.trim().length > 0) {
+      if (!btn.querySelector('.spinner')) {
+        btn.innerHTML = '<span class="spinner"></span> ' + originalHtml;
+      }
+    } else {
+      btn.innerHTML = '<span class="spinner"></span>';
+    }
+  }
+
+  const cleanUpButton = () => {
+    if (btn && disabledAlready) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  };
+
   if (typeof google === 'undefined' || !google.script || !google.script.run) {
     console.warn(`[Local Mock] gasCall(${fnName}) called with args:`, args);
-    return mockGasCall(fnName, ...args);
+    return mockGasCall(fnName, ...args).finally(cleanUpButton);
   }
   return new Promise((resolve, reject) => {
     let runner = google.script.run
-      .withSuccessHandler(resolve)
-      .withFailureHandler(reject);
+      .withSuccessHandler((res) => {
+        cleanUpButton();
+        resolve(res);
+      })
+      .withFailureHandler((err) => {
+        cleanUpButton();
+        reject(err);
+      });
     runner[fnName](...args);
   });
 }
@@ -1343,14 +1400,14 @@ function renderMetrics(metrics) {
   if (!metrics) return;
 
   const items = [
-    { label: 'Total Usulan',       value: metrics.total      || 0, sub: 'seluruh status' },
-    { label: 'Sedang Dikerjakan',  value: metrics.dikerjakan || 0, sub: 'aktif' },
-    { label: 'Tahap Revisi',       value: metrics.revisi     || 0, sub: 'dari penilai eksternal' },
-    { label: 'Ditetapkan',         value: metrics.final      || 0, sub: 'WBTb resmi' }
+    { label: 'Total Usulan',       value: metrics.total      || 0, sub: 'seluruh status', bg: 'var(--blue-50)' },
+    { label: 'Sedang Dikerjakan',  value: metrics.dikerjakan || 0, sub: 'aktif', bg: 'var(--mustard-100)' },
+    { label: 'Tahap Revisi',       value: metrics.revisi     || 0, sub: 'dari penilai eksternal', bg: 'var(--grapefruit-50)' },
+    { label: 'Ditetapkan',         value: metrics.final      || 0, sub: 'WBTb resmi', bg: 'var(--cyan-100)' }
   ];
 
   grid.innerHTML = items.map(item => `
-    <div class="metric-card">
+    <div class="metric-card" style="background: ${item.bg};">
       <div class="metric-label">${item.label}</div>
       <div class="metric-value">${item.value}</div>
       <div class="metric-sub">${item.sub}</div>
@@ -1540,6 +1597,23 @@ async function renderWorkspace() {
           </div>
         </div>
 
+        <!-- Verifikasi Mandiri (tampil saat akan kirim ke Atasan) -->
+        <div id="ws-verifikasi-card" class="hidden">
+          <div class="card" style="border-color: var(--emerald); box-shadow: 5px 5px 0px var(--emerald);">
+            <div class="card-header">
+              <h3>Verifikasi Kelengkapan Mandiri</h3>
+              <span class="text-muted" style="font-size:0.75rem;">Juknis Bab V huruf B</span>
+            </div>
+            <div id="ws-verifikasi-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="tutupVerifikasi()">Batal</button>
+              <button class="btn btn-primary" id="btn-kirim-final" onclick="kirimKeAtasan()" disabled>
+                Kirim ke Atasan
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Catatan Perbaikan Atasan (tampil jika dikembalikan oleh Atasan) -->
         <div id="ws-catatan-atasan-card" class="hidden">
           <div class="alert alert-gold">
@@ -1581,8 +1655,18 @@ async function renderWorkspace() {
             <div id="ws-formulir-wrap">
               <div id="ws-no-formulir" class="hidden" style="text-align:center;padding:32px;color:var(--ink-faint);">
                 Formulir usulan belum dibuat.
-                <div style="margin-top:12px;">
+                <div style="margin-top:16px;display:flex;justify-content:center;gap:12px;align-items:center;flex-wrap:wrap;">
                   <button class="btn btn-primary" onclick="buatFormulirBaru()">Buat Formulir</button>
+                  <span class="text-faint" style="font-family:'Space Mono', monospace;font-size:0.8rem;">atau</span>
+                  <label class="btn btn-gold" style="cursor:pointer;margin:0;">
+                    📎 Unggah Formulir (.docx)
+                    <input type="file" accept=".docx" id="input-upload-formulir" class="hidden"
+                      onchange="handleFormulirUpload(this)">
+                  </label>
+                </div>
+                <div id="ws-formulir-upload-progress" class="hidden" style="margin-top:12px;">
+                  <span class="spinner dark"></span>
+                  <span id="ws-formulir-upload-status" style="margin-left:8px;font-family:'Space Mono', monospace;font-size:0.75rem;">Mengunggah...</span>
                 </div>
               </div>
               <div id="ws-iframe-wrap" class="hidden">
@@ -1634,7 +1718,7 @@ async function renderWorkspace() {
               <div class="divider"></div>
               <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
-                  🖼 Unggah Foto (JPG/PNG, maks. 5MB)
+                  🖼 Unggah Foto (JPG/PNG, maks. 10MB)
                   <input type="file" accept=".jpg,.jpeg,.png" id="input-foto-file"
                     class="hidden" multiple onchange="handleFotoUpload(this)">
                 </label>
@@ -1714,22 +1798,6 @@ async function renderWorkspace() {
           </div>
         </div>
 
-        <!-- Verifikasi Mandiri (tampil saat akan kirim ke Atasan) -->
-        <div id="ws-verifikasi-card" class="hidden">
-          <div class="card">
-            <div class="card-header">
-              <h3>Verifikasi Kelengkapan Mandiri</h3>
-              <span class="text-muted" style="font-size:0.75rem;">Juknis Bab V huruf B</span>
-            </div>
-            <div id="ws-verifikasi-items" style="display:flex;flex-direction:column;gap:8px;"></div>
-            <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-ghost" onclick="tutupVerifikasi()">Batal</button>
-              <button class="btn btn-primary" id="btn-kirim-final" onclick="kirimKeAtasan()" disabled>
-                Kirim ke Atasan
-              </button>
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -1799,7 +1867,7 @@ function renderWsFolderList(proposals) {
   }
 }
 
-async function bukaWsProposal(proposalId) {
+async function bukaWsProposal(proposalId, returnTab) {
   App.data.wsProposalId = proposalId;
   document.getElementById('ws-detail').classList.remove('hidden');
   document.getElementById('ws-pilih-folder').style.display = 'none';
@@ -1807,13 +1875,13 @@ async function bukaWsProposal(proposalId) {
   try {
     const p = await gasCall('getProposalDetail', App.user.email, proposalId);
     App.data.wsProposal = p;
-    renderWsDetail(p);
+    renderWsDetail(p, returnTab);
   } catch (err) {
     showToast('Gagal memuat detail: ' + err.message, 'error');
   }
 }
 
-function renderWsDetail(p) {
+function renderWsDetail(p, returnTab) {
   // Header
   document.getElementById('ws-proposal-id').textContent  = p.id;
   document.getElementById('ws-nama-karya').textContent   = p.namaKarya;
@@ -1883,8 +1951,8 @@ function renderWsDetail(p) {
   // Video
   renderWsVideo(p);
 
-  // Default ke tab formulir untuk mencegah tab sisa tersimpan di state UI
-  switchWsTab('formulir');
+  // Kembali ke tab yang ditentukan, atau default formulir
+  switchWsTab(returnTab || 'formulir');
 
   // Atur visibilitas tab Presentasi & Sertifikat
   const tabPresBtn = document.getElementById('ws-tab-btn-presentasi');
@@ -1957,12 +2025,20 @@ function renderWsAksiButtons(p) {
             Tandai Selesai Revisi
           </button>
         </div>
+        <button class="btn btn-danger btn-sm" style="margin-left:8px;"
+          onclick="konfirmasiTangguhkanOperator('${p.id}')">
+          ⊘ Tangguhkan Usulan
+        </button>
       `;
     } else {
       html += `
         <span style="color:var(--gold-dark);font-weight:500;font-size:0.8rem;background:var(--gold-light);padding:6px 12px;border-radius:4px;border:1px solid rgba(200,132,26,0.2);display:inline-flex;align-items:center;gap:4px;">
           ⏳ Menunggu Anggota Tim menyelesaikan perbaikan
         </span>
+        <button class="btn btn-danger btn-sm" style="margin-left:8px;"
+          onclick="konfirmasiTangguhkanOperator('${p.id}')">
+          ⊘ Tangguhkan Usulan
+        </button>
       `;
     }
   }
@@ -1974,9 +2050,13 @@ function renderWsAksiButtons(p) {
         onclick="navigasiKeCatatanPenilai('${p.id}')">
         + Entry Catatan Penilai
       </button>
-      <button class="btn btn-ghost btn-sm"
+      <button class="btn btn-primary btn-sm"
         onclick="konfirmasiUbahStatusOperator('${p.id}','Dilanjutkan')">
         Tandai Dilanjutkan
+      </button>
+      <button class="btn btn-danger btn-sm"
+        onclick="konfirmasiTangguhkanOperator('${p.id}')">
+        ⊘ Tangguhkan Usulan
       </button>
     `;
   }
@@ -1987,6 +2067,10 @@ function renderWsAksiButtons(p) {
       <button class="btn btn-primary btn-sm"
         onclick="konfirmasiUbahStatusOperator('${p.id}', 'Final')">
         Tandai Final (Lolos Penetapan)
+      </button>
+      <button class="btn btn-danger btn-sm"
+        onclick="konfirmasiTangguhkanOperator('${p.id}')">
+        ⊘ Tangguhkan Usulan
       </button>
     `;
   }
@@ -2249,38 +2333,36 @@ async function handlePresentasiUpload(input) {
 
   const progress = document.getElementById('ws-presentasi-upload-progress');
   const status   = document.getElementById('ws-presentasi-upload-status');
+  const label    = input.parentElement;
 
-  progress.classList.remove('hidden');
-  status.textContent = 'Membaca file...';
+  if (progress) progress.classList.remove('hidden');
+  if (status) status.textContent = 'Mengonversi berkas presentasi...';
+  if (input) input.disabled = true;
+  if (label) {
+    label.style.pointerEvents = 'none';
+    label.style.opacity = '0.5';
+  }
 
   try {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      status.textContent = 'Mengupload ke Google Drive...';
-      const fileMeta = {
-        name: file.name,
-        mimeType: file.type,
-        base64: e.target.result,
-        gantiFileId: gantiPresentasiFileId
-      };
-      
-      try {
-        await gasCall('uploadPresentasi', App.user.email, p.id, fileMeta);
-        showToast('Berkas presentasi berhasil diunggah.', 'success');
-        bukaWsProposal(p.id);
-      } catch (uploadErr) {
-        showToast('Upload gagal: ' + uploadErr.message, 'error');
-      } finally {
-        progress.classList.add('hidden');
-        input.value = '';
-        gantiPresentasiFileId = null;
-      }
+    const base64 = await fileToBase64(file);
+    const fileMeta = {
+      name: file.name,
+      mimeType: file.type,
+      base64: base64,
+      gantiFileId: gantiPresentasiFileId
     };
-    reader.readAsDataURL(file);
+    await gasCall('uploadPresentasi', App.user.email, p.id, fileMeta);
+    showToast('Berkas presentasi berhasil diunggah.', 'success');
+    bukaWsProposal(p.id);
   } catch (err) {
-    showToast('Gagal membaca file: ' + err.message, 'error');
-    progress.classList.add('hidden');
-    input.value = '';
+    showToast('Upload gagal: ' + err.message, 'error');
+  } finally {
+    if (progress) progress.classList.add('hidden');
+    if (input) { input.disabled = false; input.value = ''; }
+    if (label) {
+      label.style.pointerEvents = '';
+      label.style.opacity = '';
+    }
     gantiPresentasiFileId = null;
   }
 }
@@ -2292,36 +2374,35 @@ async function handleSertifikatUpload(input) {
 
   const progress = document.getElementById('ws-sertifikat-upload-progress');
   const status   = document.getElementById('ws-sertifikat-upload-status');
+  const label    = input.parentElement;
 
-  progress.classList.remove('hidden');
-  status.textContent = 'Membaca file...';
+  if (progress) progress.classList.remove('hidden');
+  if (status) status.textContent = 'Mengonversi sertifikat...';
+  if (input) input.disabled = true;
+  if (label) {
+    label.style.pointerEvents = 'none';
+    label.style.opacity = '0.5';
+  }
 
   try {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      status.textContent = 'Mengupload ke Google Drive...';
-      const fileMeta = {
-        name: file.name,
-        mimeType: file.type,
-        base64: e.target.result
-      };
-      
-      try {
-        await gasCall('uploadSertifikat', App.user.email, p.id, fileMeta);
-        showToast('Sertifikat berhasil diunggah.', 'success');
-        bukaWsProposal(p.id);
-      } catch (uploadErr) {
-        showToast('Upload gagal: ' + uploadErr.message, 'error');
-      } finally {
-        progress.classList.add('hidden');
-        input.value = '';
-      }
+    const base64 = await fileToBase64(file);
+    const fileMeta = {
+      name: file.name,
+      mimeType: file.type,
+      base64: base64
     };
-    reader.readAsDataURL(file);
+    await gasCall('uploadSertifikat', App.user.email, p.id, fileMeta);
+    showToast('Sertifikat berhasil diunggah.', 'success');
+    bukaWsProposal(p.id);
   } catch (err) {
-    showToast('Gagal membaca file: ' + err.message, 'error');
-    progress.classList.add('hidden');
-    input.value = '';
+    showToast('Upload gagal: ' + err.message, 'error');
+  } finally {
+    if (progress) progress.classList.add('hidden');
+    if (input) { input.disabled = false; input.value = ''; }
+    if (label) {
+      label.style.pointerEvents = '';
+      label.style.opacity = '';
+    }
   }
 }
 
@@ -2377,7 +2458,6 @@ function kembaliKeDaftarFolder() {
 async function buatFormulirBaru() {
   const p = App.data.wsProposal;
   if (!p) return;
-  showToast('Membuat formulir baru...', 'info');
   try {
     await gasCall('buatFormulirProposal', App.user.email, p.id);
     showToast('Formulir berhasil dibuat.', 'success');
@@ -2386,6 +2466,66 @@ async function buatFormulirBaru() {
     showToast('Gagal membuat formulir: ' + err.message, 'error');
   }
 }
+
+async function handleFormulirUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const p        = App.data.wsProposal;
+  const progress = document.getElementById('ws-formulir-upload-progress');
+  const status   = document.getElementById('ws-formulir-upload-status');
+  const label    = input.parentElement;
+
+  // Validasi client-side
+  const validMimes = [
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword'
+  ];
+  const isWord = validMimes.indexOf(file.type) !== -1 || file.name.endsWith('.docx') || file.name.endsWith('.doc');
+
+  if (!isWord) {
+    showToast('Hanya file Word (.docx / .doc) yang diizinkan.', 'error');
+    input.value = '';
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    showToast('Ukuran file melebihi batas 15MB.', 'error');
+    input.value = '';
+    return;
+  }
+
+  if (progress) progress.classList.remove('hidden');
+  if (status) status.textContent = 'Mengonversi dan mengunggah ke Drive...';
+  if (input) input.disabled = true;
+  if (label) {
+    label.style.pointerEvents = 'none';
+    label.style.opacity = '0.5';
+  }
+
+  try {
+    const base64 = await fileToBase64(file);
+    await gasCall('uploadFormulirPertama', App.user.email, p.id, {
+      name        : file.name,
+      mimeType    : file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      base64      : base64,
+      sizeBytes   : file.size
+    });
+
+    input.value = '';
+    showToast('Formulir berhasil diunggah dan dikonversi.', 'success');
+    bukaWsProposal(p.id); // refresh
+  } catch (err) {
+    showToast('Gagal unggah formulir: ' + err.message, 'error');
+  } finally {
+    if (progress) progress.classList.add('hidden');
+    if (input) { input.disabled = false; input.value = ''; }
+    if (label) {
+      label.style.pointerEvents = '';
+      label.style.opacity = '';
+    }
+  }
+}
+
 
 function konfirmasiNaikVersi() {
   showKonfirmasi(
@@ -2421,15 +2561,12 @@ function konfirmasiHapusFormulir() {
 async function eksekusiHapusFormulir() {
   const p = App.data.wsProposal;
   if (!p) return;
-  showLoading('Menghapus formulir...');
   try {
     await gasCall('deleteActiveFormulir', App.user.email, p.id);
     showToast('Formulir berhasil dihapus.', 'success');
     bukaWsProposal(p.id); // refresh
   } catch (err) {
     showToast('Gagal menghapus formulir: ' + err.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -2442,15 +2579,12 @@ function konfirmasiHapusKajian(proposalId, fileId, fileName) {
 }
 
 async function eksekusiHapusKajian(proposalId, fileId) {
-  showLoading('Menghapus file kajian...');
   try {
     await gasCall('deleteKajianFile', App.user.email, proposalId, fileId);
     showToast('File kajian berhasil dihapus.', 'success');
     bukaWsProposal(proposalId); // refresh
   } catch (err) {
     showToast('Gagal menghapus kajian: ' + err.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -2463,15 +2597,12 @@ function konfirmasiHapusFoto(proposalId, fileId, fileName) {
 }
 
 async function eksekusiHapusFoto(proposalId, fileId) {
-  showLoading('Menghapus foto...');
   try {
     await gasCall('deleteFotoFile', App.user.email, proposalId, fileId);
     showToast('Foto berhasil dihapus.', 'success');
-    bukaWsProposal(proposalId); // refresh
+    bukaWsProposal(proposalId, 'foto'); // refresh, kembali ke tab foto
   } catch (err) {
     showToast('Gagal menghapus foto: ' + err.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -2484,15 +2615,12 @@ function konfirmasiHapusVideo(proposalId) {
 }
 
 async function eksekusiHapusVideo(proposalId) {
-  showLoading('Menghapus video...');
   try {
     await gasCall('deleteVideoUrl', App.user.email, proposalId);
     showToast('Video URL berhasil dihapus.', 'success');
-    bukaWsProposal(proposalId); // refresh
+    bukaWsProposal(proposalId, 'video'); // refresh, kembali ke tab video
   } catch (err) {
     showToast('Gagal menghapus video: ' + err.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -2514,6 +2642,7 @@ async function handleKajianUpload(input) {
   const p        = App.data.wsProposal;
   const progress = document.getElementById('ws-kajian-upload-progress');
   const status   = document.getElementById('ws-kajian-upload-status');
+  const label    = input.parentElement;
 
   // Validasi client-side
   if (file.type !== 'application/pdf') {
@@ -2525,13 +2654,16 @@ async function handleKajianUpload(input) {
     return;
   }
 
-  progress.classList.remove('hidden');
-  status.textContent = 'Mengkonversi file...';
+  if (progress) progress.classList.remove('hidden');
+  if (status) status.textContent = 'Mengonversi kajian ilmiah...';
+  if (input) input.disabled = true;
+  if (label) {
+    label.style.pointerEvents = 'none';
+    label.style.opacity = '0.5';
+  }
 
   try {
     const base64 = await fileToBase64(file);
-    status.textContent = 'Mengunggah ke Drive...';
-
     await gasCall('uploadKajian', App.user.email, p.id, {
       name        : file.name,
       mimeType    : file.type,
@@ -2543,11 +2675,16 @@ async function handleKajianUpload(input) {
     App.data.wsGantiKajianId = null;
     input.value = '';
     showToast('Kajian berhasil diunggah.', 'success');
-    bukaWsProposal(p.id);
+    bukaWsProposal(p.id, 'kajian');
   } catch (err) {
     showToast('Gagal unggah kajian: ' + err.message, 'error');
   } finally {
-    progress.classList.add('hidden');
+    if (progress) progress.classList.add('hidden');
+    if (input) { input.disabled = false; input.value = ''; }
+    if (label) {
+      label.style.pointerEvents = '';
+      label.style.opacity = '';
+    }
   }
 }
 
@@ -2568,6 +2705,7 @@ async function handleFotoUpload(input) {
   const p        = App.data.wsProposal;
   const progress = document.getElementById('ws-foto-upload-progress');
   const status   = document.getElementById('ws-foto-upload-status');
+  const label    = input.parentElement;
 
   // Validasi total payload
   const totalSize = files.reduce((acc, f) => acc + f.size, 0);
@@ -2582,14 +2720,19 @@ async function handleFotoUpload(input) {
       showToast(`${f.name}: hanya JPG/PNG yang diizinkan.`, 'error');
       return;
     }
-    if (f.size > 5 * 1024 * 1024) {
-      showToast(`${f.name}: ukuran melebihi 5MB.`, 'error');
+    if (f.size > 10 * 1024 * 1024) {
+      showToast(`${f.name}: ukuran melebihi 10MB.`, 'error');
       return;
     }
   }
 
-  progress.classList.remove('hidden');
-  status.textContent = 'Mengkonversi ' + files.length + ' foto...';
+  if (progress) progress.classList.remove('hidden');
+  if (status) status.textContent = 'Mengonversi ' + files.length + ' foto...';
+  if (input) input.disabled = true;
+  if (label) {
+    label.style.pointerEvents = 'none';
+    label.style.opacity = '0.5';
+  }
 
   try {
     const payloads = await Promise.all(files.map(async (f) => ({
@@ -2599,8 +2742,6 @@ async function handleFotoUpload(input) {
       sizeBytes : f.size
     })));
 
-    status.textContent = 'Mengunggah ke Drive...';
-
     await gasCall('uploadFoto', App.user.email, p.id, {
       files       : payloads,
       gantiFileId : App.data.wsGantiFotoId || null
@@ -2609,11 +2750,16 @@ async function handleFotoUpload(input) {
     App.data.wsGantiFotoId = null;
     input.value = '';
     showToast(files.length + ' foto berhasil diunggah.', 'success');
-    bukaWsProposal(p.id);
+    bukaWsProposal(p.id, 'foto');
   } catch (err) {
     showToast('Gagal unggah foto: ' + err.message, 'error');
   } finally {
-    progress.classList.add('hidden');
+    if (progress) progress.classList.add('hidden');
+    if (input) { input.disabled = false; input.value = ''; }
+    if (label) {
+      label.style.pointerEvents = '';
+      label.style.opacity = '';
+    }
   }
 }
 
@@ -2628,7 +2774,7 @@ async function simpanVideoUrl() {
   try {
     await gasCall('simpanVideoUrl', App.user.email, p.id, url, keterangan);
     showToast('URL video berhasil disimpan.', 'success');
-    bukaWsProposal(p.id);
+    bukaWsProposal(p.id, 'video');
   } catch (err) {
     showToast('Gagal simpan URL: ' + err.message, 'error');
   }
@@ -2642,7 +2788,10 @@ async function tampilVerifikasiMandiri() {
   const btn  = document.getElementById('btn-kirim-final');
 
   card.classList.remove('hidden');
-  card.scrollIntoView({ behavior: 'smooth' });
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const triggerBtn = document.querySelector('#ws-aksi-buttons .btn-primary');
+  if (triggerBtn) triggerBtn.style.display = 'none';
+
   items.innerHTML = '<div class="text-muted">Memeriksa...</div>';
   btn.disabled    = true;
 
@@ -2680,6 +2829,10 @@ async function tampilVerifikasiMandiri() {
 
 function tutupVerifikasi() {
   document.getElementById('ws-verifikasi-card').classList.add('hidden');
+
+  // Tampilkan kembali tombol trigger di header
+  const triggerBtn = document.querySelector('#ws-aksi-buttons .btn-primary');
+  if (triggerBtn) triggerBtn.style.display = '';
 }
 
 async function kirimKeAtasan() {
@@ -2687,6 +2840,7 @@ async function kirimKeAtasan() {
   try {
     await gasCall('updateProposalStatus', App.user.email, p.id, 'Persetujuan Internal');
     showToast('Folder berhasil dikirim ke Atasan untuk diverifikasi.', 'success');
+    tutupVerifikasi(); // Tutup card verifikasi sebelum reload
     bukaWsProposal(p.id);
   } catch (err) {
     showToast('Gagal kirim: ' + err.message, 'error');
@@ -2703,7 +2857,6 @@ function konfirmasiHapusUsulan(proposalId) {
 }
 
 async function eksekusiHapusUsulan(proposalId) {
-  showLoading('Menghapus usulan...');
   try {
     await gasCall('deleteProposal', App.user.email, proposalId);
     showToast('Usulan berhasil dihapus.', 'success');
@@ -2718,8 +2871,6 @@ async function eksekusiHapusUsulan(proposalId) {
     }
   } catch (err) {
     showToast('Gagal menghapus usulan: ' + err.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
@@ -3096,19 +3247,31 @@ function tampilModalDetailOperator(p) {
   // Ubah status yang diizinkan Operator
   if (p.status === 'Persetujuan Internal' && p.isApprovedByAtasan === true) {
     aksiHtml += `
-      <button class="btn btn-ghost btn-sm"
+      <button class="btn btn-primary btn-sm"
         onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Dilanjutkan')">
         Tandai Dilanjutkan
+      </button>
+      <button class="btn btn-danger btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiTangguhkanOperator('${p.id}')">
+        ⊘ Tangguhkan Usulan
       </button>
     `;
   }
 
   // Tandai Selesai Revisi — jika status Diperbaiki (Revisi Nasional selesai) dan sudah dilaporkan selesai oleh anggota
-  if (p.status === 'Diperbaiki' && p.isRevisiSelesai === true) {
+  if (p.status === 'Diperbaiki') {
+    if (p.isRevisiSelesai === true) {
+      aksiHtml += `
+        <button class="btn btn-ghost btn-sm"
+          onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Sedang Dikerjakan')">
+          Tandai Selesai Revisi
+        </button>
+      `;
+    }
     aksiHtml += `
-      <button class="btn btn-ghost btn-sm"
-        onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Sedang Dikerjakan')">
-        Tandai Selesai Revisi
+      <button class="btn btn-danger btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiTangguhkanOperator('${p.id}')">
+        ⊘ Tangguhkan Usulan
       </button>
     `;
   }
@@ -3119,6 +3282,10 @@ function tampilModalDetailOperator(p) {
       <button class="btn btn-primary btn-sm"
         onclick="closeModal('modal-detail-operator');konfirmasiUbahStatusOperator('${p.id}','Final')">
         Tandai Final (Lolos Penetapan)
+      </button>
+      <button class="btn btn-danger btn-sm"
+        onclick="closeModal('modal-detail-operator');konfirmasiTangguhkanOperator('${p.id}')">
+        ⊘ Tangguhkan Usulan
       </button>
     `;
   }
@@ -3165,14 +3332,11 @@ async function kirimHasilPerbaikan(proposalId) {
     'Apakah Anda yakin telah menyelesaikan seluruh perbaikan sesuai Catatan Penilai Eksternal dan ingin mengirimkannya ke Operator?',
     async () => {
       try {
-        showLoading('Mengirim laporan perbaikan...');
         await gasCall('setRevisiSelesai', App.user.email, proposalId, true);
         showToast('Laporan perbaikan berhasil dikirim ke Operator.', 'success');
         bukaWsProposal(proposalId);
       } catch (err) {
         showToast('Gagal mengirim perbaikan: ' + err.message, 'error');
-      } finally {
-        hideLoading();
       }
     }
   );
@@ -3838,6 +4002,75 @@ async function renderVerifikasi() {
           </div>
         </div>
 
+        <!-- Panel Keputusan Atasan -->
+        <div class="card" id="ver-keputusan-card" style="margin-top: 20px; margin-bottom: 20px;">
+          <div class="card-header">
+            <h3>Keputusan Verifikasi</h3>
+            <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
+          </div>
+
+          <!-- Pilih keputusan -->
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="btn-ver-acc" onclick="pilihKeputusan('acc')">
+              ✓ Setujui (ACC)
+            </button>
+            <button class="btn btn-danger" id="btn-ver-kembalikan"
+              onclick="pilihKeputusan('kembalikan')">
+              ↩ Kembalikan untuk Diperbaiki
+            </button>
+          </div>
+
+          <!-- Form ACC -->
+          <div id="ver-form-acc" class="hidden">
+            <div class="alert alert-success">
+              <div>
+                <div style="font-weight:500;margin-bottom:4px;">Konfirmasi Persetujuan Internal</div>
+                <div style="font-size:0.85rem;">
+                  Dokumen usulan akan disetujui dan statusnya berubah menjadi
+                  <strong>Persetujuan Internal</strong>. Pastikan seluruh dokumen
+                  sudah diperiksa dan memenuhi standar Kementerian.
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+              <button class="btn btn-primary" onclick="eksekusiACC()">
+                Ya, Setujui Usulan Ini
+              </button>
+            </div>
+          </div>
+
+          <!-- Form Kembalikan -->
+          <div id="ver-form-kembalikan" class="hidden">
+            <div class="alert alert-gold" style="margin-bottom:16px;">
+              <div style="font-size:0.85rem;">
+                Catatan perbaikan akan disampaikan ke Anggota Tim.
+                Status berubah ke <strong>Sedang Dikerjakan</strong>.
+                Ini berbeda dari Catatan Penilai Eksternal — ini catatan internal Atasan.
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Catatan Perbaikan <span class="required">*</span>
+              </label>
+              <textarea id="input-catatan-kembalikan" class="form-control"
+                rows="6" style="resize:vertical;"
+                placeholder="1. Kajian ilmiah: Tambahkan minimal 3 narasumber primer dari komunitas lokal.&#10;2. Foto dokumentasi: Ganti set foto dengan kualitas lebih tinggi.&#10;3. Formulir: Data lokasi tidak konsisten dengan kajian."></textarea>
+              <div class="form-hint">
+                Format poin bernomor wajib (Juknis Bab VIII huruf G).
+                Minimal ada poin "1."
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
+              <button class="btn btn-danger" onclick="eksekusiKembalikan()">
+                Kembalikan dengan Catatan
+              </button>
+            </div>
+          </div>
+
+        </div>
+
         <!-- Tabs dokumen -->
         <div class="card">
           <div class="ws-tabs-container" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin:-20px -20px 20px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;">
@@ -3899,104 +4132,7 @@ async function renderVerifikasi() {
           </div>
         </div>
 
-        <!-- Panel Keputusan Atasan -->
-        <div class="card" id="ver-keputusan-card">
-          <div class="card-header">
-            <h3>Keputusan Verifikasi</h3>
-            <span class="text-muted" style="font-size:0.75rem;">Juknis Bab VIII huruf D & F</span>
-          </div>
 
-          <!-- Pilih keputusan -->
-          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-            <button class="btn btn-primary" id="btn-ver-acc" onclick="pilihKeputusan('acc')">
-              ✓ Setujui (ACC)
-            </button>
-            <button class="btn btn-danger" id="btn-ver-kembalikan"
-              onclick="pilihKeputusan('kembalikan')">
-              ↩ Kembalikan untuk Diperbaiki
-            </button>
-            <button class="btn btn-ghost" id="btn-ver-tangguhkan"
-              onclick="pilihKeputusan('tangguhkan')">
-              ⊘ Tangguhkan Usulan
-            </button>
-          </div>
-
-          <!-- Form ACC -->
-          <div id="ver-form-acc" class="hidden">
-            <div class="alert alert-success">
-              <div>
-                <div style="font-weight:500;margin-bottom:4px;">Konfirmasi Persetujuan Internal</div>
-                <div style="font-size:0.85rem;">
-                  Dokumen usulan akan disetujui dan statusnya berubah menjadi
-                  <strong>Persetujuan Internal</strong>. Pastikan seluruh dokumen
-                  sudah diperiksa dan memenuhi standar Kementerian.
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
-              <button class="btn btn-primary" onclick="eksekusiACC()">
-                Ya, Setujui Usulan Ini
-              </button>
-            </div>
-          </div>
-
-          <!-- Form Kembalikan -->
-          <div id="ver-form-kembalikan" class="hidden">
-            <div class="alert alert-gold" style="margin-bottom:16px;">
-              <div style="font-size:0.85rem;">
-                Catatan perbaikan akan disampaikan ke Anggota Tim.
-                Status berubah ke <strong>Sedang Dikerjakan</strong>.
-                Ini berbeda dari Catatan Penilai Eksternal — ini catatan internal Atasan.
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">
-                Catatan Perbaikan <span class="required">*</span>
-              </label>
-              <textarea id="input-catatan-kembalikan" class="form-control"
-                rows="6" style="resize:vertical;"
-                placeholder="1. Kajian ilmiah: Tambahkan minimal 3 narasumber primer dari komunitas lokal.&#10;2. Foto dokumentasi: Ganti set foto dengan kualitas lebih tinggi.&#10;3. Formulir: Data lokasi tidak konsisten dengan kajian."></textarea>
-              <div class="form-hint">
-                Format poin bernomor wajib (Juknis Bab VIII huruf G).
-                Minimal ada poin "1."
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
-              <button class="btn btn-danger" onclick="eksekusiKembalikan()">
-                Kembalikan dengan Catatan
-              </button>
-            </div>
-          </div>
-
-          <!-- Form Tangguhkan -->
-          <div id="ver-form-tangguhkan" class="hidden">
-            <div class="alert alert-danger" style="margin-bottom:16px;">
-              <div style="font-size:0.85rem;">
-                <strong>Perhatian:</strong> Penangguhan bersifat permanen.
-                Folder akan dikunci dan tidak bisa dilanjutkan kembali.
-                WBTb yang pernah ditangguhkan dan diusulkan kembali diperlakukan
-                sebagai usulan baru (Juknis Bab IX huruf C).
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">
-                Alasan Penangguhan <span class="required">*</span>
-              </label>
-              <textarea id="input-alasan-tangguhkan" class="form-control"
-                rows="4" style="resize:vertical;"
-                placeholder="Jelaskan alasan penangguhan usulan ini..."></textarea>
-            </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
-              <button class="btn btn-danger" onclick="konfirmasiTangguhkan()">
-                Tangguhkan Usulan Ini
-              </button>
-            </div>
-          </div>
-
-        </div>
       </div>
     </div>
   `);
@@ -4279,10 +4415,6 @@ function renderVerDetail(p) {
           onclick="pilihKeputusan('kembalikan')">
           ↩ Kembalikan untuk Diperbaiki
         </button>
-        <button class="btn btn-ghost" id="btn-ver-tangguhkan"
-          onclick="pilihKeputusan('tangguhkan')">
-          ⊘ Tangguhkan Usulan
-        </button>
       </div>
       
       <!-- Form ACC -->
@@ -4334,31 +4466,7 @@ function renderVerDetail(p) {
         </div>
       </div>
 
-      <!-- Form Tangguhkan -->
-      <div id="ver-form-tangguhkan" class="hidden">
-        <div class="alert alert-danger" style="margin-bottom:16px;">
-          <div style="font-size:0.85rem;">
-            <strong>Perhatian:</strong> Penangguhan bersifat permanen.
-            Folder akan dikunci dan tidak bisa dilanjutkan kembali.
-            WBTb yang pernah ditangguhkan dan diusulkan kembali diperlakukan
-            sebagai usulan baru (Juknis Bab IX huruf C).
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">
-            Alasan Penangguhan <span class="required">*</span>
-          </label>
-          <textarea id="input-alasan-tangguhkan" class="form-control"
-            rows="4" style="resize:vertical;"
-            placeholder="Jelaskan alasan penangguhan usulan ini..."></textarea>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-ghost" onclick="batalKeputusan()">Batal</button>
-          <button class="btn btn-danger" onclick="konfirmasiTangguhkan()">
-            Tangguhkan Usulan Ini
-          </button>
-        </div>
-      </div>
+
     `;
   }
 }
@@ -4373,14 +4481,14 @@ function kembaliKeDaftarVerifikasi() {
 // ── Keputusan ─────────────────────────────────
 
 function pilihKeputusan(jenis) {
-  ['acc','kembalikan','tangguhkan'].forEach(j => {
+  ['acc','kembalikan'].forEach(j => {
     document.getElementById('ver-form-' + j).classList.add('hidden');
   });
   document.getElementById('ver-form-' + jenis).classList.remove('hidden');
 }
 
 function batalKeputusan() {
-  ['acc','kembalikan','tangguhkan'].forEach(j => {
+  ['acc','kembalikan'].forEach(j => {
     const el = document.getElementById('ver-form-' + j);
     if (el) el.classList.add('hidden');
   });
@@ -4424,28 +4532,39 @@ async function eksekusiKembalikan() {
   }
 }
 
-function konfirmasiTangguhkan() {
-  const alasan = document.getElementById('input-alasan-tangguhkan').value.trim();
+function konfirmasiTangguhkanOperator(proposalId) {
+  App.data.tangguhTargetId = proposalId;
+  document.getElementById('input-alasan-tangguhkan-op').value = '';
+  openModal('modal-tangguhkan-operator');
+}
+
+async function eksekusiTangguhkanOperator() {
+  const proposalId = App.data.tangguhTargetId;
+  const alasan = document.getElementById('input-alasan-tangguhkan-op').value.trim();
+  
   if (!alasan) {
     showToast('Alasan penangguhan wajib diisi.', 'error');
     return;
   }
-  showKonfirmasi(
-    'Konfirmasi Penangguhan',
-    'Tindakan ini bersifat permanen. Folder akan dikunci dan tidak bisa dilanjutkan. Lanjutkan?',
-    () => eksekusiTangguhkan(alasan)
-  );
-}
-
-async function eksekusiTangguhkan(alasan) {
-  const p = App.data.verProposal;
-  if (!p) return;
-
+  
   try {
-    await gasCall('tangguhkanProposal', App.user.email, p.id, alasan);
-    showToast('Usulan ' + p.id + ' ditangguhkan secara permanen.', 'success');
-    kembaliKeDaftarVerifikasi();
-    renderVerifikasi();
+    await gasCall('tangguhkanProposal', App.user.email, proposalId, alasan);
+    closeModal('modal-tangguhkan-operator');
+    showToast('Usulan ' + proposalId + ' ditangguhkan secara permanen.', 'success');
+    
+    // Refresh context jika ada di workspace atau modal detail
+    if (App.data.activeProposalId === proposalId) {
+      loadWorkspaceDetail(proposalId);
+    }
+    
+    // Auto refresh jika ada di list Semua Usulan
+    const tableBody = document.getElementById('sem-table-body');
+    if (tableBody) {
+      const isVisible = !!(tableBody.offsetWidth || tableBody.offsetHeight || tableBody.getClientRects().length);
+      if (isVisible) {
+        loadSemuaUsulan();
+      }
+    }
   } catch (err) {
     showToast('Gagal tangguhkan: ' + err.message, 'error');
   }
@@ -5249,7 +5368,22 @@ function showKonfirmasi(title, body, onOk) {
   document.getElementById('konfirmasi-title').textContent = title;
   document.getElementById('konfirmasi-body').textContent  = body;
   const btn = document.getElementById('btn-konfirmasi-ok');
-  btn.onclick = () => { closeModal('modal-konfirmasi'); onOk(); };
+  btn.disabled = false;
+  btn.innerHTML = 'Ya, Lanjutkan';
+  btn.onclick = async () => {
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Memproses...';
+    try {
+      await onOk();
+      closeModal('modal-konfirmasi');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  };
   openModal('modal-konfirmasi');
 }
 
@@ -5328,6 +5462,41 @@ document.addEventListener('click', function() {
 // ════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- Modal Tangguhkan Operator -->
+<div id="modal-tangguhkan-operator" class="modal-overlay hidden">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Konfirmasi Penangguhan</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-tangguhkan-operator')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-danger" style="margin-bottom:16px;">
+        <div style="font-size:0.85rem;">
+          <strong>Perhatian:</strong> Penangguhan bersifat permanen.
+          Folder akan dikunci dan tidak bisa dilanjutkan kembali.
+          WBTb yang pernah ditangguhkan dan diusulkan kembali diperlakukan
+          sebagai usulan baru (Juknis Bab IX huruf C).
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Alasan Penangguhan <span class="required">*</span>
+        </label>
+        <textarea id="input-alasan-tangguhkan-op" class="form-control"
+          rows="4" style="resize:vertical;"
+          placeholder="Jelaskan alasan penangguhan usulan ini..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-tangguhkan-operator')">Batal</button>
+      <button class="btn btn-danger" onclick="eksekusiTangguhkanOperator()">
+        Tangguhkan Usulan
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── ARSIP HISTORIS UI TEMPLATE ────────────────── -->
 <?!= include('jong_wbtb_arsip_ui'); ?>
 
